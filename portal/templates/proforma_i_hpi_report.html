@@ -232,7 +232,10 @@
           <td colspan="5" style="text-align:center;">
             {% if row.indicator_code == '15' %}
               {% if current_user.is_admin_or_above %}
-              <input type="number" min="0" name="single_{{ row.id }}" value="{{ row.total }}" data-role="single-auto" data-code="15" data-row-id="{{ row.id }}" readonly style="width:80%;text-align:center;">
+              <div style="display:flex; gap:6px; align-items:center; justify-content:center;">
+              <input type="number" min="0" name="single_{{ row.id }}" value="{{ row.total }}" data-role="single-auto" data-code="15" data-row-id="{{ row.id }}" readonly style="width:70%;text-align:center;" title="Auto-calculated: 13+14">
+              <span style="font-size:0.75em; background:#ff9800; color:#fff; padding:2px 6px; border-radius:3px; white-space:nowrap; font-weight:bold;">Formula</span>
+              </div>
               {% else %}{{ row.total }}{% endif %}
             {% else %}
               {% if current_user.is_admin_or_above %}
@@ -272,7 +275,10 @@
           </td>
           <td class="c-total">
             {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}" {% if row.indicator_code == '10' %}readonly{% endif %}>
+            <div style="display:flex; gap:4px; align-items:center;">
+            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}" {% if row.indicator_code == '10' %}readonly title="Auto-calculated: 5+6+7+8"{% endif %} style="flex:1;">
+            {% if row.indicator_code == '10' %}<span style="font-size:0.75em; background:#ff9800; color:#fff; padding:2px 6px; border-radius:3px; white-space:nowrap; font-weight:bold;">Formula</span>{% endif %}
+            </div>
             {% else %}{{ row.total }}{% endif %}
           </td>
           <td class="c-remarks">
