@@ -249,6 +249,7 @@
           </td>
         </tr>
         {% else %}
+        {% if row.indicator_code == '10' %}
         <tr class="row-multi row-auto">
           <td class="c-code">{{ row.indicator_code }}</td>
           <td class="c-name">{{ row.indicator_label }}<br><span style="font-size:0.75em; background:#ff9800; color:#fff; padding:2px 6px; border-radius:3px; font-weight:bold;">Formula: 5+6+7+8</span></td>
@@ -285,6 +286,42 @@
             {% else %}{{ row.remarks }}{% endif %}
           </td>
         </tr>
+        {% else %}
+        <tr class="row-multi">
+          <td class="c-code">{{ row.indicator_code }}</td>
+          <td class="c-name">{{ row.indicator_label }}</td>
+          <td class="c-num">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="male_{{ row.id }}" value="{{ row.male }}" data-role="male" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}">
+            {% else %}{{ row.male }}{% endif %}
+          </td>
+          <td class="c-num">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="female_{{ row.id }}" value="{{ row.female }}" data-role="female" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}">
+            {% else %}{{ row.female }}{% endif %}
+          </td>
+          <td class="c-num">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="male_child_{{ row.id }}" value="{{ row.male_child_u14 }}" data-role="male-child" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}">
+            {% else %}{{ row.male_child_u14 }}{% endif %}
+          </td>
+          <td class="c-num">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="female_child_{{ row.id }}" value="{{ row.female_child_u14 }}" data-role="female-child" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}">
+            {% else %}{{ row.female_child_u14 }}{% endif %}
+          </td>
+          <td class="c-total">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}" readonly>
+            {% else %}{{ row.total }}{% endif %}
+          </td>
+          <td class="c-remarks">
+            {% if current_user.is_admin_or_above %}
+            <textarea name="remarks_{{ row.id }}">{{ row.remarks }}</textarea>
+            {% else %}{{ row.remarks }}{% endif %}
+          </td>
+        </tr>
+        {% endif %}
         {% endif %}
         {% endfor %}
         <tr style="background:#e8eaf6;">
