@@ -1,13 +1,12 @@
 services:
   - type: web
     name: opd-portal
-    env: node
-    plan: free
+    runtime: node
     buildCommand: npm install
     startCommand: node server.js
     envVars:
-      - key: NODE_ENV
-        value: production
+      - key: NODE_VERSION
+        value: 20
       - key: DATABASE_URL
         fromDatabase:
           name: opd-db
@@ -15,5 +14,6 @@ services:
 
 databases:
   - name: opd-db
+    databaseName: opdportal
     plan: free
 
