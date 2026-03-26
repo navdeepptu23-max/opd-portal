@@ -68,6 +68,28 @@
     border-radius: 6px;
     border: 1px solid #c3c3c3;
   }
+  .btn-export {
+    padding: 0.4rem 0.85rem;
+    border-radius: 6px;
+    border: 1px solid #888;
+    background: #f4f4f4;
+    color: #222;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  .btn-export:hover { background: #dde; }
+  @media print {
+    .no-print { display: none !important; }
+    body, .hpi-wrap { background: #fff !important; color: #000 !important; }
+    .hpi-table input, .hpi-table textarea {
+      border: none !important;
+      background: transparent !important;
+      padding: 0 !important;
+    }
+    .page-header { display: none !important; }
+  }
 </style>
 
 <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
@@ -94,6 +116,9 @@
         {% if current_user.is_admin_or_above %}
         <button type="submit" class="btn btn-primary btn-sm">Save Report</button>
         {% endif %}
+        <button type="button" class="btn-export no-print" onclick="printReport()">&#128438; Print</button>
+        <button type="button" class="btn-export no-print" onclick="exportPDF()">&#11015; PDF</button>
+        <button type="button" class="btn-export no-print" onclick="exportExcel()">&#11015; Excel</button>
       </div>
     </div>
 
@@ -293,4 +318,63 @@
   })();
 </script>
 {% endif %}
+
+<!-- CDN libraries for export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+<script>
+  function printReport() {
+    window.print();
+  }
+
+  function exportPDF() {
+    const el = document.querySelector('.hpi-table');
+    const month = (document.getElementById('header-month-year') || {value: '{{ month_year }}'}).value || '{{ month_year }}';
+    const opt = {
+      margin:       [8, 6, 8, 6],
+      filename:     'PROFORMA-I_' + month + '.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+    html2pdf().set(opt).from(el).save();
+  }
+
+  function exportExcel() {
+    const month = (document.getElementById('header-month-year') || {value: '{{ month_year }}'}).value || '{{ month_year }}';
+    const table = document.querySelector('.hpi-table');
+
+    // Build a clean 2-D array from the table, resolving input/textarea values
+    const data = [];
+    const rows = table.querySelectorAll('tr');
+    rows.forEach((tr) => {
+      const rowData = [];
+      tr.querySelectorAll('th, td').forEach((cell) => {
+        const inp = cell.querySelector('input[type="number"], input[type="text"]');
+        const ta  = cell.querySelector('textarea');
+        if (inp)      rowData.push(inp.value);
+        else if (ta)  rowData.push(ta.value);
+        else          rowData.push(cell.innerText.trim());
+      });
+      data.push(rowData);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+
+    // Merge header rows that span all 8 columns
+    ws['!merges'] = [
+      {s:{r:0,c:0}, e:{r:0,c:7}},
+      {s:{r:1,c:0}, e:{r:1,c:7}},
+      {s:{r:2,c:0}, e:{r:2,c:7}},
+    ];
+
+    // Column widths
+    ws['!cols'] = [{wch:8},{wch:50},{wch:10},{wch:10},{wch:12},{wch:14},{wch:10},{wch:20}];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'PROFORMA-I');
+    XLSX.writeFile(wb, 'PROFORMA-I_' + month + '.xlsx');
+  }
+</script>
 {% endblock %}
