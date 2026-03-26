@@ -7,7 +7,7 @@
     background: #ffffff;
     color: #000000;
     border-radius: 8px;
-    padding: 12px;
+    padding: 14px;
     overflow-x: auto;
   }
   .p2-toolbar {
@@ -29,6 +29,7 @@
     padding: 0.45rem 0.6rem;
     border-radius: 6px;
     border: 1px solid #c3c3c3;
+    min-height: 34px;
   }
   .btn-export {
     padding: 0.4rem 0.85rem;
@@ -49,25 +50,28 @@
     border-collapse: collapse;
     table-layout: fixed;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 700;
     background: #e6e6e6;
     color: #000;
+    line-height: 1.15;
   }
   .p2-table th,
   .p2-table td {
     border: 1px solid #444;
-    padding: 3px 6px;
+    padding: 4px 6px;
     vertical-align: middle;
-    word-wrap: break-word;
+    word-break: break-word;
   }
   .p2-table .center { text-align: center; }
   .p2-table .sr { width: 6%; text-align: center; }
-  .p2-table .disease { width: 61%; }
+  .p2-table .disease { width: 61%; text-align: left; }
   .p2-table .opd { width: 16%; text-align: center; }
   .p2-table .ipd { width: 17%; text-align: center; }
-  .p2-table .title { text-align: center; font-size: 31px; }
-  .p2-table .subtitle { text-align: center; font-size: 32px; }
+  .p2-table .title { text-align: center; font-size: 28px; letter-spacing: 0.2px; }
+  .p2-table .subtitle { text-align: center; font-size: 26px; letter-spacing: 0.2px; }
+  .p2-table tbody td:nth-child(3),
+  .p2-table tbody td:nth-child(4) { text-align: center; }
   .p2-table input[type='text'],
   .p2-table input[type='number'] {
     width: 100%;
@@ -77,7 +81,9 @@
     padding: 4px;
     font-weight: 700;
     font-family: Arial, Helvetica, sans-serif;
+    min-height: 30px;
   }
+  .p2-table input[type='number'] { text-align: center; }
 
   @media print {
     @page { size: A4 portrait; margin: 6mm; }
@@ -87,6 +93,12 @@
     .p2-table { width: 100% !important; font-size: 10pt !important; table-layout: auto !important; color: #000 !important; }
     .p2-table th, .p2-table td { color: #000 !important; border: 1px solid #000 !important; }
     .p2-table input { border: none !important; background: transparent !important; color: #000 !important; padding: 0 !important; }
+  }
+
+  @media (max-width: 768px) {
+    .p2-table { font-size: 12px; min-width: 680px; }
+    .p2-table .title { font-size: 22px; }
+    .p2-table .subtitle { font-size: 18px; }
   }
 </style>
 
