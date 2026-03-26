@@ -272,7 +272,7 @@
           </td>
           <td class="c-total">
             {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-row-id="{{ row.id }}" readonly>
+            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}" {% if row.indicator_code == '10' %}readonly{% endif %}>
             {% else %}{{ row.total }}{% endif %}
           </td>
           <td class="c-remarks">
@@ -336,6 +336,22 @@
     });
 
     uniqueRowIds.forEach(updateRowTotal);
+
+    // Row 10 = Row 5 + Row 6 + Row 7 + Row 8 auto-sum
+    const update10 = () => {
+      const r5 = document.querySelector('input[data-code="5"]');
+      const r6 = document.querySelector('input[data-code="6"]');
+      const r7 = document.querySelector('input[data-code="7"]');
+      const r8 = document.querySelector('input[data-code="8"]');
+      const r10 = document.querySelector('input[data-code="10"]');
+      if (r5 && r6 && r7 && r8 && r10) {
+        r10.value = String(toInt(r5.value) + toInt(r6.value) + toInt(r7.value) + toInt(r8.value));
+      }
+    };
+    [document.querySelector('input[data-code="5"]'), document.querySelector('input[data-code="6"]'), document.querySelector('input[data-code="7"]'), document.querySelector('input[data-code="8"]')]
+      .filter(Boolean)
+      .forEach((el) => { el.addEventListener('input', update10); el.addEventListener('change', update10); });
+    update10();
 
     // Row 15 = Row 13 + Row 14 auto-sum
     const update15 = () => {

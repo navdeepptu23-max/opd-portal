@@ -351,9 +351,16 @@ def proforma_i_hpi_report():
                 row.female_child_u14 = _to_non_negative_int(request.form.get(f'female_child_{row.id}', 0))
                 row.total = row.male + row.female + row.male_child_u14 + row.female_child_u14
             row.remarks = (request.form.get(f'remarks_{row.id}') or '').strip()[:260]
-        # Row 15 = Row 13 + Row 14
+        
+        # Compute auto-sum rows
         _by_code = {r.indicator_code: r for r in rows}
-        if '15' in _by_code and '13' in _by_code and '14' in _by_code:
+        
+        # Row 10 = Row 5 + Row 6 + Row 7 + Row 8
+        if all(c in _by_code for c in ['5', '6', '7', '8', '10']):
+            _by_code['10'].total = _by_code['5'].total + _by_code['6'].total + _by_code['7'].total + _by_code['8'].total
+        
+        # Row 15 = Row 13 + Row 14
+        if all(c in _by_code for c in ['13', '14', '15']):
             _by_code['15'].total = _by_code['13'].total + _by_code['14'].total
 
         db.session.commit()
