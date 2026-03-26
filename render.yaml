@@ -6,8 +6,7 @@ databases:
 services:
   - type: web
     name: opd-portal
-    runtime: node
-    runtimeVersion: 20
+    env: node
     plan: free
     startCommand: npm start
     autoDeploy: true
