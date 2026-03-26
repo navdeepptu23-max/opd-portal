@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% block title %}PROFORMA-I HPI Report{% endblock %}
+
+{% block content %}
+<style>
+  .hpi-wrap {
+    background: #fff;
+    color: #000;
+    border-radius: 8px;
+    padding: 10px;
+    overflow-x: auto;
+  }
+  .hpi-table {
+    width: 100%;
+    min-width: 1200px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #e6e6e6;
+  }
+  .hpi-table th,
+  .hpi-table td {
+    border: 1px solid #444;
+    padding: 4px;
+    vertical-align: middle;
+    font-weight: 700;
+  }
+  .hpi-table .head-1 { text-align: center; font-size: 30px; }
+  .hpi-table .head-2 { text-align: center; font-size: 31px; }
+  .hpi-table .head-3 { text-align: center; font-size: 34px; }
+  .hpi-table .c-code { width: 5%; text-align: center; }
+  .hpi-table .c-name { width: 28%; }
+  .hpi-table .c-num { width: 10%; text-align: center; }
+  .hpi-table .c-total { width: 9%; text-align: center; }
+  .hpi-table .c-remarks { width: 8%; }
+  .hpi-table input[type='text'],
+  .hpi-table input[type='number'],
+  .hpi-table textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #888;
+    background: #fff;
+    padding: 4px;
+    font-weight: 700;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  .hpi-table textarea {
+    min-height: 38px;
+    resize: vertical;
+  }
+  .toolbar {
+    display: flex;
+    gap: 0.7rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .toolbar-left,
+  .toolbar-right {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .toolbar input {
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid #c3c3c3;
+  }
+</style>
+
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <h1>PROFORMA-I</h1>
+    <p>Health Management Information System Monthly Report for Hospital (Editable)</p>
+  </div>
+</div>
+
+<div class="hpi-wrap">
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="month_year" value="{{ month_year }}">
+
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <label>Month &amp; Year</label>
+        <input type="text" name="month_year_display" value="{{ month_year }}" readonly>
+      </div>
+      <div class="toolbar-right">
+        <label>Load Month</label>
+        <input type="text" name="month_year" value="{{ month_year }}" form="load-month-form">
+        <button type="submit" form="load-month-form" class="btn btn-ghost btn-sm">Load</button>
+        {% if current_user.is_admin_or_above %}
+        <button type="submit" class="btn btn-primary btn-sm">Save Report</button>
+        {% endif %}
+      </div>
+    </div>
+
+    <table class="hpi-table">
+      <colgroup>
+        <col class="c-code">
+        <col class="c-name">
+        <col class="c-num">
+        <col class="c-num">
+        <col class="c-num">
+        <col class="c-num">
+        <col class="c-total">
+        <col class="c-remarks">
+      </colgroup>
+      <thead>
+        <tr><th class="head-1" colspan="8">PROFORMA-I</th></tr>
+        <tr><th class="head-2" colspan="8">HEALTH MANAGEMENT INFORMATION SYSTEM MONTHLY REPORT FOR HOSPITAL</th></tr>
+        <tr><th class="head-3" colspan="8">HOSPITAL PERFORMANCE INDICATOR(HPI)</th></tr>
+        <tr>
+          <th colspan="2" style="text-align:left;">
+            Name of Hospital:
+            {% if current_user.is_admin_or_above %}
+            <input type="text" name="hospital_name" value="{{ meta.hospital_name }}">
+            {% else %}
+            {{ meta.hospital_name }}
+            {% endif %}
+          </th>
+          <th colspan="3" style="text-align:left;">
+            Sanctioned Beds:
+            {% if current_user.is_admin_or_above %}
+            <input type="text" name="sanctioned_beds" value="{{ meta.sanctioned_beds }}">
+            {% else %}
+            {{ meta.sanctioned_beds }}
+            {% endif %}
+          </th>
+          <th colspan="2" style="text-align:center;">Month &amp; Year: {{ month_year }}</th>
+          <th></th>
+        </tr>
+        <tr>
+          <th colspan="2" style="text-align:left;">
+            District:-
+            {% if current_user.is_admin_or_above %}
+            <input type="text" name="district" value="{{ meta.district }}">
+            {% else %}
+            {{ meta.district }}
+            {% endif %}
+          </th>
+          <th colspan="3" style="text-align:left;">
+            Functional beds:
+            {% if current_user.is_admin_or_above %}
+            <input type="text" name="functional_beds" value="{{ meta.functional_beds }}">
+            {% else %}
+            {{ meta.functional_beds }}
+            {% endif %}
+          </th>
+          <th colspan="3" style="text-align:left;">
+            Doctors Incharge:
+            {% if current_user.is_admin_or_above %}
+            <input type="text" name="doctor_incharge" value="{{ meta.doctor_incharge }}">
+            {% else %}
+            {{ meta.doctor_incharge }}
+            {% endif %}
+          </th>
+        </tr>
+        <tr>
+          <th colspan="2" style="text-align:left;">HP Indicator</th>
+          <th>MALE</th>
+          <th>FEMALE</th>
+          <th>MALE CHILD &lt;14 YEARS</th>
+          <th>FEMALE CHILD &lt;14 YEARS</th>
+          <th>TOTAL</th>
+          <th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="c-code">{{ row.indicator_code }}</td>
+          <td class="c-name">{{ row.indicator_label }}</td>
+          <td class="c-num">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="male_{{ row.id }}" value="{{ row.male }}">
+            {% else %}
+            {{ row.male }}
+            {% endif %}
+          </td>
+          <td class="c-num">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="female_{{ row.id }}" value="{{ row.female }}">
+            {% else %}
+            {{ row.female }}
+            {% endif %}
+          </td>
+          <td class="c-num">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="male_child_{{ row.id }}" value="{{ row.male_child_u14 }}">
+            {% else %}
+            {{ row.male_child_u14 }}
+            {% endif %}
+          </td>
+          <td class="c-num">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="female_child_{{ row.id }}" value="{{ row.female_child_u14 }}">
+            {% else %}
+            {{ row.female_child_u14 }}
+            {% endif %}
+          </td>
+          <td class="c-total">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}">
+            {% else %}
+            {{ row.total }}
+            {% endif %}
+          </td>
+          <td class="c-remarks">
+            {% if current_user.is_admin_or_above %}
+            <textarea name="remarks_{{ row.id }}">{{ row.remarks }}</textarea>
+            {% else %}
+            {{ row.remarks }}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        <tr>
+          <td colspan="8" style="text-align:left; font-weight:700;">
+            Note:
+            {% if current_user.is_admin_or_above %}
+            <textarea name="note_text" style="min-height:50px; margin-top:4px;">{{ meta.note_text }}</textarea>
+            {% else %}
+            {{ meta.note_text }}
+            {% endif %}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </form>
+
+  <form id="load-month-form" method="GET" action="{{ url_for('proforma_i_hpi_report') }}"></form>
+</div>
+{% endblock %}
