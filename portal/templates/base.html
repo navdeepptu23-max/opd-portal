@@ -277,6 +277,7 @@
     <a href="{{ url_for('help_page') }}" {% if request.endpoint == 'help_page' %}class="active"{% endif %}>Help</a>
     <a href="{{ url_for('contact') }}" {% if request.endpoint == 'contact' %}class="active"{% endif %}>Contact</a>
     <a href="{{ url_for('morbidity.proforma_ii') }}" {% if request.endpoint == 'morbidity.proforma_ii' %}class="active"{% endif %}>Report</a>
+    <a href="{{ url_for('proforma_ii_editable_report') }}" {% if request.endpoint == 'proforma_ii_editable_report' %}class="active"{% endif %}>PROFORMA-II</a>
     <a href="{{ url_for('hospital_indicator_report') }}" {% if request.endpoint == 'hospital_indicator_report' %}class="active"{% endif %}>Hospital Indicator</a>
     <a href="{{ url_for('proforma_i_hpi_report') }}" {% if request.endpoint == 'proforma_i_hpi_report' %}class="active"{% endif %}>PROFORMA-I</a>
     {% if current_user.is_authenticated %}

@@ -63,6 +63,58 @@ PROFORMA_HPI_DEFAULTS = [
     ('24', 'Number of RSBY Cases during the month'),
 ]
 
+PROFORMA_II_DEFAULTS = [
+    (2, 'Typhoid Fever and Paratyphoid Fever'),
+    (5, 'Amoebiasis'),
+    (6, 'Diarrhoea'),
+    (8, 'Respiratory TB'),
+    (10, 'T.B of other organ'),
+    (29, 'Measles'),
+    (31, 'Other Viral Hepatitis'),
+    (32, 'HIV'),
+    (37, 'Helminthiasis'),
+    (79, 'Other Anaemia'),
+    (85, 'Disorders of thyroid glands'),
+    (86, 'Diabetes Mellitus'),
+    (89, 'Mental and behavioural Disorder'),
+    (98, 'Diseases of eye'),
+    (99, 'Diseases of the ear'),
+    (102, 'Hypertensive Heart Disease'),
+    (103, 'All other hypertensive diseases'),
+    (114, 'Pharyngitis & Tonsillitis'),
+    (116, 'Other Acute Upper Respiratory Infections'),
+    (118, 'Acute Bronchitis'),
+    (119, 'Ch. Bronchitis and unspecified Emphysema'),
+    (120, 'Asthma'),
+    (121, 'Other lower respiratory disorders'),
+    (126, 'Diseases of Oral Cavity'),
+    (127, 'Gastric And Duodenal ulcer'),
+    (128, 'Gastritis & Duodenitis'),
+    (134, 'Cholelithiasis And Cholecystitis'),
+    (136, 'Other Diseases other part of Digestive system'),
+    (137, 'Infections of Skin'),
+    (138, 'All other disease of Skin'),
+    (139, 'Rheumatoid Arthritis & other inflammatory Polyarthropathies'),
+    (147, 'Other diseases of Urinary Track'),
+    (149, 'All other Diseases of male genital organs'),
+    (151, 'All other diseases of female genital organs'),
+    (152, 'Spontaneous Abortion'),
+    (155, 'Oedema/ Proteinuria & Hypertension Disorder in Pregnancy/childbirth & puerperium'),
+    (157, 'Obstructed Labour'),
+    (158, 'Complication predominantly related to puerperium'),
+    (161, 'All other obstetric conditions not elsewhere classified'),
+    (172, 'Abdominal and Pelvic pain'),
+    (175, 'Fever of Unknown origin (PUO)'),
+    (180, 'All other Symptoms, Signs & abnormal clinical lab findings not elsewhere classified'),
+    (186, 'Dislocations, sprains & Strains of body regions'),
+    (189, 'Other injuries'),
+    (191, 'Burns & Corrosions'),
+    (192, 'Poisoning by drugs & Biological substances and toxic effect of substances'),
+    (193, 'Other specified effects of external causes & certain early complications of trauma'),
+    (198, 'Other Road Side Accidents (RSA)'),
+    (215, 'Bites of snake & other Venomous animals/DOG BITE'),
+]
+
 PROFORMA_HPI_ORDER = {code: index for index, (code, _) in enumerate(PROFORMA_HPI_DEFAULTS)}
 
 
@@ -162,6 +214,30 @@ class ProformaHPIMeta(db.Model):
         nullable=False,
         default='Comments of SMO incharge regarding change of functional beds if any, nil reports and unusually large or small comparative figures regarding performance of any department of the hospital should be mentioned in the remarks column.'
     )
+
+
+class ProformaIIRow(db.Model):
+    __tablename__ = 'proforma_ii_rows'
+
+    id = db.Column(db.Integer, primary_key=True)
+    month_year = db.Column(db.String(20), nullable=False, index=True)
+    sr_no = db.Column(db.Integer, nullable=False)
+    disease_name = db.Column(db.String(260), nullable=False)
+    opd_count = db.Column(db.Integer, nullable=False, default=0)
+    ipd_count = db.Column(db.Integer, nullable=False, default=0)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('month_year', 'sr_no', name='uq_proforma_ii_month_sr'),
+    )
+
+
+class ProformaIIMeta(db.Model):
+    __tablename__ = 'proforma_ii_meta'
+
+    id = db.Column(db.Integer, primary_key=True)
+    month_year = db.Column(db.String(20), nullable=False, unique=True, index=True)
+    institution_name = db.Column(db.String(200), nullable=False, default='PHC POSSI')
 
 
 @login_manager.user_loader
@@ -278,6 +354,25 @@ def _ensure_proforma_hpi_rows(month_year):
         db.session.commit()
 
 
+def _ensure_proforma_ii_rows(month_year):
+    existing_count = ProformaIIRow.query.filter_by(month_year=month_year).count()
+    if existing_count == 0:
+        for sr_no, disease_name in PROFORMA_II_DEFAULTS:
+            db.session.add(ProformaIIRow(
+                month_year=month_year,
+                sr_no=sr_no,
+                disease_name=disease_name,
+                opd_count=0,
+                ipd_count=0,
+            ))
+        db.session.commit()
+
+    meta = ProformaIIMeta.query.filter_by(month_year=month_year).first()
+    if not meta:
+        db.session.add(ProformaIIMeta(month_year=month_year, institution_name='PHC POSSI'))
+        db.session.commit()
+
+
 @app.route('/reports/hospital-indicator', methods=['GET', 'POST'])
 @login_required
 def hospital_indicator_report():
@@ -355,9 +450,13 @@ def proforma_i_hpi_report():
         # Compute auto-sum rows
         _by_code = {r.indicator_code: r for r in rows}
         
-        # Row 10 = Row 5 + Row 6 + Row 7 + Row 8
+        # Row 10 = Row 5 + Row 6 + Row 7 + Row 8 (column-wise)
         if all(c in _by_code for c in ['5', '6', '7', '8', '10']):
-            _by_code['10'].total = _by_code['5'].total + _by_code['6'].total + _by_code['7'].total + _by_code['8'].total
+            _by_code['10'].male = _by_code['5'].male + _by_code['6'].male + _by_code['7'].male + _by_code['8'].male
+            _by_code['10'].female = _by_code['5'].female + _by_code['6'].female + _by_code['7'].female + _by_code['8'].female
+            _by_code['10'].male_child_u14 = _by_code['5'].male_child_u14 + _by_code['6'].male_child_u14 + _by_code['7'].male_child_u14 + _by_code['8'].male_child_u14
+            _by_code['10'].female_child_u14 = _by_code['5'].female_child_u14 + _by_code['6'].female_child_u14 + _by_code['7'].female_child_u14 + _by_code['8'].female_child_u14
+            _by_code['10'].total = _by_code['10'].male + _by_code['10'].female + _by_code['10'].male_child_u14 + _by_code['10'].female_child_u14
         
         # Row 15 = Row 13 + Row 14
         if all(c in _by_code for c in ['13', '14', '15']):
@@ -376,6 +475,43 @@ def proforma_i_hpi_report():
         month_year=month_year,
         meta=meta,
         rows=rows,
+    )
+
+
+@app.route('/reports/proforma-ii-editable', methods=['GET', 'POST'])
+@login_required
+def proforma_ii_editable_report():
+    month_year = (request.values.get('month_year') or datetime.utcnow().strftime('%b-%Y')).upper()
+    _ensure_proforma_ii_rows(month_year)
+
+    if request.method == 'POST':
+        if not current_user.is_admin_or_above:
+            abort(403)
+
+        meta = ProformaIIMeta.query.filter_by(month_year=month_year).first()
+        meta.institution_name = (request.form.get('institution_name') or 'PHC POSSI').strip()[:200] or 'PHC POSSI'
+
+        rows = ProformaIIRow.query.filter_by(month_year=month_year).order_by(ProformaIIRow.sr_no.asc()).all()
+        for row in rows:
+            row.opd_count = _to_non_negative_int(request.form.get(f'opd_{row.id}', 0))
+            row.ipd_count = _to_non_negative_int(request.form.get(f'ipd_{row.id}', 0))
+
+        db.session.commit()
+        flash('PROFORMA-II report saved successfully.', 'success')
+        return redirect(url_for('proforma_ii_editable_report', month_year=month_year))
+
+    meta = ProformaIIMeta.query.filter_by(month_year=month_year).first()
+    rows = ProformaIIRow.query.filter_by(month_year=month_year).order_by(ProformaIIRow.sr_no.asc()).all()
+    total_opd = sum(row.opd_count for row in rows)
+    total_ipd = sum(row.ipd_count for row in rows)
+
+    return render_template(
+        'proforma_ii_editable_report.html',
+        month_year=month_year,
+        institution_name=meta.institution_name,
+        rows=rows,
+        total_opd=total_opd,
+        total_ipd=total_ipd,
     )
 
 

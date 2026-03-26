@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+{% block title %}PROFORMA-II Editable Report{% endblock %}
+
+{% block content %}
+<style>
+  .p2-wrap {
+    background: #ffffff;
+    color: #000000;
+    border-radius: 8px;
+    padding: 12px;
+    overflow-x: auto;
+  }
+  .p2-toolbar {
+    display: flex;
+    gap: 0.7rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .p2-toolbar-left,
+  .p2-toolbar-right {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .p2-toolbar input {
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid #c3c3c3;
+  }
+  .btn-export {
+    padding: 0.4rem 0.85rem;
+    border-radius: 6px;
+    border: 1px solid #888;
+    background: #f4f4f4;
+    color: #222;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  .btn-export:hover { background: #dde; }
+
+  .p2-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    background: #e6e6e6;
+    color: #000;
+  }
+  .p2-table th,
+  .p2-table td {
+    border: 1px solid #444;
+    padding: 3px 6px;
+    vertical-align: middle;
+    word-wrap: break-word;
+  }
+  .p2-table .center { text-align: center; }
+  .p2-table .sr { width: 6%; text-align: center; }
+  .p2-table .disease { width: 61%; }
+  .p2-table .opd { width: 16%; text-align: center; }
+  .p2-table .ipd { width: 17%; text-align: center; }
+  .p2-table .title { text-align: center; font-size: 31px; }
+  .p2-table .subtitle { text-align: center; font-size: 32px; }
+  .p2-table input[type='text'],
+  .p2-table input[type='number'] {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #888;
+    background: #fff;
+    padding: 4px;
+    font-weight: 700;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  @media print {
+    @page { size: A4 portrait; margin: 6mm; }
+    .no-print, nav, footer, .p2-toolbar, .page-header, .flash-messages { display: none !important; }
+    html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+    .p2-wrap { padding: 0 !important; overflow: visible !important; background: #fff !important; }
+    .p2-table { width: 100% !important; font-size: 10pt !important; table-layout: auto !important; color: #000 !important; }
+    .p2-table th, .p2-table td { color: #000 !important; border: 1px solid #000 !important; }
+    .p2-table input { border: none !important; background: transparent !important; color: #000 !important; padding: 0 !important; }
+  }
+</style>
+
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <h1>PROFORMA-II</h1>
+    <p>Morbidity and Mortality Report (Editable)</p>
+  </div>
+</div>
+
+<div class="p2-wrap">
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="month_year" value="{{ month_year }}">
+
+    <div class="p2-toolbar no-print">
+      <div class="p2-toolbar-left">
+        <label>Month &amp; Year</label>
+        <input type="text" name="month_year_display" value="{{ month_year }}" readonly>
+      </div>
+      <div class="p2-toolbar-right">
+        <label>Load Month</label>
+        <input type="text" name="month_year" value="{{ month_year }}" form="load-month-form">
+        <button type="submit" form="load-month-form" class="btn btn-ghost btn-sm">Load</button>
+        {% if current_user.is_admin_or_above %}
+        <button type="submit" class="btn btn-primary btn-sm">Save Report</button>
+        {% endif %}
+        <button type="button" class="btn-export" onclick="printReport()">Print</button>
+        <button type="button" class="btn-export" onclick="exportPDF()">Download B/W PDF</button>
+        <button type="button" class="btn-export" onclick="exportExcel()">Download Excel</button>
+      </div>
+    </div>
+
+    <table class="p2-table" id="p2-table">
+      <thead>
+        <tr><th class="title center" colspan="4">PROFORMA II</th></tr>
+        <tr><th class="subtitle center" colspan="4">MORBIDITY AND MORTALITY REPORT</th></tr>
+        <tr>
+          <th colspan="2" style="text-align:left;">
+            Name of the Health Institution:
+            {% if current_user.is_admin_or_above %}
+            <input type="text" name="institution_name" value="{{ institution_name }}">
+            {% else %}
+            {{ institution_name }}
+            {% endif %}
+          </th>
+          <th colspan="2" class="center">Month &amp; Year: {{ month_year }}</th>
+        </tr>
+        <tr>
+          <th class="sr">Sr. No.</th>
+          <th class="disease">Name of the disease</th>
+          <th class="opd">OPD</th>
+          <th class="ipd">IPD</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="sr">{{ row.sr_no }}</td>
+          <td>{{ row.disease_name }}</td>
+          <td>
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="opd_{{ row.id }}" value="{{ row.opd_count }}">
+            {% else %}
+            {{ row.opd_count }}
+            {% endif %}
+          </td>
+          <td>
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="ipd_{{ row.id }}" value="{{ row.ipd_count }}">
+            {% else %}
+            {{ row.ipd_count }}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        <tr>
+          <td class="center" colspan="2">Total</td>
+          <td class="center" id="total-opd">{{ total_opd }}</td>
+          <td class="center" id="total-ipd">{{ total_ipd }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </form>
+
+  <form id="load-month-form" method="GET" action="{{ url_for('proforma_ii_editable_report') }}"></form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+<script>
+  (function () {
+    const toInt = (value) => {
+      const n = parseInt(String(value || '').trim(), 10);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    };
+
+    const updateTotals = () => {
+      const opd = Array.from(document.querySelectorAll('input[name^="opd_"]')).reduce((s, i) => s + toInt(i.value), 0);
+      const ipd = Array.from(document.querySelectorAll('input[name^="ipd_"]')).reduce((s, i) => s + toInt(i.value), 0);
+      const opdEl = document.getElementById('total-opd');
+      const ipdEl = document.getElementById('total-ipd');
+      if (opdEl) opdEl.textContent = String(opd);
+      if (ipdEl) ipdEl.textContent = String(ipd);
+    };
+
+    Array.from(document.querySelectorAll('input[name^="opd_"], input[name^="ipd_"]')).forEach((input) => {
+      input.addEventListener('input', updateTotals);
+      input.addEventListener('change', updateTotals);
+    });
+
+    updateTotals();
+  })();
+
+  function printReport() {
+    window.print();
+  }
+
+  function exportPDF() {
+    const source = document.getElementById('p2-table');
+    const month = '{{ month_year }}';
+    const clone = source.cloneNode(true);
+
+    clone.style.background = '#ffffff';
+    clone.style.color = '#000000';
+    clone.querySelectorAll('th, td').forEach((cell) => {
+      cell.style.background = '#ffffff';
+      cell.style.color = '#000000';
+      cell.style.border = '1px solid #000000';
+    });
+    clone.querySelectorAll('input').forEach((input) => {
+      const span = document.createElement('span');
+      span.textContent = input.value || '';
+      input.replaceWith(span);
+    });
+
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-10000px';
+    wrapper.style.top = '0';
+    wrapper.style.width = '1000px';
+    wrapper.appendChild(clone);
+    document.body.appendChild(wrapper);
+
+    const opt = {
+      margin: [5, 5, 5, 5],
+      filename: 'PROFORMA-II_BW_' + month + '.pdf',
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 1.5, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+      pagebreak: { mode: 'avoid' }
+    };
+
+    html2pdf().set(opt).from(clone).save().finally(() => {
+      wrapper.remove();
+    });
+  }
+
+  function exportExcel() {
+    const month = '{{ month_year }}';
+    const table = document.getElementById('p2-table');
+    const data = [];
+
+    table.querySelectorAll('tr').forEach((tr) => {
+      const rowData = [];
+      tr.querySelectorAll('th, td').forEach((cell) => {
+        const inp = cell.querySelector('input[type="number"], input[type="text"]');
+        if (inp) rowData.push(inp.value);
+        else rowData.push(cell.innerText.trim());
+      });
+      data.push(rowData);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!merges'] = [
+      {s:{r:0,c:0}, e:{r:0,c:3}},
+      {s:{r:1,c:0}, e:{r:1,c:3}},
+      {s:{r:2,c:0}, e:{r:2,c:1}},
+      {s:{r:2,c:2}, e:{r:2,c:3}},
+      {s:{r:data.length-1,c:0}, e:{r:data.length-1,c:1}},
+    ];
+    ws['!cols'] = [{wch:8}, {wch:65}, {wch:12}, {wch:12}];
+
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const addr = XLSX.utils.encode_cell({r:r, c:c});
+        if (!ws[addr]) continue;
+        ws[addr].s = {
+          font: { bold: true, color: { rgb: '000000' } },
+          fill: { fgColor: { rgb: 'FFFFFF' } },
+          alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+          border: {
+            left: { style: 'thin', color: { rgb: '000000' } },
+            right: { style: 'thin', color: { rgb: '000000' } },
+            top: { style: 'thin', color: { rgb: '000000' } },
+            bottom: { style: 'thin', color: { rgb: '000000' } }
+          }
+        };
+      }
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'PROFORMA-II');
+    XLSX.writeFile(wb, 'PROFORMA-II_' + month + '.xlsx');
+  }
+</script>
+{% endblock %}
