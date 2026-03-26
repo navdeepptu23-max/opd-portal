@@ -582,6 +582,8 @@ def dashboard():
 @app.route('/reports/dashboard')
 @login_required
 def reports_dashboard():
+    if not current_user.is_admin_or_above:
+        abort(403)
     def _parse_month(m):
         try:
             return datetime.strptime(m.upper(), '%b-%Y')
