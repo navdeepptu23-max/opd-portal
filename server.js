@@ -6,16 +6,24 @@ const { Pool } = require("pg");
 
 const HOST = process.env.HOST || "0.0.0.0";
 const PORT = process.env.PORT || 3000;
-const DATABASE_URL = process.env.DATABASE_URL;
 
-if (!DATABASE_URL) {
-  throw new Error("DATABASE_URL is required. Configure a Postgres database connection.");
+let pool;
+
+function initPool() {
+  if (pool) return pool;
+  
+  const DATABASE_URL = process.env.DATABASE_URL;
+  if (!DATABASE_URL) {
+    throw new Error("DATABASE_URL is required. Configure a Postgres database connection.");
+  }
+  
+  pool = new Pool({
+    connectionString: DATABASE_URL,
+    ssl: DATABASE_URL.includes("render.com") ? { rejectUnauthorized: false } : false,
+  });
+  
+  return pool;
 }
-
-const pool = new Pool({
-  connectionString: DATABASE_URL,
-  ssl: DATABASE_URL.includes("render.com") ? { rejectUnauthorized: false } : false,
-});
 
 const sessions = new Map();
 
@@ -48,7 +56,7 @@ function sendJson(res, code, payload) {
 }
 
 async function dbQuery(text, params = []) {
-  return pool.query(text, params);
+  return initPool().query(text, params);
 }
 
 async function initDatabase() {
