@@ -94,38 +94,38 @@
   .p2-table tbody tr:nth-child(even) { background: #eef6ff; }
 
   @media print {
-    @page { size: A4 portrait; margin: 6mm; }
+    @page { size: A4 landscape; margin: 4mm; }
     .no-print, nav, footer, .p2-toolbar, .page-header, .flash-messages { display: none !important; }
     html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
     .p2-wrap {
       padding: 0 !important;
       overflow: visible !important;
       background: #fff !important;
-      zoom: 0.72;
+      zoom: 0.86;
       transform-origin: top left;
     }
     .p2-table {
       width: 100% !important;
-      font-size: 7.2pt !important;
+      font-size: 8.5pt !important;
       table-layout: fixed !important;
       color: #000 !important;
-      line-height: 1.02 !important;
+      line-height: 1.08 !important;
       page-break-inside: avoid !important;
     }
     .p2-table th,
     .p2-table td {
       color: #000 !important;
       border: 1px solid #000 !important;
-      padding: 1px 2px !important;
+      padding: 2px 3px !important;
     }
-    .p2-table .title { font-size: 14pt !important; }
-    .p2-table .subtitle { font-size: 11pt !important; }
+    .p2-table .title { font-size: 16pt !important; }
+    .p2-table .subtitle { font-size: 12pt !important; }
     .p2-table input {
       border: none !important;
       background: transparent !important;
       color: #000 !important;
       padding: 0 !important;
-      font-size: 7pt !important;
+      font-size: 8pt !important;
       min-height: 0 !important;
     }
   }
