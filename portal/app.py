@@ -481,7 +481,7 @@ def proforma_i_hpi_report():
 @app.route('/reports/proforma-ii-editable', methods=['GET', 'POST'])
 @login_required
 def proforma_ii_editable_report():
-    month_year = (request.values.get('month_year') or datetime.utcnow().strftime('%b-%Y')).upper()
+    month_year = (request.values.get('month_year') or 'MAR-2027').upper()
     _ensure_proforma_ii_rows(month_year)
 
     if request.method == 'POST':

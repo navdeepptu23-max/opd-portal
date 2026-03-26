@@ -86,7 +86,7 @@
   .p2-table input[type='number'] { text-align: center; }
 
   @media print {
-    @page { size: A4 landscape; margin: 4mm; }
+    @page { size: A4 portrait; margin: 6mm; }
     .no-print, nav, footer, .p2-toolbar, .page-header, .flash-messages { display: none !important; }
     html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
     .p2-wrap {
@@ -172,7 +172,14 @@
             {{ institution_name }}
             {% endif %}
           </th>
-          <th colspan="2" class="center">Month &amp; Year: {{ month_year }}</th>
+          <th colspan="2" class="center">
+            Month &amp; Year:
+            {% if current_user.is_admin_or_above %}
+            <input type="text" id="header-month-year" value="{{ month_year }}" style="width:130px; text-align:center; font-weight:700;" placeholder="e.g. MAR-2027">
+            {% else %}
+            {{ month_year }}
+            {% endif %}
+          </th>
         </tr>
         <tr>
           <th class="sr">Sr. No.</th>
@@ -237,6 +244,18 @@
       input.addEventListener('input', updateTotals);
       input.addEventListener('change', updateTotals);
     });
+
+    const headerMY = document.getElementById('header-month-year');
+    if (headerMY) {
+      const navigate = () => {
+        const val = headerMY.value.trim().toUpperCase();
+        if (val) {
+          window.location.href = "{{ url_for('proforma_ii_editable_report') }}?month_year=" + encodeURIComponent(val);
+        }
+      };
+      headerMY.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); navigate(); } });
+      headerMY.addEventListener('blur', navigate);
+    }
 
     updateTotals();
   })();
