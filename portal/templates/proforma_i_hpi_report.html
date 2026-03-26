@@ -138,7 +138,8 @@
         {% if current_user.is_admin_or_above %}
         <button type="submit" class="btn btn-primary btn-sm">Save Report</button>
         {% endif %}
-        <button type="button" class="btn-export no-print" onclick="exportPDF()" title="Download as single-page PDF">📄 Download PDF</button>
+        <button type="button" class="btn-export no-print" onclick="printReport()" title="Print report">🖨 Print</button>
+        <button type="button" class="btn-export no-print" onclick="exportPDF()" title="Download black and white PDF">📄 Download B/W PDF</button>
         <button type="button" class="btn-export no-print" onclick="exportExcel()" title="Download as Excel file">📊 Download Excel</button>
       </div>
     </div>
@@ -451,19 +452,58 @@
 
 <script>
 
+  function printReport() {
+    window.print();
+  }
+
 
   function exportPDF() {
-    const el = document.querySelector('.hpi-table');
+    const source = document.querySelector('.hpi-table');
     const month = (document.getElementById('header-month-year') || {value: '{{ month_year }}'}).value || '{{ month_year }}';
+    const el = source.cloneNode(true);
+
+    // Force black and white rendering for downloaded PDF.
+    el.style.width = '100%';
+    el.style.background = '#ffffff';
+    el.style.color = '#000000';
+    el.querySelectorAll('th, td').forEach((cell) => {
+      cell.style.background = '#ffffff';
+      cell.style.color = '#000000';
+      cell.style.border = '1px solid #000000';
+      cell.style.fontWeight = '700';
+    });
+
+    // Replace inputs/textareas with plain text in the cloned table for clean print-like output.
+    el.querySelectorAll('input, textarea').forEach((field) => {
+      const span = document.createElement('span');
+      span.textContent = field.value || '';
+      span.style.display = 'inline-block';
+      span.style.width = '100%';
+      span.style.color = '#000000';
+      span.style.fontWeight = '700';
+      field.replaceWith(span);
+    });
+
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-10000px';
+    wrapper.style.top = '0';
+    wrapper.style.width = '1000px';
+    wrapper.style.background = '#ffffff';
+    wrapper.appendChild(el);
+    document.body.appendChild(wrapper);
+
     const opt = {
       margin:       [5, 5, 5, 5],
-      filename:     'PROFORMA-I_' + month + '.pdf',
+      filename:     'PROFORMA-I_BW_' + month + '.pdf',
       image:        { type: 'jpeg', quality: 0.95 },
       html2canvas:  { scale: 1.5, useCORS: true },
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
       pagebreak:    { mode: 'avoid' }
     };
-    html2pdf().set(opt).from(el).save();
+    html2pdf().set(opt).from(el).save().finally(() => {
+      wrapper.remove();
+    });
   }
 
   function exportExcel() {
