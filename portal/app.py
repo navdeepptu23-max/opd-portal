@@ -341,7 +341,7 @@ def proforma_i_hpi_report():
             row.female = _to_non_negative_int(request.form.get(f'female_{row.id}', 0))
             row.male_child_u14 = _to_non_negative_int(request.form.get(f'male_child_{row.id}', 0))
             row.female_child_u14 = _to_non_negative_int(request.form.get(f'female_child_{row.id}', 0))
-            row.total = _to_non_negative_int(request.form.get(f'total_{row.id}', 0))
+            row.total = row.male + row.female + row.male_child_u14 + row.female_child_u14
             row.remarks = (request.form.get(f'remarks_{row.id}') or '').strip()[:260]
 
         db.session.commit()

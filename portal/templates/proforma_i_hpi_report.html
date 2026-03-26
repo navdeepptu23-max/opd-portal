@@ -175,35 +175,35 @@
           <td class="c-name">{{ row.indicator_label }}</td>
           <td class="c-num">
             {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="male_{{ row.id }}" value="{{ row.male }}">
+            <input type="number" min="0" name="male_{{ row.id }}" value="{{ row.male }}" data-role="male" data-row-id="{{ row.id }}">
             {% else %}
             {{ row.male }}
             {% endif %}
           </td>
           <td class="c-num">
             {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="female_{{ row.id }}" value="{{ row.female }}">
+            <input type="number" min="0" name="female_{{ row.id }}" value="{{ row.female }}" data-role="female" data-row-id="{{ row.id }}">
             {% else %}
             {{ row.female }}
             {% endif %}
           </td>
           <td class="c-num">
             {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="male_child_{{ row.id }}" value="{{ row.male_child_u14 }}">
+            <input type="number" min="0" name="male_child_{{ row.id }}" value="{{ row.male_child_u14 }}" data-role="male-child" data-row-id="{{ row.id }}">
             {% else %}
             {{ row.male_child_u14 }}
             {% endif %}
           </td>
           <td class="c-num">
             {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="female_child_{{ row.id }}" value="{{ row.female_child_u14 }}">
+            <input type="number" min="0" name="female_child_{{ row.id }}" value="{{ row.female_child_u14 }}" data-role="female-child" data-row-id="{{ row.id }}">
             {% else %}
             {{ row.female_child_u14 }}
             {% endif %}
           </td>
           <td class="c-total">
             {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}">
+            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-row-id="{{ row.id }}" readonly>
             {% else %}
             {{ row.total }}
             {% endif %}
@@ -233,4 +233,44 @@
 
   <form id="load-month-form" method="GET" action="{{ url_for('proforma_i_hpi_report') }}"></form>
 </div>
+
+{% if current_user.is_admin_or_above %}
+<script>
+  (function () {
+    const toInt = (value) => {
+      const n = parseInt(String(value || '').trim(), 10);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    };
+
+    const updateRowTotal = (rowId) => {
+      const male = document.querySelector(`input[data-role="male"][data-row-id="${rowId}"]`);
+      const female = document.querySelector(`input[data-role="female"][data-row-id="${rowId}"]`);
+      const maleChild = document.querySelector(`input[data-role="male-child"][data-row-id="${rowId}"]`);
+      const femaleChild = document.querySelector(`input[data-role="female-child"][data-row-id="${rowId}"]`);
+      const total = document.querySelector(`input[data-role="total"][data-row-id="${rowId}"]`);
+
+      if (!male || !female || !maleChild || !femaleChild || !total) {
+        return;
+      }
+
+      total.value = String(
+        toInt(male.value) +
+        toInt(female.value) +
+        toInt(maleChild.value) +
+        toInt(femaleChild.value)
+      );
+    };
+
+    const drivers = Array.from(document.querySelectorAll('input[data-row-id][data-role="male"], input[data-row-id][data-role="female"], input[data-row-id][data-role="male-child"], input[data-row-id][data-role="female-child"]'));
+    const uniqueRowIds = [...new Set(drivers.map((input) => input.dataset.rowId))];
+
+    drivers.forEach((input) => {
+      input.addEventListener('input', () => updateRowTotal(input.dataset.rowId));
+      input.addEventListener('change', () => updateRowTotal(input.dataset.rowId));
+    });
+
+    uniqueRowIds.forEach(updateRowTotal);
+  })();
+</script>
+{% endif %}
 {% endblock %}

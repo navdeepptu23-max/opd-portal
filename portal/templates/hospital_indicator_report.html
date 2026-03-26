@@ -121,8 +121,8 @@
         {% endfor %}
         <tr>
           <td colspan="2" style="text-align:center;">Total</td>
-          <td style="text-align:center;">{{ total_opd }}</td>
-          <td style="text-align:center;">{{ total_ipd }}</td>
+          <td id="opd-grand-total" style="text-align:center;">{{ total_opd }}</td>
+          <td id="ipd-grand-total" style="text-align:center;">{{ total_ipd }}</td>
         </tr>
       </tbody>
     </table>
@@ -134,4 +134,34 @@
     {% endif %}
   </form>
 </div>
+
+{% if current_user.is_admin_or_above %}
+<script>
+  (function () {
+    const opdInputs = Array.from(document.querySelectorAll('input[name^="opd_"]'));
+    const ipdInputs = Array.from(document.querySelectorAll('input[name^="ipd_"]'));
+    const opdTotalEl = document.getElementById('opd-grand-total');
+    const ipdTotalEl = document.getElementById('ipd-grand-total');
+
+    const toInt = (value) => {
+      const n = parseInt(String(value || '').trim(), 10);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    };
+
+    const recompute = () => {
+      const opdTotal = opdInputs.reduce((acc, input) => acc + toInt(input.value), 0);
+      const ipdTotal = ipdInputs.reduce((acc, input) => acc + toInt(input.value), 0);
+      opdTotalEl.textContent = String(opdTotal);
+      ipdTotalEl.textContent = String(ipdTotal);
+    };
+
+    [...opdInputs, ...ipdInputs].forEach((input) => {
+      input.addEventListener('input', recompute);
+      input.addEventListener('change', recompute);
+    });
+
+    recompute();
+  })();
+</script>
+{% endif %}
 {% endblock %}
