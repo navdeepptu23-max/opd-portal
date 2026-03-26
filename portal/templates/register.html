@@ -2,53 +2,77 @@
 {% block title %}Create User – OPD Portal{% endblock %}
 
 {% block content %}
-<div style="max-width:500px; margin:0 auto;">
-  <div class="page-header">
-    <h1>Create New User</h1>
-    <p>Add a new user to the portal</p>
+<div style="max-width:520px; margin:0 auto;">
+  <div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
+    <div>
+      <h1>Create New User</h1>
+      <p>Add a new user account to the portal</p>
+    </div>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm">← Back</a>
   </div>
 
   <div class="card">
     <form method="POST" novalidate>
       {{ form.hidden_tag() }}
 
+      <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:1rem;">Account Details</div>
+
       <div class="form-group">
         {{ form.username.label }}
-        {{ form.username(placeholder='Choose a username') }}
-        {% for err in form.username.errors %}
-        <div class="field-error">{{ err }}</div>
-        {% endfor %}
+        {{ form.username(placeholder='Choose a username (min 3 characters)') }}
+        {% for err in form.username.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
       </div>
 
       <div class="form-group">
         {{ form.role.label }}
         {{ form.role() }}
-        {% for err in form.role.errors %}
-        <div class="field-error">{{ err }}</div>
-        {% endfor %}
+        <div style="font-size:0.78rem; color:var(--text-muted); margin-top:0.3rem;">
+          <strong>Admin</strong> — can save reports and manage sub users.&nbsp;&nbsp;
+          <strong>Sub User</strong> — can view reports only.
+        </div>
+        {% for err in form.role.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
       </div>
+
+      <div style="height:1px; background:var(--border); margin:1.5rem 0;"></div>
+      <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:1rem;">Set Password</div>
 
       <div class="form-group">
         {{ form.password.label }}
-        {{ form.password(placeholder='Minimum 8 characters') }}
-        {% for err in form.password.errors %}
-        <div class="field-error">{{ err }}</div>
-        {% endfor %}
+        {{ form.password(placeholder='Minimum 8 characters', id='pw-field') }}
+        {% for err in form.password.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
       </div>
 
       <div class="form-group">
         {{ form.confirm.label }}
-        {{ form.confirm(placeholder='Repeat the password') }}
-        {% for err in form.confirm.errors %}
-        <div class="field-error">{{ err }}</div>
-        {% endfor %}
+        {{ form.confirm(placeholder='Repeat the password', id='pw-confirm') }}
+        <div id="pw-match-hint" style="font-size:0.78rem; margin-top:0.3rem; display:none;"></div>
+        {% for err in form.confirm.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
       </div>
 
-      <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
+      <div style="display:flex; gap:0.75rem; margin-top:1.75rem;">
         {{ form.submit(class='btn btn-primary') }}
         <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">Cancel</a>
       </div>
     </form>
   </div>
 </div>
+
+<script>
+  const pw = document.getElementById('pw-field');
+  const pc = document.getElementById('pw-confirm');
+  const hint = document.getElementById('pw-match-hint');
+  function checkMatch() {
+    if (!pc.value) { hint.style.display = 'none'; return; }
+    hint.style.display = 'block';
+    if (pw.value === pc.value) {
+      hint.textContent = '✓ Passwords match';
+      hint.style.color = 'var(--success)';
+    } else {
+      hint.textContent = '✗ Passwords do not match';
+      hint.style.color = 'var(--danger)';
+    }
+  }
+  pw.addEventListener('input', checkMatch);
+  pc.addEventListener('input', checkMatch);
+</script>
 {% endblock %}

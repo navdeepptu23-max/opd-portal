@@ -71,7 +71,9 @@
           </td>
           <td>
             <div class="td-actions">
-              {# Toggle active/inactive #}
+              {# Edit #}
+              <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+              {# Toggle #}
               <form method="POST" action="{{ url_for('toggle_user', user_id=user.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-ghost btn-sm">

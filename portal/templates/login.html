@@ -34,6 +34,9 @@
         <div style="margin-top:1.5rem;">
           {{ form.submit(class='btn btn-primary', style='width:100%; justify-content:center;') }}
         </div>
+          <div style="text-align:center; margin-top:1rem;">
+            <a href="{{ url_for('forgot_password') }}" style="font-size:0.82rem; color:var(--text-muted); text-decoration:none; transition:color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">Forgot password?</a>
+          </div>
       </form>
     </div>
 

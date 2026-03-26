@@ -282,6 +282,27 @@ class ChangePasswordForm(FlaskForm):
     submit           = SubmitField('Update Password')
 
 
+class EditUserForm(FlaskForm):
+    username     = StringField('Username', validators=[DataRequired(), Length(3, 80)])
+    role         = SelectField('Role', choices=[('sub', 'Sub User'), ('admin', 'Admin')])
+    new_password = PasswordField('New Password (leave blank to keep current)', validators=[Length(min=0)])
+    confirm      = PasswordField('Confirm New Password', validators=[EqualTo('new_password', message='Passwords must match.')])
+    submit       = SubmitField('Save Changes')
+
+    def __init__(self, user_id, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._user_id = user_id
+
+    def validate_username(self, field):
+        user = User.query.filter_by(username=field.data).first()
+        if user and user.id != self._user_id:
+            raise ValidationError('Username already taken.')
+
+    def validate_new_password(self, field):
+        if field.data and len(field.data) < 8:
+            raise ValidationError('Password must be at least 8 characters.')
+
+
 # ── Routes ───────────────────────────────────────────────────────────────────
 
 @app.route('/')
@@ -678,6 +699,33 @@ def delete_user(user_id):
     db.session.commit()
     flash(f'User "{username}" deleted.', 'success')
     return redirect(url_for('dashboard'))
+
+
+@app.route('/user/<int:user_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_user(user_id):
+    if not current_user.is_admin_or_above:
+        abort(403)
+    user = User.query.get_or_404(user_id)
+    if not current_user.can_manage(user):
+        abort(403)
+    form = EditUserForm(user_id=user.id, obj=user)
+    if not current_user.is_super_admin:
+        form.role.choices = [('sub', 'Sub User')]
+    if form.validate_on_submit():
+        user.username = form.username.data
+        user.role = form.role.data
+        if form.new_password.data:
+            user.set_password(form.new_password.data)
+        db.session.commit()
+        flash(f'User "{user.username}" updated successfully.', 'success')
+        return redirect(url_for('dashboard'))
+    return render_template('edit_user.html', form=form, user=user)
+
+
+@app.route('/forgot-password')
+def forgot_password():
+    return render_template('forgot_password.html')
 
 
 # ── Error Handlers ────────────────────────────────────────────────────────────

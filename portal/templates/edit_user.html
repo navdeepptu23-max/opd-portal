@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}Edit User – OPD Portal{% endblock %}
+
+{% block content %}
+<div style="max-width:520px; margin:0 auto;">
+  <div class="page-header">
+    <h1>Edit User</h1>
+    <p>Update account details for <strong>{{ user.username }}</strong></p>
+  </div>
+
+  <div class="card">
+    {# User info strip #}
+    <div style="display:flex; align-items:center; gap:1rem; padding:1rem 1.25rem; background:rgba(255,255,255,0.04); border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:1.75rem;">
+      <div style="width:46px; height:46px; border-radius:50%; background:var(--primary); display:flex; align-items:center; justify-content:center; font-size:1.2rem; font-weight:700; flex-shrink:0; color:#fff;">
+        {{ user.username[0].upper() }}
+      </div>
+      <div>
+        <div style="font-weight:700; font-size:1rem;">{{ user.username }}</div>
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
+          {% if user.role == 'super_admin' %}<span class="badge badge-super">Super Admin</span>
+          {% elif user.role == 'admin' %}<span class="badge badge-admin">Admin</span>
+          {% else %}<span class="badge badge-sub">Sub User</span>{% endif %}
+          &nbsp;·&nbsp;Joined {{ user.created_at.strftime('%d %b %Y') }}
+          &nbsp;·&nbsp;<span class="dot {{ 'dot-active' if user.is_active else 'dot-inactive' }}" style="display:inline-block;"></span>
+          {{ 'Active' if user.is_active else 'Inactive' }}
+        </div>
+      </div>
+    </div>
+
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:1rem;">Account Details</div>
+
+      <div class="form-group">
+        {{ form.username.label }}
+        {{ form.username() }}
+        {% for err in form.username.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+      </div>
+
+      <div class="form-group">
+        {{ form.role.label }}
+        {{ form.role() }}
+        {% for err in form.role.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+      </div>
+
+      <div style="height:1px; background:var(--border); margin:1.5rem 0;"></div>
+      <div style="font-size:0.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:0.25rem;">Reset Password</div>
+      <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:1rem;">Leave both fields blank to keep the current password.</div>
+
+      <div class="form-group">
+        {{ form.new_password.label }}
+        {{ form.new_password(placeholder='Minimum 8 characters') }}
+        {% for err in form.new_password.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+      </div>
+
+      <div class="form-group">
+        {{ form.confirm.label }}
+        {{ form.confirm(placeholder='Repeat new password') }}
+        {% for err in form.confirm.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
+      </div>
+
+      <div style="display:flex; gap:0.75rem; margin-top:1.75rem;">
+        {{ form.submit(class='btn btn-primary') }}
+        <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
