@@ -6,7 +6,7 @@ databases:
 services:
   - type: web
     name: opd-portal
-    env: node
+    runtime: node
     plan: free
     buildCommand: npm install
     startCommand: npm start
