@@ -336,13 +336,25 @@ def proforma_i_hpi_report():
 
         rows = ProformaHPIRow.query.filter_by(month_year=month_year).all()
         rows.sort(key=lambda r: PROFORMA_HPI_ORDER.get(r.indicator_code, 9999))
+        _single_codes = {'13', '14', '15', '16', '17', '21', '22', '23', '24'}
         for row in rows:
-            row.male = _to_non_negative_int(request.form.get(f'male_{row.id}', 0))
-            row.female = _to_non_negative_int(request.form.get(f'female_{row.id}', 0))
-            row.male_child_u14 = _to_non_negative_int(request.form.get(f'male_child_{row.id}', 0))
-            row.female_child_u14 = _to_non_negative_int(request.form.get(f'female_child_{row.id}', 0))
-            row.total = row.male + row.female + row.male_child_u14 + row.female_child_u14
+            if row.indicator_code in _single_codes:
+                row.male = 0
+                row.female = 0
+                row.male_child_u14 = 0
+                row.female_child_u14 = 0
+                row.total = _to_non_negative_int(request.form.get(f'single_{row.id}', 0))
+            else:
+                row.male = _to_non_negative_int(request.form.get(f'male_{row.id}', 0))
+                row.female = _to_non_negative_int(request.form.get(f'female_{row.id}', 0))
+                row.male_child_u14 = _to_non_negative_int(request.form.get(f'male_child_{row.id}', 0))
+                row.female_child_u14 = _to_non_negative_int(request.form.get(f'female_child_{row.id}', 0))
+                row.total = row.male + row.female + row.male_child_u14 + row.female_child_u14
             row.remarks = (request.form.get(f'remarks_{row.id}') or '').strip()[:260]
+        # Row 15 = Row 13 + Row 14
+        _by_code = {r.indicator_code: r for r in rows}
+        if '15' in _by_code and '13' in _by_code and '14' in _by_code:
+            _by_code['15'].total = _by_code['13'].total + _by_code['14'].total
 
         db.session.commit()
         flash('PROFORMA-I HPI report saved successfully.', 'success')

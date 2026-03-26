@@ -12,40 +12,56 @@
   }
   .hpi-table {
     width: 100%;
-    min-width: 1200px;
     border-collapse: collapse;
-    table-layout: fixed;
+    table-layout: auto;
     font-family: Arial, Helvetica, sans-serif;
     background: #e6e6e6;
   }
   .hpi-table th,
   .hpi-table td {
     border: 1px solid #444;
-    padding: 4px;
+    padding: 4px 6px;
     vertical-align: middle;
     font-weight: 700;
   }
-  .hpi-table .head-1 { text-align: center; font-size: 30px; }
-  .hpi-table .head-2 { text-align: center; font-size: 31px; }
-  .hpi-table .head-3 { text-align: center; font-size: 34px; }
-  .hpi-table .c-code { width: 5%; text-align: center; }
-  .hpi-table .c-name { width: 28%; }
-  .hpi-table .c-num { width: 10%; text-align: center; }
-  .hpi-table .c-total { width: 9%; text-align: center; }
-  .hpi-table .c-remarks { width: 8%; }
+  .hpi-table .head-1 { text-align: center; font-size: 26px; }
+  .hpi-table .head-2 { text-align: center; font-size: 18px; }
+  .hpi-table .head-3 { text-align: center; font-size: 20px; }
+  .hpi-table .c-code { width: 4%; text-align: center; white-space: nowrap; }
+  .hpi-table .c-name { width: 30%; }
+  .hpi-table .c-num { width: 8%; text-align: center; }
+  .hpi-table .c-total { width: 8%; text-align: center; }
+  .hpi-table .c-remarks { width: 10%; }
+  /* Header row colors */
+  .hpi-table thead tr:first-child th  { background: #1a237e; color: #fff; }
+  .hpi-table thead tr:nth-child(2) th { background: #1565c0; color: #fff; }
+  .hpi-table thead tr:nth-child(3) th { background: #0288d1; color: #fff; }
+  .hpi-table thead tr:nth-child(4) th { background: #bbdefb; color: #000; }
+  .hpi-table thead tr:nth-child(5) th { background: #90caf9; color: #000; }
+  .hpi-table thead tr:nth-child(6) th { background: #0d47a1; color: #fff; }
+  /* Data row colors */
+  .row-multi:nth-child(odd)  { background: #fff8e1; }
+  .row-multi:nth-child(even) { background: #e3f2fd; }
+  .row-single:nth-child(odd)  { background: #e8f5e9; }
+  .row-single:nth-child(even) { background: #f3e5f5; }
+  .row-auto { background: #fff3e0 !important; }
+  .row-single td { text-align: center; }
+  .row-auto input[readonly] { background: #ffe0b2 !important; font-weight: 900; }
   .hpi-table input[type='text'],
   .hpi-table input[type='number'],
   .hpi-table textarea {
     width: 100%;
+    min-width: 0;
     box-sizing: border-box;
     border: 1px solid #888;
     background: #fff;
-    padding: 4px;
+    padding: 3px;
     font-weight: 700;
     font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.9em;
   }
   .hpi-table textarea {
-    min-height: 38px;
+    min-height: 34px;
     resize: vertical;
   }
   .toolbar {
@@ -81,14 +97,20 @@
   }
   .btn-export:hover { background: #dde; }
   @media print {
-    .no-print { display: none !important; }
-    body, .hpi-wrap { background: #fff !important; color: #000 !important; }
+    @page { size: A4 landscape; margin: 4mm; }
+    .no-print, nav, footer, .toolbar, .page-header, .flash-messages { display: none !important; }
+    html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+    .hpi-wrap { padding: 0 !important; overflow: visible !important; background: #fff !important; }
+    .hpi-table { width: 100% !important; font-size: 6.5pt !important; table-layout: auto !important; }
+    .hpi-table th, .hpi-table td { padding: 2px 3px !important; }
+    .hpi-table .head-1 { font-size: 13pt !important; }
+    .hpi-table .head-2 { font-size: 9pt !important; }
+    .hpi-table .head-3 { font-size: 10pt !important; }
     .hpi-table input, .hpi-table textarea {
-      border: none !important;
-      background: transparent !important;
-      padding: 0 !important;
+      border: none !important; background: transparent !important;
+      padding: 0 !important; font-size: 6.5pt !important; resize: none !important;
     }
-    .page-header { display: none !important; }
+    .row-multi, .row-single, .row-auto { background: transparent !important; }
   }
 </style>
 
@@ -201,55 +223,67 @@
         </tr>
       </thead>
       <tbody>
+        {% set single_codes = ['13','14','15','16','17','21','22','23','24'] %}
         {% for row in rows %}
-        <tr>
+        {% if row.indicator_code in single_codes %}
+        <tr class="row-single{% if row.indicator_code == '15' %} row-auto{% endif %}">
           <td class="c-code">{{ row.indicator_code }}</td>
           <td class="c-name">{{ row.indicator_label }}</td>
-          <td class="c-num">
-            {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="male_{{ row.id }}" value="{{ row.male }}" data-role="male" data-row-id="{{ row.id }}">
+          <td colspan="5" style="text-align:center;">
+            {% if row.indicator_code == '15' %}
+              {% if current_user.is_admin_or_above %}
+              <input type="number" min="0" name="single_{{ row.id }}" value="{{ row.total }}" data-role="single-auto" data-code="15" data-row-id="{{ row.id }}" readonly style="width:80%;text-align:center;">
+              {% else %}{{ row.total }}{% endif %}
             {% else %}
-            {{ row.male }}
-            {% endif %}
-          </td>
-          <td class="c-num">
-            {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="female_{{ row.id }}" value="{{ row.female }}" data-role="female" data-row-id="{{ row.id }}">
-            {% else %}
-            {{ row.female }}
-            {% endif %}
-          </td>
-          <td class="c-num">
-            {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="male_child_{{ row.id }}" value="{{ row.male_child_u14 }}" data-role="male-child" data-row-id="{{ row.id }}">
-            {% else %}
-            {{ row.male_child_u14 }}
-            {% endif %}
-          </td>
-          <td class="c-num">
-            {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="female_child_{{ row.id }}" value="{{ row.female_child_u14 }}" data-role="female-child" data-row-id="{{ row.id }}">
-            {% else %}
-            {{ row.female_child_u14 }}
-            {% endif %}
-          </td>
-          <td class="c-total">
-            {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-row-id="{{ row.id }}" readonly>
-            {% else %}
-            {{ row.total }}
+              {% if current_user.is_admin_or_above %}
+              <input type="number" min="0" name="single_{{ row.id }}" value="{{ row.total }}" data-role="single" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}" style="width:80%;text-align:center;">
+              {% else %}{{ row.total }}{% endif %}
             {% endif %}
           </td>
           <td class="c-remarks">
             {% if current_user.is_admin_or_above %}
             <textarea name="remarks_{{ row.id }}">{{ row.remarks }}</textarea>
-            {% else %}
-            {{ row.remarks }}
-            {% endif %}
+            {% else %}{{ row.remarks }}{% endif %}
           </td>
         </tr>
+        {% else %}
+        <tr class="row-multi">
+          <td class="c-code">{{ row.indicator_code }}</td>
+          <td class="c-name">{{ row.indicator_label }}</td>
+          <td class="c-num">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="male_{{ row.id }}" value="{{ row.male }}" data-role="male" data-row-id="{{ row.id }}">
+            {% else %}{{ row.male }}{% endif %}
+          </td>
+          <td class="c-num">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="female_{{ row.id }}" value="{{ row.female }}" data-role="female" data-row-id="{{ row.id }}">
+            {% else %}{{ row.female }}{% endif %}
+          </td>
+          <td class="c-num">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="male_child_{{ row.id }}" value="{{ row.male_child_u14 }}" data-role="male-child" data-row-id="{{ row.id }}">
+            {% else %}{{ row.male_child_u14 }}{% endif %}
+          </td>
+          <td class="c-num">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="female_child_{{ row.id }}" value="{{ row.female_child_u14 }}" data-role="female-child" data-row-id="{{ row.id }}">
+            {% else %}{{ row.female_child_u14 }}{% endif %}
+          </td>
+          <td class="c-total">
+            {% if current_user.is_admin_or_above %}
+            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-row-id="{{ row.id }}" readonly>
+            {% else %}{{ row.total }}{% endif %}
+          </td>
+          <td class="c-remarks">
+            {% if current_user.is_admin_or_above %}
+            <textarea name="remarks_{{ row.id }}">{{ row.remarks }}</textarea>
+            {% else %}{{ row.remarks }}{% endif %}
+          </td>
+        </tr>
+        {% endif %}
         {% endfor %}
-        <tr>
+        <tr style="background:#e8eaf6;">
           <td colspan="8" style="text-align:left; font-weight:700;">
             Note:
             {% if current_user.is_admin_or_above %}
@@ -302,6 +336,20 @@
     });
 
     uniqueRowIds.forEach(updateRowTotal);
+
+    // Row 15 = Row 13 + Row 14 auto-sum
+    const update15 = () => {
+      const r13 = document.querySelector('input[data-code="13"]');
+      const r14 = document.querySelector('input[data-code="14"]');
+      const r15 = document.querySelector('input[data-code="15"]');
+      if (r13 && r14 && r15) {
+        r15.value = String(toInt(r13.value) + toInt(r14.value));
+      }
+    };
+    [document.querySelector('input[data-code="13"]'), document.querySelector('input[data-code="14"]')]
+      .filter(Boolean)
+      .forEach((el) => { el.addEventListener('input', update15); el.addEventListener('change', update15); });
+    update15();
 
     // Header month/year navigation
     const headerMY = document.getElementById('header-month-year');
