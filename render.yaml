@@ -1,13 +1,19 @@
-# Manual deployment guide:
-# 1. In Render dashboard, create a new Web Service
-# 2. Connect your GitHub repo: https://github.com/navdeepptu23-max/opd-portal
-# 3. Leave build command blank (Render reads Procfile)
-# 4. Create a PostgreSQL database service in Render
-# 5. Add DATABASE_URL env var to web service from the database connection string
-# 6. Deploy
+services:
+  - type: web
+    name: opd-portal
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: opd-db
+          property: connectionString
 
-# This repo uses:
-# - Procfile for start command
-# - package.json for Node.js detection
-# - .nvmrc for Node version
+databases:
+  - name: opd-db
+    plan: free
 
