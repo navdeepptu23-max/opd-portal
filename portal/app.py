@@ -253,6 +253,17 @@ class LoginForm(FlaskForm):
     submit   = SubmitField('Sign In')
 
 
+class SelfRegisterForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired(), Length(3, 80)])
+    password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
+    confirm  = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password', message='Passwords must match.')])
+    submit   = SubmitField('Create Account')
+
+    def validate_username(self, field):
+        if User.query.filter_by(username=field.data).first():
+            raise ValidationError('Username already taken.')
+
+
 class CreateUserForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(3, 80)])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
@@ -552,6 +563,25 @@ def login():
             return redirect(url_for('dashboard'))
         flash('Invalid username or password.', 'danger')
     return render_template('login.html', form=form)
+
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if current_user.is_authenticated:
+        return redirect(url_for('dashboard'))
+    form = SelfRegisterForm()
+    if form.validate_on_submit():
+        new_user = User(
+            username=form.username.data,
+            role='sub',
+            created_by=None
+        )
+        new_user.set_password(form.password.data)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('Account created successfully. You can now sign in.', 'success')
+        return redirect(url_for('login'))
+    return render_template('signup.html', form=form)
 
 
 @app.route('/logout', methods=['POST'])

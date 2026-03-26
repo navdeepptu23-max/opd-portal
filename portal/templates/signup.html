@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Register – OPD Portal{% endblock %}
+
+{% block content %}
+<div style="min-height:calc(100vh - 60px); display:flex; align-items:center; justify-content:center; padding: 2rem 1rem;">
+  <div style="width:100%; max-width:460px;">
+
+    <div style="text-align:center; margin-bottom:2rem;">
+      <div style="font-size:2.5rem; margin-bottom:0.5rem;">📝</div>
+      <h1 style="font-size:1.5rem; font-weight:700;">Create Your Account</h1>
+      <p style="color:var(--text-muted); font-size:0.9rem; margin-top:0.3rem;">Register as a new user to access the portal</p>
+    </div>
+
+    <div class="card">
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+          {{ form.username.label }}
+          {{ form.username(placeholder='Choose a username') }}
+          {% for err in form.username.errors %}
+          <div class="field-error">{{ err }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          {{ form.password.label }}
+          {{ form.password(placeholder='Minimum 8 characters') }}
+          {% for err in form.password.errors %}
+          <div class="field-error">{{ err }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          {{ form.confirm.label }}
+          {{ form.confirm(placeholder='Repeat your password') }}
+          {% for err in form.confirm.errors %}
+          <div class="field-error">{{ err }}</div>
+          {% endfor %}
+        </div>
+
+        <div style="margin-top:1.5rem;">
+          {{ form.submit(class='btn btn-primary', style='width:100%; justify-content:center;') }}
+        </div>
+      </form>
+    </div>
+
+    <p style="text-align:center; color:var(--text-muted); font-size:0.85rem; margin-top:1.2rem;">
+      Already have an account? <a href="{{ url_for('login') }}" style="color:var(--primary); text-decoration:none;">Sign in</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

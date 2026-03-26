@@ -305,6 +305,7 @@
     </form>
     {% else %}
     <a href="{{ url_for('login') }}" {% if request.endpoint == 'login' %}class="active"{% endif %}>Login</a>
+    <a href="{{ url_for('signup') }}" {% if request.endpoint == 'signup' %}class="active"{% endif %}>Register</a>
     {% endif %}
   </div>
 </nav>
