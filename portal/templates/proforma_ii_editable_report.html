@@ -86,13 +86,40 @@
   .p2-table input[type='number'] { text-align: center; }
 
   @media print {
-    @page { size: A4 portrait; margin: 6mm; }
+    @page { size: A4 landscape; margin: 4mm; }
     .no-print, nav, footer, .p2-toolbar, .page-header, .flash-messages { display: none !important; }
     html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
-    .p2-wrap { padding: 0 !important; overflow: visible !important; background: #fff !important; }
-    .p2-table { width: 100% !important; font-size: 10pt !important; table-layout: auto !important; color: #000 !important; }
-    .p2-table th, .p2-table td { color: #000 !important; border: 1px solid #000 !important; }
-    .p2-table input { border: none !important; background: transparent !important; color: #000 !important; padding: 0 !important; }
+    .p2-wrap {
+      padding: 0 !important;
+      overflow: visible !important;
+      background: #fff !important;
+      zoom: 0.72;
+      transform-origin: top left;
+    }
+    .p2-table {
+      width: 100% !important;
+      font-size: 7.2pt !important;
+      table-layout: fixed !important;
+      color: #000 !important;
+      line-height: 1.02 !important;
+      page-break-inside: avoid !important;
+    }
+    .p2-table th,
+    .p2-table td {
+      color: #000 !important;
+      border: 1px solid #000 !important;
+      padding: 1px 2px !important;
+    }
+    .p2-table .title { font-size: 14pt !important; }
+    .p2-table .subtitle { font-size: 11pt !important; }
+    .p2-table input {
+      border: none !important;
+      background: transparent !important;
+      color: #000 !important;
+      padding: 0 !important;
+      font-size: 7pt !important;
+      min-height: 0 !important;
+    }
   }
 
   @media (max-width: 768px) {
@@ -248,8 +275,8 @@
       margin: [5, 5, 5, 5],
       filename: 'PROFORMA-II_BW_' + month + '.pdf',
       image: { type: 'jpeg', quality: 0.95 },
-      html2canvas: { scale: 1.5, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+      html2canvas: { scale: 1.2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', compress: true },
       pagebreak: { mode: 'avoid' }
     };
 
