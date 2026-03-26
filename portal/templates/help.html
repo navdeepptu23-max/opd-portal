@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Help - OPD Portal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Help Center</h1>
+  <p>Quick answers to common questions.</p>
+</div>
+
+<div class="card">
+  <h2 style="margin-bottom:0.75rem;">I forgot my password</h2>
+  <p style="color:var(--text-muted); line-height:1.8;">
+    Contact your admin for an account reset, or if you can still log in, open your profile and use Change Password.
+  </p>
+</div>
+
+<div class="card" style="margin-top:1rem;">
+  <h2 style="margin-bottom:0.75rem;">I cannot access admin actions</h2>
+  <p style="color:var(--text-muted); line-height:1.8;">
+    Only users with Admin or Super Admin roles can manage other users. Ask your Super Admin to update your role.
+  </p>
+</div>
+
+<div class="card" style="margin-top:1rem;">
+  <h2 style="margin-bottom:0.75rem;">Why is my account inactive?</h2>
+  <p style="color:var(--text-muted); line-height:1.8;">
+    Your account may have been deactivated by an admin. Contact your administrator to reactivate access.
+  </p>
+</div>
+{% endblock %}

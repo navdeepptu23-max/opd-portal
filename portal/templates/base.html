@@ -269,10 +269,14 @@
 </head>
 <body>
 
-{% if current_user.is_authenticated %}
 <nav>
-  <a class="nav-brand" href="{{ url_for('dashboard') }}">⚕ OPD Portal</a>
+  <a class="nav-brand" href="{{ url_for('dashboard') if current_user.is_authenticated else url_for('index') }}">⚕ OPD Portal</a>
   <div class="nav-links">
+    <a href="{{ url_for('index') }}" {% if request.endpoint == 'index' %}class="active"{% endif %}>Home</a>
+    <a href="{{ url_for('about') }}" {% if request.endpoint == 'about' %}class="active"{% endif %}>About</a>
+    <a href="{{ url_for('help_page') }}" {% if request.endpoint == 'help_page' %}class="active"{% endif %}>Help</a>
+    <a href="{{ url_for('contact') }}" {% if request.endpoint == 'contact' %}class="active"{% endif %}>Contact</a>
+    {% if current_user.is_authenticated %}
     <span class="nav-user">
       {{ current_user.username }}
       {% if current_user.is_super_admin %}
@@ -292,9 +296,11 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit">Sign Out</button>
     </form>
+    {% else %}
+    <a href="{{ url_for('login') }}" {% if request.endpoint == 'login' %}class="active"{% endif %}>Login</a>
+    {% endif %}
   </div>
 </nav>
-{% endif %}
 
 <div class="container">
   {% with messages = get_flashed_messages(with_categories=true) %}

@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Home - OPD Portal{% endblock %}
+
+{% block content %}
+<div class="page-header" style="text-align:center; margin-top:1rem;">
+  <h1>Build, share, and manage your workflow in one portal.</h1>
+  <p>Secure login, role-based access, and an admin panel that scales from one admin to many sub users.</p>
+</div>
+
+<div class="card" style="text-align:center; padding:2.5rem;">
+  <div style="font-size:3rem; margin-bottom:1rem;">⚕</div>
+  <h2 style="margin-bottom:0.75rem;">Welcome to OPD Portal</h2>
+  <p style="color:var(--text-muted); max-width:700px; margin:0 auto 1.5rem;">
+    Use this portal to manage admins and sub-logins with clear role permissions and simple workflows.
+  </p>
+  <div style="display:flex; justify-content:center; gap:0.75rem; flex-wrap:wrap;">
+    <a class="btn btn-primary" href="{{ url_for('login') }}">Login</a>
+    <a class="btn btn-ghost" href="{{ url_for('about') }}">Learn More</a>
+  </div>
+</div>
+
+<div class="stat-grid" style="margin-top:1.25rem;">
+  <div class="stat-card"><div class="stat-number">1</div><div class="stat-label">Portal</div></div>
+  <div class="stat-card"><div class="stat-number">3</div><div class="stat-label">Roles</div></div>
+  <div class="stat-card"><div class="stat-number">100%</div><div class="stat-label">Web Based</div></div>
+</div>
+{% endblock %}

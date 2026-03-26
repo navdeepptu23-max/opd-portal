@@ -106,7 +106,22 @@ class ChangePasswordForm(FlaskForm):
 
 @app.route('/')
 def index():
-    return redirect(url_for('dashboard') if current_user.is_authenticated else url_for('login'))
+    return redirect(url_for('dashboard')) if current_user.is_authenticated else render_template('home.html')
+
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+
+@app.route('/help')
+def help_page():
+    return render_template('help.html')
+
+
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])

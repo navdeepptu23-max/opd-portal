@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}About - OPD Portal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>About This Portal</h1>
+  <p>What the OPD portal does and how it helps your team.</p>
+</div>
+
+<div class="card">
+  <h2 style="margin-bottom:0.75rem;">Core Capabilities</h2>
+  <ul style="line-height:1.9; color:var(--text-muted); padding-left:1.1rem;">
+    <li>Secure user authentication and hashed passwords.</li>
+    <li>Role hierarchy: super admin, admin, and sub users.</li>
+    <li>Admin tools to create, activate/deactivate, and delete managed users.</li>
+    <li>Simple profile management and password change flows.</li>
+  </ul>
+</div>
+
+<div class="card" style="margin-top:1rem;">
+  <h2 style="margin-bottom:0.75rem;">How Permissions Work</h2>
+  <p style="color:var(--text-muted); line-height:1.8;">
+    Super admins can manage all users except themselves. Admins can only manage users they created.
+    Sub users can access their own account pages and assigned portal features.
+  </p>
+</div>
+{% endblock %}
