@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block title %}Hospital Indicator Report{% endblock %}
+
+{% block content %}
+<style>
+  .report-panel {
+    background: #ffffff;
+    color: #111;
+    border-radius: 10px;
+    padding: 10px;
+    overflow-x: auto;
+  }
+  .report-table {
+    width: 100%;
+    min-width: 860px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #e6e6e6;
+  }
+  .report-table th,
+  .report-table td {
+    border: 1px solid #444;
+    padding: 5px 6px;
+    font-weight: 700;
+    vertical-align: middle;
+  }
+  .report-table .head-main {
+    text-align: center;
+    font-size: 22px;
+  }
+  .report-table .head-sub {
+    text-align: center;
+    font-size: 20px;
+  }
+  .report-table .sr { width: 7%; text-align: center; }
+  .report-table .name { width: 55%; }
+  .report-table .opd, .report-table .ipd { width: 19%; text-align: center; }
+  .report-table input[type='number'] {
+    width: 100%;
+    text-align: center;
+    border: 1px solid #777;
+    padding: 5px;
+    background: #fff;
+    font-weight: 700;
+  }
+  .meta-controls {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+  }
+  .meta-controls input {
+    width: 100%;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+  @media (max-width: 760px) {
+    .meta-controls { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; flex-wrap:wrap;">
+  <div>
+    <h1>Hospital Indicator Report</h1>
+    <p>Editable monthly reporting sheet for OPD and IPD indicators.</p>
+  </div>
+  <form method="GET" style="display:flex; gap:0.6rem; align-items:center;">
+    <input type="text" name="month_year" value="{{ month_year }}" placeholder="APR-2024" style="padding:0.55rem 0.7rem; border-radius:8px; border:1px solid var(--border);">
+    <button type="submit" class="btn btn-ghost btn-sm">Load Month</button>
+  </form>
+</div>
+
+<div class="report-panel">
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="month_year" value="{{ month_year }}">
+
+    <div class="meta-controls">
+      <input type="text" name="institution_name" value="{{ institution_name }}" {% if not current_user.is_admin_or_above %}readonly{% endif %}>
+      <input type="text" value="{{ month_year }}" readonly>
+    </div>
+
+    <table class="report-table">
+      <thead>
+        <tr><th class="head-main" colspan="4">PROFORMA - HOSPITAL INDICATOR</th></tr>
+        <tr><th class="head-sub" colspan="4">MONTHLY HOSPITAL INDICATOR REPORT</th></tr>
+        <tr>
+          <th colspan="2">Name of the Health Institution: {{ institution_name }}</th>
+          <th colspan="2" style="text-align:center;">Month &amp; Year: {{ month_year }}</th>
+        </tr>
+        <tr>
+          <th class="sr">Sr. No.</th>
+          <th class="name">Indicator</th>
+          <th class="opd">OPD</th>
+          <th class="ipd">IPD</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in indicators %}
+        <tr>
+          <td class="sr">{{ item.indicator_no }}</td>
+          <td class="name">{{ item.indicator_name }}</td>
+          <td class="opd">
+            {% if current_user.is_admin_or_above %}
+              <input type="number" min="0" name="opd_{{ item.id }}" value="{{ item.opd_count }}">
+            {% else %}
+              {{ item.opd_count }}
+            {% endif %}
+          </td>
+          <td class="ipd">
+            {% if current_user.is_admin_or_above %}
+              <input type="number" min="0" name="ipd_{{ item.id }}" value="{{ item.ipd_count }}">
+            {% else %}
+              {{ item.ipd_count }}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        <tr>
+          <td colspan="2" style="text-align:center;">Total</td>
+          <td style="text-align:center;">{{ total_opd }}</td>
+          <td style="text-align:center;">{{ total_ipd }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    {% if current_user.is_admin_or_above %}
+    <div style="margin-top:0.9rem; text-align:right;">
+      <button class="btn btn-primary" type="submit">Save Report</button>
+    </div>
+    {% endif %}
+  </form>
+</div>
+{% endblock %}

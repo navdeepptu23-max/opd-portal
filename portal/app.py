@@ -24,6 +24,19 @@ login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'warning'
 app.register_blueprint(morbidity_bp)
 
+HOSPITAL_INDICATOR_DEFAULTS = [
+    (1, 'Total OPD Attendance'),
+    (2, 'Total IPD Admissions'),
+    (3, 'Emergency Cases Handled'),
+    (4, 'Maternal Cases Registered'),
+    (5, 'Institutional Deliveries'),
+    (6, 'Immunization Sessions Conducted'),
+    (7, 'Lab Tests Performed'),
+    (8, 'Referral Cases Sent'),
+    (9, 'Referral Cases Received'),
+    (10, 'Road Traffic Accident Cases'),
+]
+
 
 # ── Models ──────────────────────────────────────────────────────────────────
 
@@ -60,6 +73,30 @@ class User(UserMixin, db.Model):
         if self.role == 'admin':
             return target_user.created_by == self.id
         return False
+
+
+class HospitalIndicator(db.Model):
+    __tablename__ = 'hospital_indicators'
+
+    id = db.Column(db.Integer, primary_key=True)
+    month_year = db.Column(db.String(20), nullable=False, index=True)
+    indicator_no = db.Column(db.Integer, nullable=False)
+    indicator_name = db.Column(db.String(180), nullable=False)
+    opd_count = db.Column(db.Integer, nullable=False, default=0)
+    ipd_count = db.Column(db.Integer, nullable=False, default=0)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('month_year', 'indicator_no', name='uq_hospital_indicator_month_no'),
+    )
+
+
+class HospitalIndicatorMeta(db.Model):
+    __tablename__ = 'hospital_indicator_meta'
+
+    id = db.Column(db.Integer, primary_key=True)
+    month_year = db.Column(db.String(20), nullable=False, unique=True, index=True)
+    institution_name = db.Column(db.String(150), nullable=False, default='PHC POSSI')
 
 
 @login_manager.user_loader
@@ -124,6 +161,71 @@ def help_page():
 @app.route('/contact')
 def contact():
     return render_template('contact.html')
+
+
+def _to_non_negative_int(value):
+    try:
+        return max(0, int(str(value).strip()))
+    except (ValueError, TypeError):
+        return 0
+
+
+def _ensure_hospital_indicator_rows(month_year):
+    existing_count = HospitalIndicator.query.filter_by(month_year=month_year).count()
+    if existing_count == 0:
+        for number, name in HOSPITAL_INDICATOR_DEFAULTS:
+            db.session.add(HospitalIndicator(
+                month_year=month_year,
+                indicator_no=number,
+                indicator_name=name,
+                opd_count=0,
+                ipd_count=0,
+            ))
+        db.session.commit()
+
+    meta = HospitalIndicatorMeta.query.filter_by(month_year=month_year).first()
+    if not meta:
+        meta = HospitalIndicatorMeta(month_year=month_year, institution_name='PHC POSSI')
+        db.session.add(meta)
+        db.session.commit()
+
+
+@app.route('/reports/hospital-indicator', methods=['GET', 'POST'])
+@login_required
+def hospital_indicator_report():
+    month_year = (request.values.get('month_year') or datetime.utcnow().strftime('%b-%Y')).upper()
+    _ensure_hospital_indicator_rows(month_year)
+
+    if request.method == 'POST':
+        if not current_user.is_admin_or_above:
+            abort(403)
+
+        institution_name = (request.form.get('institution_name') or 'PHC POSSI').strip() or 'PHC POSSI'
+        meta = HospitalIndicatorMeta.query.filter_by(month_year=month_year).first()
+        meta.institution_name = institution_name[:150]
+
+        indicators = HospitalIndicator.query.filter_by(month_year=month_year).order_by(HospitalIndicator.indicator_no.asc()).all()
+        for item in indicators:
+            item.opd_count = _to_non_negative_int(request.form.get(f'opd_{item.id}', 0))
+            item.ipd_count = _to_non_negative_int(request.form.get(f'ipd_{item.id}', 0))
+
+        db.session.commit()
+        flash('Hospital Indicator Report updated successfully.', 'success')
+        return redirect(url_for('hospital_indicator_report', month_year=month_year))
+
+    meta = HospitalIndicatorMeta.query.filter_by(month_year=month_year).first()
+    indicators = HospitalIndicator.query.filter_by(month_year=month_year).order_by(HospitalIndicator.indicator_no.asc()).all()
+    total_opd = sum(item.opd_count for item in indicators)
+    total_ipd = sum(item.ipd_count for item in indicators)
+
+    return render_template(
+        'hospital_indicator_report.html',
+        month_year=month_year,
+        institution_name=meta.institution_name,
+        indicators=indicators,
+        total_opd=total_opd,
+        total_ipd=total_ipd,
+    )
 
 
 @app.route('/login', methods=['GET', 'POST'])
