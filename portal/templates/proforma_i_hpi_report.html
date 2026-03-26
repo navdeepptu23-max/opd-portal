@@ -139,6 +139,7 @@
         <button type="submit" class="btn btn-primary btn-sm">Save Report</button>
         {% endif %}
         <button type="button" class="btn-export no-print" onclick="exportPDF()" title="Download as single-page PDF">📄 Download PDF</button>
+        <button type="button" class="btn-export no-print" onclick="exportExcel()" title="Download as Excel file">📊 Download Excel</button>
       </div>
     </div>
 
@@ -248,34 +249,33 @@
           </td>
         </tr>
         {% else %}
-        <tr class="row-multi">
+        <tr class="row-multi row-auto">
           <td class="c-code">{{ row.indicator_code }}</td>
-          <td class="c-name">{{ row.indicator_label }}</td>
+          <td class="c-name">{{ row.indicator_label }}<br><span style="font-size:0.75em; background:#ff9800; color:#fff; padding:2px 6px; border-radius:3px; font-weight:bold;">Formula: 5+6+7+8</span></td>
           <td class="c-num">
             {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="male_{{ row.id }}" value="{{ row.male }}" data-role="male" data-row-id="{{ row.id }}">
+            <input type="number" min="0" name="male_{{ row.id }}" value="{{ row.male }}" data-role="male" data-code="10" data-row-id="{{ row.id }}" readonly>
             {% else %}{{ row.male }}{% endif %}
           </td>
           <td class="c-num">
             {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="female_{{ row.id }}" value="{{ row.female }}" data-role="female" data-row-id="{{ row.id }}">
+            <input type="number" min="0" name="female_{{ row.id }}" value="{{ row.female }}" data-role="female" data-code="10" data-row-id="{{ row.id }}" readonly>
             {% else %}{{ row.female }}{% endif %}
           </td>
           <td class="c-num">
             {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="male_child_{{ row.id }}" value="{{ row.male_child_u14 }}" data-role="male-child" data-row-id="{{ row.id }}">
+            <input type="number" min="0" name="male_child_{{ row.id }}" value="{{ row.male_child_u14 }}" data-role="male-child" data-code="10" data-row-id="{{ row.id }}" readonly>
             {% else %}{{ row.male_child_u14 }}{% endif %}
           </td>
           <td class="c-num">
             {% if current_user.is_admin_or_above %}
-            <input type="number" min="0" name="female_child_{{ row.id }}" value="{{ row.female_child_u14 }}" data-role="female-child" data-row-id="{{ row.id }}">
+            <input type="number" min="0" name="female_child_{{ row.id }}" value="{{ row.female_child_u14 }}" data-role="female-child" data-code="10" data-row-id="{{ row.id }}" readonly>
             {% else %}{{ row.female_child_u14 }}{% endif %}
           </td>
           <td class="c-total">
             {% if current_user.is_admin_or_above %}
             <div style="display:flex; gap:4px; align-items:center;">
-            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}" {% if row.indicator_code == '10' %}readonly title="Auto-calculated: 5+6+7+8"{% endif %} style="flex:1;">
-            {% if row.indicator_code == '10' %}<span style="font-size:0.75em; background:#ff9800; color:#fff; padding:2px 6px; border-radius:3px; white-space:nowrap; font-weight:bold;">Formula</span>{% endif %}
+            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-code="10" data-row-id="{{ row.id }}" readonly style="flex:1;">
             </div>
             {% else %}{{ row.total }}{% endif %}
           </td>
@@ -341,18 +341,39 @@
 
     uniqueRowIds.forEach(updateRowTotal);
 
+    // Row 10 column formulas: sum each column from rows 5, 6, 7, 8
+    const update10Cols = () => {
+      ['male', 'female', 'male-child', 'female-child', 'total'].forEach(role => {
+        const r5 = document.querySelector(`input[data-code="5"][data-role="${role}"]`);
+        const r6 = document.querySelector(`input[data-code="6"][data-role="${role}"]`);
+        const r7 = document.querySelector(`input[data-code="7"][data-role="${role}"]`);
+        const r8 = document.querySelector(`input[data-code="8"][data-role="${role}"]`);
+        const r10 = document.querySelector(`input[data-code="10"][data-role="${role}"]`);
+        if (r5 && r6 && r7 && r8 && r10) {
+          r10.value = String(toInt(r5.value) + toInt(r6.value) + toInt(r7.value) + toInt(r8.value));
+        }
+      });
+    };
+    [5, 6, 7, 8].forEach(code => {
+      ['male', 'female', 'male-child', 'female-child'].forEach(role => {
+        const el = document.querySelector(`input[data-code="${code}"][data-role="${role}"]`);
+        if (el) { el.addEventListener('input', update10Cols); el.addEventListener('change', update10Cols); }
+      });
+    });
+    update10Cols();
+
     // Row 10 = Row 5 + Row 6 + Row 7 + Row 8 auto-sum
     const update10 = () => {
-      const r5 = document.querySelector('input[data-code="5"]');
-      const r6 = document.querySelector('input[data-code="6"]');
-      const r7 = document.querySelector('input[data-code="7"]');
-      const r8 = document.querySelector('input[data-code="8"]');
-      const r10 = document.querySelector('input[data-code="10"]');
+      const r5 = document.querySelector('input[data-code="5"][data-role="total"]');
+      const r6 = document.querySelector('input[data-code="6"][data-role="total"]');
+      const r7 = document.querySelector('input[data-code="7"][data-role="total"]');
+      const r8 = document.querySelector('input[data-code="8"][data-role="total"]');
+      const r10 = document.querySelector('input[data-code="10"][data-role="total"]');
       if (r5 && r6 && r7 && r8 && r10) {
         r10.value = String(toInt(r5.value) + toInt(r6.value) + toInt(r7.value) + toInt(r8.value));
       }
     };
-    [document.querySelector('input[data-code="5"]'), document.querySelector('input[data-code="6"]'), document.querySelector('input[data-code="7"]'), document.querySelector('input[data-code="8"]')]
+    [document.querySelector('input[data-code="5"][data-role="total"]'), document.querySelector('input[data-code="6"][data-role="total"]'), document.querySelector('input[data-code="7"][data-role="total"]'), document.querySelector('input[data-code="8"][data-role="total"]')]
       .filter(Boolean)
       .forEach((el) => { el.addEventListener('input', update10); el.addEventListener('change', update10); });
     update10();
@@ -387,8 +408,9 @@
 </script>
 {% endif %}
 
-<!-- CDN library for PDF export -->
+<!-- CDN libraries for export -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 
 <script>
 
@@ -405,6 +427,62 @@
       pagebreak:    { mode: 'avoid' }
     };
     html2pdf().set(opt).from(el).save();
+  }
+
+  function exportExcel() {
+    const month = (document.getElementById('header-month-year') || {value: '{{ month_year }}'}).value || '{{ month_year }}';
+    const table = document.querySelector('.hpi-table');
+
+    // Build a clean 2-D array from the table, resolving input/textarea values
+    const data = [];
+    const rows = table.querySelectorAll('tr');
+    rows.forEach((tr) => {
+      const rowData = [];
+      tr.querySelectorAll('th, td').forEach((cell) => {
+        const inp = cell.querySelector('input[type="number"], input[type="text"]');
+        const ta  = cell.querySelector('textarea');
+        if (inp)      rowData.push(inp.value);
+        else if (ta)  rowData.push(ta.value);
+        else          rowData.push(cell.innerText.trim());
+      });
+      data.push(rowData);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+
+    // Merge header rows
+    ws['!merges'] = [
+      {s:{r:0,c:0}, e:{r:0,c:7}},
+      {s:{r:1,c:0}, e:{r:1,c:7}},
+      {s:{r:2,c:0}, e:{r:2,c:7}},
+    ];
+
+    // Column widths
+    ws['!cols'] = [{wch:8},{wch:50},{wch:10},{wch:10},{wch:12},{wch:14},{wch:10},{wch:20}];
+
+    // Apply black and white styling (no colors)
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cell_address = XLSX.utils.encode_cell({r:R, c:C});
+        if (!ws[cell_address]) continue;
+        ws[cell_address].s = {
+          font: { bold: true, color: { rgb: '000000' } },
+          fill: { fgColor: { rgb: 'FFFFFF' } },
+          alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+          border: { 
+            left: { style: 'thin', color: { rgb: '000000' } },
+            right: { style: 'thin', color: { rgb: '000000' } },
+            top: { style: 'thin', color: { rgb: '000000' } },
+            bottom: { style: 'thin', color: { rgb: '000000' } }
+          }
+        };
+      }
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'PROFORMA-I');
+    XLSX.writeFile(wb, 'PROFORMA-I_' + month + '.xlsx');
   }
 
 </script>
