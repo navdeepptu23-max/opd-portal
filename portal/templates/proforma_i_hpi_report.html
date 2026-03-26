@@ -233,7 +233,6 @@
               {% if current_user.is_admin_or_above %}
               <div style="display:flex; gap:6px; align-items:center; justify-content:center;">
               <input type="number" min="0" name="single_{{ row.id }}" value="{{ row.total }}" data-role="single-auto" data-code="15" data-row-id="{{ row.id }}" readonly style="width:70%;text-align:center;" title="Auto-calculated: 13+14">
-              <span style="font-size:0.75em; background:#ff9800; color:#fff; padding:2px 6px; border-radius:3px; white-space:nowrap; font-weight:bold;">Formula</span>
               </div>
               {% else %}{{ row.total }}{% endif %}
             {% else %}
@@ -251,7 +250,7 @@
         {% else %}
         <tr class="row-multi row-auto">
           <td class="c-code">{{ row.indicator_code }}</td>
-          <td class="c-name">{{ row.indicator_label }}<br><span style="font-size:0.75em; background:#ff9800; color:#fff; padding:2px 6px; border-radius:3px; font-weight:bold;">Formula: 5+6+7+8</span></td>
+          <td class="c-name">{{ row.indicator_label }}</td>
           <td class="c-num">
             {% if current_user.is_admin_or_above %}
             <input type="number" min="0" name="male_{{ row.id }}" value="{{ row.male }}" data-role="male" data-code="10" data-row-id="{{ row.id }}" readonly>
