@@ -1,0 +1,13 @@
+{
+  "name": "opd-portal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Portal with login, multi-admin, and sub-login controls",
+  "main": "server.js",
+  "dependencies": {
+    "pg": "^8.13.1"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
+}

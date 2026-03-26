@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OPD Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Sora:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="aurora aurora-a"></div>
+    <div class="aurora aurora-b"></div>
+
+    <main class="shell">
+      <section class="panel panel-login" id="loginPanel">
+        <header class="panel-head">
+          <p class="eyebrow">Secure Workspace</p>
+          <h1>Portal Login</h1>
+          <p class="subtext">Sign in to continue to your dashboard.</p>
+        </header>
+
+        <form id="loginForm" class="form-grid">
+          <label>
+            Username
+            <input type="text" id="username" required minlength="3" autocomplete="username" />
+          </label>
+          <label>
+            Password
+            <input type="password" id="password" required minlength="4" autocomplete="current-password" />
+          </label>
+          <button type="submit" class="btn btn-primary">Sign In</button>
+        </form>
+
+        <div class="helper-box">
+          <strong>Starter Admin</strong>
+          <p>Username: <code>admin</code> | Password: <code>admin123</code></p>
+        </div>
+
+        <p id="loginMessage" class="message"></p>
+      </section>
+
+      <section class="panel panel-dashboard hidden" id="dashboardPanel">
+        <header class="dashboard-head">
+          <div>
+            <p class="eyebrow">Control Center</p>
+            <h2 id="dashboardTitle">Welcome</h2>
+            <p class="subtext" id="dashboardSubtitle"></p>
+          </div>
+          <button class="btn btn-ghost" id="logoutBtn">Logout</button>
+        </header>
+
+        <div id="superAdminView" class="hidden">
+          <div class="grid-2">
+            <article class="card">
+              <h3>Create Admin</h3>
+              <form id="adminCreateForm" class="form-grid compact">
+                <label>
+                  Admin Username
+                  <input type="text" id="adminUsername" required minlength="3" />
+                </label>
+                <label>
+                  Temporary Password
+                  <input type="text" id="adminPassword" required minlength="4" />
+                </label>
+                <button type="submit" class="btn btn-primary">Create Admin</button>
+              </form>
+              <p id="superAdminMessage" class="message"></p>
+            </article>
+
+            <article class="card accent">
+              <h3>Admins</h3>
+              <div id="adminList" class="list-wrap"></div>
+            </article>
+          </div>
+        </div>
+
+        <div id="adminView" class="hidden">
+          <div class="grid-2">
+            <article class="card">
+              <h3>Create Sub Login</h3>
+              <form id="subLoginForm" class="form-grid compact">
+                <label>
+                  New Username
+                  <input type="text" id="subUsername" required minlength="3" />
+                </label>
+                <label>
+                  Temporary Password
+                  <input type="text" id="subPassword" required minlength="4" />
+                </label>
+                <button type="submit" class="btn btn-primary">Create User</button>
+              </form>
+              <p id="adminMessage" class="message"></p>
+            </article>
+
+            <article class="card accent">
+              <h3>Admin Quick Stats</h3>
+              <div class="stats">
+                <div>
+                  <p>Total Sub Logins</p>
+                  <strong id="statTotal">0</strong>
+                </div>
+                <div>
+                  <p>Active</p>
+                  <strong id="statActive">0</strong>
+                </div>
+                <div>
+                  <p>Disabled</p>
+                  <strong id="statDisabled">0</strong>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <article class="card">
+            <h3>Manage Sub Logins</h3>
+            <div class="filters">
+              <input type="text" id="searchSubUsers" placeholder="Search username..." />
+              <select id="statusFilter">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="disabled">Disabled</option>
+              </select>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Username</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="subLoginTableBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+
+        <div id="subUserView" class="hidden">
+          <article class="card accent">
+            <h3>Sub Login Workspace</h3>
+            <p>
+              Your account is managed by an administrator. Contact admin for password resets or access updates.
+            </p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
