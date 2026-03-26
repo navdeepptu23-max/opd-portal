@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% block title %}Proforma II - Morbidity and Mortality Report{% endblock %}
+
+{% block content %}
+<style>
+  .report-wrap {
+    background: #ffffff;
+    color: #000000;
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+  .report-table {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    background: #e6e6e6;
+  }
+  .report-table th,
+  .report-table td {
+    border: 1px solid #444;
+    padding: 3px 6px;
+    vertical-align: middle;
+    word-wrap: break-word;
+  }
+  .report-table .center { text-align: center; }
+  .report-table .sr { width: 6%; text-align: center; }
+  .report-table .disease { width: 61%; }
+  .report-table .opd { width: 16%; text-align: center; }
+  .report-table .ipd { width: 17%; text-align: center; }
+  .report-title { text-align: center; font-size: 31px; }
+  .report-subtitle { text-align: center; font-size: 32px; }
+  .meta-left { text-align: left; }
+  .meta-right { text-align: center; }
+  .mark-yellow { background: #fffb00; }
+  .mark-green { background: #8cc84b; }
+</style>
+
+<div class="report-wrap">
+  <table class="report-table">
+    <thead>
+      <tr><th class="report-title center" colspan="4">PROFORMA II</th></tr>
+      <tr><th class="report-subtitle center" colspan="4">MORBIDITY AND MORTALITY REPORT</th></tr>
+      <tr>
+        <th class="meta-left" colspan="2">Name of the Health Institution: PHC POSSI</th>
+        <th class="meta-right" colspan="2">Month &amp; Year: APR-2024</th>
+      </tr>
+      <tr>
+        <th class="sr">Sr. No.</th>
+        <th class="disease">Name of the disease</th>
+        <th class="opd">OPD</th>
+        <th class="ipd">IPD</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="sr">2</td><td>Typhoid Fever and Paratyphoid Fever</td><td></td><td></td></tr>
+      <tr><td class="sr">5</td><td>Amoebiasis</td><td></td><td></td></tr>
+      <tr><td class="sr">6</td><td>Diarrhoea</td><td class="mark-yellow"></td><td></td></tr>
+      <tr><td class="sr">8</td><td>Respiratory TB</td><td></td><td></td></tr>
+      <tr><td class="sr">10</td><td>T.B of other organ</td><td></td><td></td></tr>
+      <tr><td class="sr">29</td><td>Measles</td><td></td><td></td></tr>
+      <tr><td class="sr">31</td><td>Other Viral Hepatitis</td><td></td><td></td></tr>
+      <tr><td class="sr">32</td><td>HIV</td><td></td><td></td></tr>
+      <tr><td class="sr">37</td><td>Helminthiasis</td><td></td><td></td></tr>
+      <tr><td class="sr">79</td><td>Other Anaemia</td><td></td><td></td></tr>
+      <tr><td class="sr">85</td><td>Disorders of thyroid glands</td><td></td><td></td></tr>
+      <tr><td class="sr">86</td><td>Diabetes Mellitus</td><td class="mark-green"></td><td></td></tr>
+      <tr><td class="sr">89</td><td>Mental and behavioural Disorder</td><td></td><td></td></tr>
+      <tr><td class="sr">98</td><td>Diseases of eye</td><td></td><td></td></tr>
+      <tr><td class="sr">99</td><td>Diseases of the ear</td><td></td><td></td></tr>
+      <tr><td class="sr">102</td><td>Hypertensive Heart Disease</td><td></td><td></td></tr>
+      <tr><td class="sr">103</td><td>All other hypertensive diseases</td><td class="mark-green"></td><td></td></tr>
+      <tr><td class="sr">114</td><td>Pharyngitis &amp; Tonsillitis</td><td></td><td></td></tr>
+      <tr><td class="sr">116</td><td>Other Acute Upper Respiratory Infections</td><td class="mark-yellow"></td><td></td></tr>
+      <tr><td class="sr">118</td><td>Acute Bronchitis</td><td class="mark-green"></td><td></td></tr>
+      <tr><td class="sr">119</td><td>Ch. Bronchitis and unspecified Emphysema</td><td></td><td></td></tr>
+      <tr><td class="sr">120</td><td>Asthma</td><td class="mark-green"></td><td></td></tr>
+      <tr><td class="sr">121</td><td>Other lower respiratory disorders</td><td></td><td></td></tr>
+      <tr><td class="sr">126</td><td>Diseases of Oral Cavity</td><td></td><td></td></tr>
+      <tr><td class="sr">127</td><td>Gastric And Duodenal ulcer</td><td></td><td></td></tr>
+      <tr><td class="sr">128</td><td>Gastritis &amp; Duodenitis</td><td></td><td></td></tr>
+      <tr><td class="sr">134</td><td>Cholelithiasis And Cholecystitis</td><td></td><td></td></tr>
+      <tr><td class="sr">136</td><td>Other Diseases other part of Digestive system</td><td></td><td></td></tr>
+      <tr><td class="sr">137</td><td>Infections of Skin</td><td></td><td></td></tr>
+      <tr><td class="sr">138</td><td>All other disease of Skin</td><td></td><td></td></tr>
+      <tr><td class="sr">139</td><td>Rheumatoid Arthritis &amp; other inflammatory Polyarthropathies</td><td></td><td></td></tr>
+      <tr><td class="sr">147</td><td>Other diseases of Urinary Track</td><td></td><td></td></tr>
+      <tr><td class="sr">149</td><td>All other Diseases of male genital organs</td><td></td><td></td></tr>
+      <tr><td class="sr">151</td><td>All other diseases of female genital organs</td><td></td><td></td></tr>
+      <tr><td class="sr">152</td><td>Spontaneous Abortion</td><td></td><td></td></tr>
+      <tr><td class="sr">155</td><td>Oedema/ Proteinuria &amp; Hypertension Disorder in Pregnancy/childbirth &amp; puerperium</td><td></td><td></td></tr>
+      <tr><td class="sr">157</td><td>Obstructed Labour</td><td></td><td></td></tr>
+      <tr><td class="sr">158</td><td>Complication predominantly related to puerperium</td><td></td><td></td></tr>
+      <tr><td class="sr">161</td><td>All other obstetric conditions not elsewhere classified</td><td></td><td></td></tr>
+      <tr><td class="sr">172</td><td>Abdominal and Pelvic pain</td><td></td><td></td></tr>
+      <tr><td class="sr">175</td><td>Fever of Unknown origin (PUO)</td><td></td><td></td></tr>
+      <tr><td class="sr">180</td><td>All other Symptoms, Signs &amp; abnormal clinical 7 lab findings not elsewhere classified</td><td></td><td></td></tr>
+      <tr><td class="sr">186</td><td>Dislocations, sprains &amp; Stains of body regions</td><td></td><td></td></tr>
+      <tr><td class="sr">189</td><td>Other injuries</td><td></td><td></td></tr>
+      <tr><td class="sr">191</td><td>Burns &amp; Corrosions</td><td></td><td></td></tr>
+      <tr><td class="sr">192</td><td>Poisoning by drugs &amp; Biological substances and toxic effect of substances</td><td></td><td></td></tr>
+      <tr><td class="sr">193</td><td>Other specified effects of external causes  &amp; certains early complications of trauma</td><td></td><td></td></tr>
+      <tr><td class="sr">198</td><td>Other Road Side Accidents ( RSA )</td><td class="mark-green"></td><td></td></tr>
+      <tr><td class="sr">215</td><td>Bites of snake &amp; other Venomous animals/DOG BITE</td><td></td><td></td></tr>
+      <tr><td class="center" colspan="2">Total</td><td></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+{% endblock %}

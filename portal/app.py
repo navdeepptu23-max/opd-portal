@@ -8,6 +8,7 @@ from flask_wtf.csrf import CSRFProtect
 from wtforms import StringField, PasswordField, SelectField, SubmitField
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError
 from werkzeug.security import generate_password_hash, check_password_hash
+from modules.morbidity import morbidity_bp
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-in-production-use-env-var')
@@ -21,6 +22,7 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'warning'
+app.register_blueprint(morbidity_bp)
 
 
 # ── Models ──────────────────────────────────────────────────────────────────
