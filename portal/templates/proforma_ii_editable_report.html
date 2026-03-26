@@ -4,11 +4,12 @@
 {% block content %}
 <style>
   .p2-wrap {
-    background: #ffffff;
+    background: #f8fbff;
     color: #000000;
     border-radius: 8px;
     padding: 14px;
     overflow-x: auto;
+    border: 1px solid #d9e7f5;
   }
   .p2-toolbar {
     display: flex;
@@ -34,15 +35,15 @@
   .btn-export {
     padding: 0.4rem 0.85rem;
     border-radius: 6px;
-    border: 1px solid #888;
-    background: #f4f4f4;
+    border: 1px solid #9fb8d4;
+    background: #eef5ff;
     color: #222;
     cursor: pointer;
     font-size: 0.82rem;
     font-weight: 600;
     transition: background 0.15s;
   }
-  .btn-export:hover { background: #dde; }
+  .btn-export:hover { background: #e2eeff; }
 
   .p2-table {
     width: 100%;
@@ -52,13 +53,13 @@
     font-family: Arial, Helvetica, sans-serif;
     font-size: 14px;
     font-weight: 700;
-    background: #e6e6e6;
+    background: #f3f8ff;
     color: #000;
     line-height: 1.15;
   }
   .p2-table th,
   .p2-table td {
-    border: 1px solid #444;
+    border: 1px solid #7c98b6;
     padding: 4px 6px;
     vertical-align: middle;
     word-break: break-word;
@@ -84,6 +85,13 @@
     min-height: 30px;
   }
   .p2-table input[type='number'] { text-align: center; }
+
+  .p2-table thead tr:nth-child(1) th { background: #dbeeff; }
+  .p2-table thead tr:nth-child(2) th { background: #cfe6ff; }
+  .p2-table thead tr:nth-child(3) th { background: #e8f3ff; }
+  .p2-table thead tr:nth-child(4) th { background: #d6eaff; }
+  .p2-table tbody tr:nth-child(odd) { background: #f7fbff; }
+  .p2-table tbody tr:nth-child(even) { background: #eef6ff; }
 
   @media print {
     @page { size: A4 portrait; margin: 6mm; }
