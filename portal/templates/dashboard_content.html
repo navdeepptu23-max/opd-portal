@@ -1,0 +1,113 @@
+{% if current_user.is_admin_or_above %}
+
+{# ── Stats ── #}
+{% set total   = users | length %}
+{% set active  = users | selectattr('is_active') | list | length %}
+{% set admins  = users | selectattr('role', 'in', ['admin','super_admin']) | list | length %}
+{% set subs    = users | rejectattr('role', 'in', ['admin','super_admin']) | list | length %}
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="stat-number">{{ total }}</div>
+    <div class="stat-label">Total Users</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:var(--success);">{{ active }}</div>
+    <div class="stat-label">Active</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:var(--info);">{{ admins }}</div>
+    <div class="stat-label">Admins</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:var(--text-muted);">{{ subs }}</div>
+    <div class="stat-label">Sub Users</div>
+  </div>
+</div>
+
+{# ── Search ── #}
+<form method="GET" class="search-row">
+  <input type="text" name="q" value="{{ search }}" placeholder="Search users…" autocomplete="off">
+  <button type="submit" class="btn btn-ghost btn-sm">Search</button>
+  {% if search %}
+  <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm">✕ Clear</a>
+  {% endif %}
+</form>
+
+{# ── Table ── #}
+<div class="card" style="padding:0; overflow:hidden;">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td style="color:var(--text-muted); width:40px;">{{ loop.index }}</td>
+          <td><strong>{{ user.username }}</strong></td>
+          <td>
+            {% if user.role == 'super_admin' %}
+              <span class="badge badge-super">Super Admin</span>
+            {% elif user.role == 'admin' %}
+              <span class="badge badge-admin">Admin</span>
+            {% else %}
+              <span class="badge badge-sub">Sub</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="dot {{ 'dot-active' if user.is_active else 'dot-inactive' }}"></span>
+            {{ 'Active' if user.is_active else 'Inactive' }}
+          </td>
+          <td style="color:var(--text-muted); font-size:0.82rem;">
+            {{ user.created_at.strftime('%d %b %Y') }}
+          </td>
+          <td>
+            <div class="td-actions">
+              {# Toggle active/inactive #}
+              <form method="POST" action="{{ url_for('toggle_user', user_id=user.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-ghost btn-sm">
+                  {{ 'Deactivate' if user.is_active else 'Activate' }}
+                </button>
+              </form>
+              {# Delete #}
+              <form method="POST" action="{{ url_for('delete_user', user_id=user.id) }}"
+                    onsubmit="return confirm('Delete user {{ user.username }}?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center; color:var(--text-muted); padding:2rem;">
+            {% if search %}No users match "<strong>{{ search }}</strong>".{% else %}No users found.{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% else %}
+{# Sub user view #}
+<div class="card" style="text-align:center; padding:3rem 2rem;">
+  <div style="font-size:3rem; margin-bottom:1rem;">👤</div>
+  <h2 style="margin-bottom:0.5rem;">Welcome, {{ current_user.username }}!</h2>
+  <p style="color:var(--text-muted);">You are logged in as a Sub User. Contact your admin for access details.</p>
+  <div style="margin-top:1.5rem; display:flex; gap:0.75rem; justify-content:center;">
+    <a href="{{ url_for('profile') }}" class="btn btn-ghost">My Profile</a>
+    <a href="{{ url_for('change_password') }}" class="btn btn-ghost">Change Password</a>
+  </div>
+</div>
+{% endif %}

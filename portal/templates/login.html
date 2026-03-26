@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Sign In – OPD Portal{% endblock %}
+
+{% block content %}
+<div style="min-height:calc(100vh - 60px); display:flex; align-items:center; justify-content:center; padding: 2rem 1rem;">
+  <div style="width:100%; max-width:420px;">
+
+    <div style="text-align:center; margin-bottom:2rem;">
+      <div style="font-size:2.5rem; margin-bottom:0.5rem;">⚕</div>
+      <h1 style="font-size:1.5rem; font-weight:700;">OPD Portal</h1>
+      <p style="color:var(--text-muted); font-size:0.9rem; margin-top:0.3rem;">Sign in to your account</p>
+    </div>
+
+    <div class="card">
+      <form method="POST" novalidate>
+        {{ form.hidden_tag() }}
+
+        <div class="form-group">
+          {{ form.username.label }}
+          {{ form.username(placeholder='Enter your username') }}
+          {% for err in form.username.errors %}
+          <div class="field-error">{{ err }}</div>
+          {% endfor %}
+        </div>
+
+        <div class="form-group">
+          {{ form.password.label }}
+          {{ form.password(placeholder='Enter your password') }}
+          {% for err in form.password.errors %}
+          <div class="field-error">{{ err }}</div>
+          {% endfor %}
+        </div>
+
+        <div style="margin-top:1.5rem;">
+          {{ form.submit(class='btn btn-primary', style='width:100%; justify-content:center;') }}
+        </div>
+      </form>
+    </div>
+
+    <p style="text-align:center; color:var(--text-muted); font-size:0.8rem; margin-top:1.5rem;">
+      Default login: <strong style="color:var(--text);">admin</strong> / <strong style="color:var(--text);">admin123</strong>
+    </p>
+  </div>
+</div>
+{% endblock %}

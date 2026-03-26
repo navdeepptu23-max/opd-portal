@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}500 Server Error – OPD Portal{% endblock %}
+
+{% block content %}
+<div style="min-height:calc(100vh - 120px); display:flex; align-items:center; justify-content:center; text-align:center;">
+  <div>
+    <div style="font-size:5rem; font-weight:800; color:var(--danger); line-height:1; margin-bottom:0.5rem;">500</div>
+    <h1 style="font-size:1.5rem; margin-bottom:0.75rem;">Internal Server Error</h1>
+    <p style="color:var(--text-muted); max-width:360px; margin:0 auto 2rem;">
+      Something went wrong on our end. Please try again later.
+    </p>
+    <a href="{{ url_for('dashboard') if current_user.is_authenticated else url_for('login') }}" class="btn btn-ghost">
+      ← Go Back
+    </a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block title %}Create User – OPD Portal{% endblock %}
+
+{% block content %}
+<div style="max-width:500px; margin:0 auto;">
+  <div class="page-header">
+    <h1>Create New User</h1>
+    <p>Add a new user to the portal</p>
+  </div>
+
+  <div class="card">
+    <form method="POST" novalidate>
+      {{ form.hidden_tag() }}
+
+      <div class="form-group">
+        {{ form.username.label }}
+        {{ form.username(placeholder='Choose a username') }}
+        {% for err in form.username.errors %}
+        <div class="field-error">{{ err }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        {{ form.role.label }}
+        {{ form.role() }}
+        {% for err in form.role.errors %}
+        <div class="field-error">{{ err }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        {{ form.password.label }}
+        {{ form.password(placeholder='Minimum 8 characters') }}
+        {% for err in form.password.errors %}
+        <div class="field-error">{{ err }}</div>
+        {% endfor %}
+      </div>
+
+      <div class="form-group">
+        {{ form.confirm.label }}
+        {{ form.confirm(placeholder='Repeat the password') }}
+        {% for err in form.confirm.errors %}
+        <div class="field-error">{{ err }}</div>
+        {% endfor %}
+      </div>
+
+      <div style="display:flex; gap:0.75rem; margin-top:1.5rem;">
+        {{ form.submit(class='btn btn-primary') }}
+        <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

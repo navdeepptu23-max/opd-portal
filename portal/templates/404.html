@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}{{ code }} {{ title }} – OPD Portal{% endblock %}
+
+{% block content %}
+<div style="min-height:calc(100vh - 120px); display:flex; align-items:center; justify-content:center; text-align:center;">
+  <div>
+    <div style="font-size:5rem; font-weight:800; color:var(--primary); line-height:1; margin-bottom:0.5rem;">{{ code }}</div>
+    <h1 style="font-size:1.5rem; margin-bottom:0.75rem;">{{ title }}</h1>
+    <p style="color:var(--text-muted); max-width:360px; margin:0 auto 2rem;">{{ message }}</p>
+    <a href="{{ url_for('dashboard') if current_user.is_authenticated else url_for('login') }}" class="btn btn-primary">
+      ← Back to {{ 'Dashboard' if current_user.is_authenticated else 'Login' }}
+    </a>
+  </div>
+</div>
+{% endblock %}
