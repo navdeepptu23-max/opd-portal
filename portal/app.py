@@ -319,7 +319,7 @@ def hospital_indicator_report():
 @app.route('/reports/proforma-i-hpi', methods=['GET', 'POST'])
 @login_required
 def proforma_i_hpi_report():
-    month_year = (request.values.get('month_year') or datetime.utcnow().strftime('%b-%Y')).upper()
+    month_year = (request.values.get('month_year') or 'MAR-2026').upper()
     _ensure_proforma_hpi_rows(month_year)
 
     if request.method == 'POST':

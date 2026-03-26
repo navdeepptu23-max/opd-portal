@@ -129,7 +129,14 @@
             {{ meta.sanctioned_beds }}
             {% endif %}
           </th>
-          <th colspan="2" style="text-align:center;">Month &amp; Year: {{ month_year }}</th>
+          <th colspan="2" style="text-align:center;">
+            Month &amp; Year:
+            {% if current_user.is_admin_or_above %}
+            <input type="text" id="header-month-year" value="{{ month_year }}" style="width:120px; text-align:center; font-weight:700; font-size:1em;" placeholder="e.g. MAR-2026">
+            {% else %}
+            {{ month_year }}
+            {% endif %}
+          </th>
           <th></th>
         </tr>
         <tr>
@@ -270,6 +277,19 @@
     });
 
     uniqueRowIds.forEach(updateRowTotal);
+
+    // Header month/year navigation
+    const headerMY = document.getElementById('header-month-year');
+    if (headerMY) {
+      const navigate = () => {
+        const val = headerMY.value.trim().toUpperCase();
+        if (val) {
+          window.location.href = "{{ url_for('proforma_i_hpi_report') }}?month_year=" + encodeURIComponent(val);
+        }
+      };
+      headerMY.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); navigate(); } });
+      headerMY.addEventListener('blur', navigate);
+    }
   })();
 </script>
 {% endif %}
