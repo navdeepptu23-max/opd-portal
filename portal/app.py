@@ -579,6 +579,48 @@ def dashboard():
     return render_template('dashboard.html', users=users, search=search)
 
 
+@app.route('/reports/dashboard')
+@login_required
+def reports_dashboard():
+    def _parse_month(m):
+        try:
+            return datetime.strptime(m.upper(), '%b-%Y')
+        except ValueError:
+            return datetime.min
+
+    hi_months  = {m.month_year for m in HospitalIndicatorMeta.query.all()}
+    p1_months  = {m.month_year for m in ProformaHPIMeta.query.all()}
+    p2_months  = {m.month_year for m in ProformaIIMeta.query.all()}
+    all_months = sorted(hi_months | p1_months | p2_months, key=_parse_month, reverse=True)
+
+    report_data = []
+    for month in all_months:
+        hi_rows = HospitalIndicator.query.filter_by(month_year=month).all()
+        p1_rows = ProformaHPIRow.query.filter_by(month_year=month).all()
+        p2_rows = ProformaIIRow.query.filter_by(month_year=month).all()
+
+        hi_opd  = sum(r.opd_count for r in hi_rows)
+        hi_ipd  = sum(r.ipd_count for r in hi_rows)
+        p1_total = sum(r.total for r in p1_rows)
+        p2_opd  = sum(r.opd_count for r in p2_rows)
+        p2_ipd  = sum(r.ipd_count for r in p2_rows)
+
+        report_data.append({
+            'month_year': month,
+            'hi':  {'exists': month in hi_months, 'opd': hi_opd, 'ipd': hi_ipd},
+            'p1':  {'exists': month in p1_months, 'total': p1_total},
+            'p2':  {'exists': month in p2_months, 'opd': p2_opd, 'ipd': p2_ipd},
+        })
+
+    return render_template('reports_dashboard.html',
+        report_data=report_data,
+        total_months=len(all_months),
+        hi_count=len(hi_months),
+        p1_count=len(p1_months),
+        p2_count=len(p2_months),
+    )
+
+
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():

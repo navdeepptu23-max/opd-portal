@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+{% block title %}Reports Dashboard – OPD Portal{% endblock %}
+
+{% block content %}
+<style>
+  .rd-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .rd-stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.4rem 1.25rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .rd-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .rd-stat-card.color-primary::before { background: var(--primary); }
+  .rd-stat-card.color-info::before    { background: var(--info); }
+  .rd-stat-card.color-success::before { background: var(--success); }
+  .rd-stat-card.color-warning::before { background: var(--warning); }
+  .rd-stat-num  { font-size: 2.2rem; font-weight: 700; }
+  .rd-stat-num.color-primary { color: var(--primary); }
+  .rd-stat-num.color-info    { color: var(--info); }
+  .rd-stat-num.color-success { color: var(--success); }
+  .rd-stat-num.color-warning { color: var(--warning); }
+  .rd-stat-lbl  { font-size: 0.73rem; color: var(--text-muted); margin-top: 0.3rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* Module badges */
+  .mod-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.78rem;
+    padding: 0.18rem 0.6rem;
+    border-radius: 20px;
+    font-weight: 600;
+    border: 1px solid;
+  }
+  .mod-badge.saved  { background: rgba(57,217,138,0.12); color: var(--success); border-color: rgba(57,217,138,0.3); }
+  .mod-badge.absent { background: rgba(148,163,184,0.1);  color: var(--text-muted); border-color: rgba(148,163,184,0.2); }
+  .mod-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .mod-dot.saved  { background: var(--success); }
+  .mod-dot.absent { background: var(--text-muted); }
+
+  .cell-module {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .cell-counts {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .cell-counts span { white-space: nowrap; }
+  .cell-counts .lbl { color: var(--text-muted); }
+  .cell-counts .val { color: var(--text); font-weight: 600; }
+
+  .btn-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.73rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.15s, border-color 0.15s;
+    cursor: pointer;
+  }
+  .btn-open:hover { background: var(--surface-hover); border-color: var(--primary); }
+
+  .month-col { font-weight: 700; font-size: 0.92rem; color: var(--text); letter-spacing: 0.5px; }
+
+  .section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+  .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+  thead th.th-module {
+    font-size: 0.75rem;
+    background: rgba(255,255,255,0.03);
+  }
+  thead th.th-module.hi  { border-top: 2px solid var(--info); }
+  thead th.th-module.p1  { border-top: 2px solid var(--success); }
+  thead th.th-module.p2  { border-top: 2px solid var(--warning); }
+</style>
+
+<div class="page-header">
+  <h1>Reports Dashboard</h1>
+  <p>Overview of all saved monthly reports across modules</p>
+</div>
+
+{# ── Summary Stat Cards ── #}
+<div class="rd-stat-grid">
+  <div class="rd-stat-card color-primary">
+    <div class="rd-stat-num color-primary">{{ total_months }}</div>
+    <div class="rd-stat-lbl">Months with Any Data</div>
+  </div>
+  <div class="rd-stat-card color-info">
+    <div class="rd-stat-num color-info">{{ hi_count }}</div>
+    <div class="rd-stat-lbl">Hospital Indicator</div>
+  </div>
+  <div class="rd-stat-card color-success">
+    <div class="rd-stat-num color-success">{{ p1_count }}</div>
+    <div class="rd-stat-lbl">PROFORMA-I (HPI)</div>
+  </div>
+  <div class="rd-stat-card color-warning">
+    <div class="rd-stat-num color-warning">{{ p2_count }}</div>
+    <div class="rd-stat-lbl">PROFORMA-II (Morbidity)</div>
+  </div>
+</div>
+
+{# ── Per-Month Table ── #}
+<div class="section-title">Monthly Report Collection</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th rowspan="1">Month / Year</th>
+          <th class="th-module hi">Hospital Indicator</th>
+          <th class="th-module p1">PROFORMA-I (HPI)</th>
+          <th class="th-module p2">PROFORMA-II (Morbidity)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in report_data %}
+        <tr>
+          {# Month label #}
+          <td class="month-col">{{ row.month_year }}</td>
+
+          {# Hospital Indicator #}
+          <td>
+            <div class="cell-module">
+              {% if row.hi.exists %}
+                <span class="mod-badge saved"><span class="mod-dot saved"></span>Saved</span>
+                <div class="cell-counts">
+                  <span><span class="lbl">OPD </span><span class="val">{{ row.hi.opd }}</span></span>
+                  <span><span class="lbl">IPD </span><span class="val">{{ row.hi.ipd }}</span></span>
+                </div>
+                <a class="btn-open" href="{{ url_for('hospital_indicator_report') }}?month_year={{ row.month_year }}">Open ↗</a>
+              {% else %}
+                <span class="mod-badge absent"><span class="mod-dot absent"></span>No Data</span>
+                <a class="btn-open" href="{{ url_for('hospital_indicator_report') }}?month_year={{ row.month_year }}">Add ↗</a>
+              {% endif %}
+            </div>
+          </td>
+
+          {# PROFORMA-I #}
+          <td>
+            <div class="cell-module">
+              {% if row.p1.exists %}
+                <span class="mod-badge saved"><span class="mod-dot saved"></span>Saved</span>
+                <div class="cell-counts">
+                  <span><span class="lbl">Total </span><span class="val">{{ row.p1.total }}</span></span>
+                </div>
+                <a class="btn-open" href="{{ url_for('proforma_i_hpi_report') }}?month_year={{ row.month_year }}">Open ↗</a>
+              {% else %}
+                <span class="mod-badge absent"><span class="mod-dot absent"></span>No Data</span>
+                <a class="btn-open" href="{{ url_for('proforma_i_hpi_report') }}?month_year={{ row.month_year }}">Add ↗</a>
+              {% endif %}
+            </div>
+          </td>
+
+          {# PROFORMA-II #}
+          <td>
+            <div class="cell-module">
+              {% if row.p2.exists %}
+                <span class="mod-badge saved"><span class="mod-dot saved"></span>Saved</span>
+                <div class="cell-counts">
+                  <span><span class="lbl">OPD </span><span class="val">{{ row.p2.opd }}</span></span>
+                  <span><span class="lbl">IPD </span><span class="val">{{ row.p2.ipd }}</span></span>
+                </div>
+                <a class="btn-open" href="{{ url_for('proforma_ii_editable_report') }}?month_year={{ row.month_year }}">Open ↗</a>
+              {% else %}
+                <span class="mod-badge absent"><span class="mod-dot absent"></span>No Data</span>
+                <a class="btn-open" href="{{ url_for('proforma_ii_editable_report') }}?month_year={{ row.month_year }}">Add ↗</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4">
+            <div class="empty-state">
+              <div class="empty-icon">📋</div>
+              No reports have been saved yet.<br>
+              <span style="font-size:0.85rem;">Start by opening any report module and saving data.</span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
