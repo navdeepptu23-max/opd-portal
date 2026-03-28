@@ -159,9 +159,7 @@ class User(UserMixin, db.Model):
         if self.is_super_admin:
             return target_user.id != self.id
         if self.role == 'admin':
-            if target_user.role != 'sub':
-                return False
-            return target_user.created_by == self.id or target_user.created_by is None
+            return target_user.role == 'sub'
         return False
 
 
@@ -736,12 +734,7 @@ def dashboard():
     if current_user.is_super_admin:
         users = User.query.filter(User.id != current_user.id).order_by(User.created_at.desc()).all()
     elif current_user.role == 'admin':
-        users = User.query.filter(
-            db.or_(
-                User.created_by == current_user.id,
-                db.and_(User.created_by.is_(None), User.role == 'sub')
-            )
-        ).order_by(User.created_at.desc()).all()
+        users = User.query.filter_by(role='sub').order_by(User.created_at.desc()).all()
     else:
         users = []
     search = request.args.get('q', '').strip()
