@@ -296,9 +296,7 @@
     <a href="{{ url_for('reports_dashboard') }}" {% if request.endpoint == 'reports_dashboard' %}class="active"{% endif %}>Reports</a>
     {% endif %}
     <a href="{{ url_for('profile') }}" {% if request.endpoint == 'profile' %}class="active"{% endif %}>Profile</a>
-    {% if current_user.is_admin_or_above %}
     <a href="{{ url_for('register') }}" {% if request.endpoint == 'register' %}class="active"{% endif %}>+ New User</a>
-    {% endif %}
     <form method="POST" action="{{ url_for('logout') }}" style="display:inline;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit">Sign Out</button>

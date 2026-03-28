@@ -7,9 +7,7 @@
     <h1>Dashboard</h1>
     <p>Welcome back, <strong>{{ current_user.username }}</strong></p>
   </div>
-  {% if current_user.is_admin_or_above %}
   <a href="{{ url_for('register') }}" class="btn btn-primary">+ New User</a>
-  {% endif %}
 </div>
 
 {% include 'dashboard_content.html' %}

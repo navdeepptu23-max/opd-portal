@@ -726,7 +726,7 @@ def logout():
 @app.route('/register', methods=['GET', 'POST'])
 @login_required
 def register():
-    if not current_user.is_admin_or_above:
+    if not current_user.is_active:
         abort(403)
     form = CreateUserForm()
     # Only super_admin may create other admins
