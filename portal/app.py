@@ -1007,27 +1007,28 @@ def _consolidated_report_payload(report_type, month_year):
     if report_type not in report_titles:
         return None
 
-    # Find all users who submitted this report for this month.
-    submissions = UserReportSubmission.query.filter_by(
-        report_type=report_type, month_year=month_year
-    ).all()
-    user_ids = [s.user_id for s in submissions]
-    if not user_ids:
-        return {
-            'title': report_titles[report_type],
-            'month_year': month_year,
-            'headers': [],
-            'rows': [],
-            'user_count': 0,
-        }
+    normalized = _normalize_month_year(month_year)
 
-    # Collect scoped month keys for each user.
-    scoped_keys = [_user_scoped_month_key(month_year, uid) for uid in user_ids]
+    # Row data is stored with scoped key like 'MAR-2026__U5'.
+    # Use LIKE to match all users' rows for this month, and also match
+    # any legacy rows stored with plain month_year.
+    scoped_pattern = f'{normalized}__U%'
+
+    # Count how many users submitted this report for this month.
+    submissions = UserReportSubmission.query.filter_by(
+        report_type=report_type, month_year=normalized
+    ).all()
+    user_count = len(submissions)
+
+    def _month_filter(model):
+        """Return filter matching both scoped (MAR-2026__U5) and plain (MAR-2026) keys."""
+        return db.or_(
+            model.month_year.like(scoped_pattern),
+            model.month_year == normalized,
+        )
 
     if report_type == 'hospital_indicator':
-        all_rows = HospitalIndicator.query.filter(
-            HospitalIndicator.month_year.in_(scoped_keys)
-        ).all()
+        all_rows = HospitalIndicator.query.filter(_month_filter(HospitalIndicator)).all()
         agg = {}
         for r in all_rows:
             key = r.indicator_no
@@ -1043,9 +1044,7 @@ def _consolidated_report_payload(report_type, month_year):
         ]
 
     elif report_type == 'proforma_i':
-        all_rows = ProformaHPIRow.query.filter(
-            ProformaHPIRow.month_year.in_(scoped_keys)
-        ).all()
+        all_rows = ProformaHPIRow.query.filter(_month_filter(ProformaHPIRow)).all()
         agg = {}
         for r in all_rows:
             key = r.indicator_code
@@ -1066,9 +1065,7 @@ def _consolidated_report_payload(report_type, month_year):
         ]
 
     elif report_type == 'proforma_ii':
-        all_rows = ProformaIIRow.query.filter(
-            ProformaIIRow.month_year.in_(scoped_keys)
-        ).all()
+        all_rows = ProformaIIRow.query.filter(_month_filter(ProformaIIRow)).all()
         agg = {}
         for r in all_rows:
             key = r.sr_no
@@ -1085,9 +1082,7 @@ def _consolidated_report_payload(report_type, month_year):
 
     elif report_type in ('cbhi_form1', 'cbhi_form2'):
         ModelClass = CbhiForm1Row if report_type == 'cbhi_form1' else CbhiForm2Row
-        all_rows = ModelClass.query.filter(
-            ModelClass.month_year.in_(scoped_keys)
-        ).all()
+        all_rows = ModelClass.query.filter(_month_filter(ModelClass)).all()
         agg = {}
         numeric_fields = [
             'general_m', 'general_f', 'general_tr', 'general_total',
@@ -1124,12 +1119,23 @@ def _consolidated_report_payload(report_type, month_year):
     else:
         return None
 
+    # Log to help diagnose empty results.
+    actual_user_count = user_count
+    if not actual_user_count and all_rows:
+        actual_user_count = len(set(
+            r.month_year.split('__U')[-1] for r in all_rows if '__U' in r.month_year
+        ))
+    app.logger.info(
+        '[CONSOLIDATED] report_type=%s month=%s pattern=%s user_count=%d rows_found=%d',
+        report_type, normalized, scoped_pattern, actual_user_count, len(data_rows),
+    )
+
     return {
         'title': report_titles[report_type],
-        'month_year': month_year,
+        'month_year': normalized,
         'headers': headers,
         'rows': data_rows,
-        'user_count': len(user_ids),
+        'user_count': actual_user_count,
     }
 
 
@@ -2128,6 +2134,17 @@ def db_health():
             {'username': r[0], 'created_at': str(r[1]) if r[1] else '', 'is_active': r[2]}
             for r in recent
         ],
+        'report_data_counts': {
+            'proforma_hpi_rows': db.session.execute(db.text("SELECT COUNT(*) FROM proforma_hpi_rows")).scalar(),
+            'proforma_ii_rows': db.session.execute(db.text("SELECT COUNT(*) FROM proforma_ii_rows")).scalar(),
+            'hospital_indicators': db.session.execute(db.text("SELECT COUNT(*) FROM hospital_indicators")).scalar(),
+            'user_report_submissions': db.session.execute(db.text("SELECT COUNT(*) FROM user_report_submissions")).scalar(),
+        },
+        'sample_month_year_keys': {
+            'proforma_hpi': [r[0] for r in db.session.execute(db.text("SELECT DISTINCT month_year FROM proforma_hpi_rows LIMIT 10")).fetchall()],
+            'proforma_ii': [r[0] for r in db.session.execute(db.text("SELECT DISTINCT month_year FROM proforma_ii_rows LIMIT 10")).fetchall()],
+            'submissions': [r[0] for r in db.session.execute(db.text("SELECT DISTINCT month_year FROM user_report_submissions LIMIT 10")).fetchall()],
+        },
     }
     return jsonify(info)
 
