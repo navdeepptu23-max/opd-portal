@@ -87,6 +87,21 @@
   .btn-open:hover { background: var(--surface-hover); border-color: var(--primary); }
 
   .month-col { font-weight: 700; font-size: 0.92rem; color: var(--text); letter-spacing: 0.5px; }
+  .status-pill {
+    display: inline-block;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    margin-left: 0.35rem;
+  }
+  .status-pill.submitted { color: var(--info); border-color: rgba(56,189,248,0.35); background: rgba(56,189,248,0.12); }
+  .status-pill.approved  { color: var(--success); border-color: rgba(57,217,138,0.35); background: rgba(57,217,138,0.12); }
+  .status-pill.rejected  { color: var(--danger); border-color: rgba(255,77,109,0.35); background: rgba(255,77,109,0.12); }
+  .status-pill.draft     { color: var(--warning); border-color: rgba(255,201,60,0.35); background: rgba(255,201,60,0.12); }
 
   .section-title {
     font-size: 1rem;
@@ -242,6 +257,96 @@
               <div class="empty-icon">📋</div>
               No reports have been saved yet.<br>
               <span style="font-size:0.85rem;">Start by opening any report module and saving data.</span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ── User-wise Month-Year Table ── #}
+<div class="section-title" style="margin-top:2rem;">User-wise Reports (Month-Year)</div>
+<div class="card" style="padding:0; overflow:hidden; margin-bottom:1.5rem;">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Month / Year</th>
+          <th>User ID</th>
+          <th class="th-module p1">PROFORMA-I</th>
+          <th class="th-module p2">PROFORMA-II</th>
+          <th class="th-module cb1">CBHI FORM-1</th>
+          <th class="th-module cb2">CBHI FORM-2</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in user_month_rows %}
+        <tr>
+          <td class="month-col">{{ row.month_year }}</td>
+          <td>
+            <strong>{{ row.username }}</strong>
+            <div style="font-size:0.78rem; color:var(--text-muted);">ID: {{ row.user_id }}</div>
+          </td>
+
+          <td>
+            <div class="cell-module">
+              {% if row.p1.exists %}
+              <span class="mod-badge saved"><span class="mod-dot saved"></span>Saved</span>
+              <div class="cell-counts"><span><span class="lbl">Total </span><span class="val">{{ row.p1.total }}</span></span></div>
+              <div><span class="status-pill {{ row.p1.status }}">{{ row.p1.status }}</span></div>
+              {% else %}
+              <span class="mod-badge absent"><span class="mod-dot absent"></span>No Data</span>
+              {% endif %}
+            </div>
+          </td>
+
+          <td>
+            <div class="cell-module">
+              {% if row.p2.exists %}
+              <span class="mod-badge saved"><span class="mod-dot saved"></span>Saved</span>
+              <div class="cell-counts">
+                <span><span class="lbl">OPD </span><span class="val">{{ row.p2.opd }}</span></span>
+                <span><span class="lbl">IPD </span><span class="val">{{ row.p2.ipd }}</span></span>
+              </div>
+              <div><span class="status-pill {{ row.p2.status }}">{{ row.p2.status }}</span></div>
+              {% else %}
+              <span class="mod-badge absent"><span class="mod-dot absent"></span>No Data</span>
+              {% endif %}
+            </div>
+          </td>
+
+          <td>
+            <div class="cell-module">
+              {% if row.cbhi.exists %}
+              <span class="mod-badge saved"><span class="mod-dot saved"></span>Saved</span>
+              <div class="cell-counts"><span><span class="lbl">Total </span><span class="val">{{ row.cbhi.total }}</span></span></div>
+              <div><span class="status-pill {{ row.cbhi.status }}">{{ row.cbhi.status }}</span></div>
+              {% else %}
+              <span class="mod-badge absent"><span class="mod-dot absent"></span>No Data</span>
+              {% endif %}
+            </div>
+          </td>
+
+          <td>
+            <div class="cell-module">
+              {% if row.cbhi2.exists %}
+              <span class="mod-badge saved"><span class="mod-dot saved"></span>Saved</span>
+              <div class="cell-counts"><span><span class="lbl">Total </span><span class="val">{{ row.cbhi2.total }}</span></span></div>
+              <div><span class="status-pill {{ row.cbhi2.status }}">{{ row.cbhi2.status }}</span></div>
+              {% else %}
+              <span class="mod-badge absent"><span class="mod-dot absent"></span>No Data</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              <div class="empty-icon">👥</div>
+              No user-wise report submissions found yet.
             </div>
           </td>
         </tr>

@@ -1824,6 +1824,7 @@ def reports_dashboard():
     if not current_user.is_admin_or_above:
         abort(403)
     submissions = UserReportSubmission.query.all()
+    statuses = UserReportStatus.query.all()
     all_months = sorted({row.month_year for row in submissions}, key=_parse_month_year, reverse=True)
 
     monthly_type_summary = {}
@@ -1850,8 +1851,57 @@ def reports_dashboard():
             'cbhi2': {'exists': cbhi2_data['count'] > 0, 'total': cbhi2_data['value']},
         })
 
+    report_alias = {
+        'proforma_i': 'p1',
+        'proforma_ii': 'p2',
+        'cbhi_form1': 'cbhi',
+        'cbhi_form2': 'cbhi2',
+    }
+    status_map = {
+        (row.user_id, row.month_year, row.report_type): row.status
+        for row in statuses
+    }
+
+    by_user_month = {}
+    for row in submissions:
+        alias = report_alias.get(row.report_type)
+        if not alias:
+            continue
+        key = (row.user_id, row.month_year)
+        bucket = by_user_month.setdefault(key, {
+            'month_year': row.month_year,
+            'user_id': row.user_id,
+            'username': row.user.username if row.user else f'user_{row.user_id}',
+            'p1': {'exists': False, 'status': '-', 'total': 0},
+            'p2': {'exists': False, 'status': '-', 'opd': 0, 'ipd': 0},
+            'cbhi': {'exists': False, 'status': '-', 'total': 0},
+            'cbhi2': {'exists': False, 'status': '-', 'total': 0},
+        })
+
+        status_value = status_map.get((row.user_id, row.month_year, row.report_type), 'draft')
+        if alias == 'p2':
+            bucket['p2'] = {
+                'exists': True,
+                'status': status_value,
+                'opd': int(row.total_opd or 0),
+                'ipd': int(row.total_ipd or 0),
+            }
+        else:
+            bucket[alias] = {
+                'exists': True,
+                'status': status_value,
+                'total': int(row.total_value or 0),
+            }
+
+    user_month_rows = sorted(
+        by_user_month.values(),
+        key=lambda item: (_parse_month_year(item['month_year']), item['username'].lower()),
+        reverse=True,
+    )
+
     return render_template('reports_dashboard.html',
         report_data=report_data,
+        user_month_rows=user_month_rows,
         total_months=len(all_months),
         p1_count=len({row.month_year for row in submissions if row.report_type == 'proforma_i'}),
         p2_count=len({row.month_year for row in submissions if row.report_type == 'proforma_ii'}),
