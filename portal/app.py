@@ -574,6 +574,23 @@ def _username_match_query(username):
     return User.query.filter(db.func.lower(User.username) == normalized)
 
 
+def _login_candidate_users(username):
+    """Return possible login candidates for legacy-renamed usernames.
+
+    Exact lowercase match is preferred. As a compatibility fallback, allow
+    usernames that were auto-repaired to "<base>_<id>" format.
+    """
+    normalized = _normalize_username(username)
+    escaped = normalized.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+    suffix_pattern = f'{escaped}\\_%'
+    return User.query.filter(
+        db.or_(
+            db.func.lower(User.username) == normalized,
+            db.func.lower(User.username).like(suffix_pattern, escape='\\'),
+        )
+    ).order_by(User.created_at.asc()).all()
+
+
 def _parse_month_year(value):
     try:
         return datetime.strptime((value or '').upper(), '%b-%Y')
@@ -1474,29 +1491,35 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         username = _normalize_username(form.username.data)
-        user = _username_match_query(username).first()
-        if not user:
+        users = _login_candidate_users(username)
+        if not users:
             _record_login_attempt(username=username, success=False, reason='user_not_found')
-            flash('No account found for this username. Please register first.', 'danger')
+            flash('Invalid username or password.', 'danger')
             return render_template('login.html', form=form)
 
-        if user.is_active is False:
-            _record_login_attempt(username=user.username, success=False, reason='inactive_account', user=user)
-            flash('Your account is inactive. Contact admin.', 'danger')
-            return render_template('login.html', form=form)
+        active_users = [u for u in users if u.is_active is not False]
+        inactive_users = [u for u in users if u.is_active is False]
 
-        if user.check_password(form.password.data):
-            session.clear()
-            login_user(user, remember=True)
-            session.permanent = True
-            _record_login_attempt(username=user.username, success=True, reason='login_success', user=user)
-            next_page = request.args.get('next', '')
-            # Guard against open redirect
-            if next_page.startswith('/') and not next_page.startswith('//'):
-                return redirect(next_page)
-            return redirect(url_for('dashboard'))
+        for user in active_users:
+            if user.check_password(form.password.data):
+                session.clear()
+                login_user(user, remember=True)
+                session.permanent = True
+                _record_login_attempt(username=user.username, success=True, reason='login_success', user=user)
+                next_page = request.args.get('next', '')
+                # Guard against open redirect
+                if next_page.startswith('/') and not next_page.startswith('//'):
+                    return redirect(next_page)
+                return redirect(url_for('dashboard'))
 
-        _record_login_attempt(username=username, success=False, reason='invalid_password', user=user)
+        for user in inactive_users:
+            if user.check_password(form.password.data):
+                _record_login_attempt(username=user.username, success=False, reason='inactive_account', user=user)
+                flash('Your account is inactive. Contact admin.', 'danger')
+                return render_template('login.html', form=form)
+
+        first_user = users[0]
+        _record_login_attempt(username=username, success=False, reason='invalid_password', user=first_user)
         flash('Invalid username or password.', 'danger')
     return render_template('login.html', form=form)
 
