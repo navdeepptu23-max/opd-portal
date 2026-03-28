@@ -1549,7 +1549,15 @@ def logout():
     logout_user()
     session.clear()
     flash('You have been signed out.', 'info')
-    return redirect(url_for('login'))
+    response = redirect(url_for('login'))
+    # Ensure both Flask session and Flask-Login remember cookies are removed.
+    response.delete_cookie(app.config.get('SESSION_COOKIE_NAME', 'session'))
+    response.delete_cookie(app.config.get('REMEMBER_COOKIE_NAME', 'remember_token'))
+    # Prevent stale authenticated pages from being served from browser cache.
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 @app.route('/register', methods=['GET', 'POST'])
