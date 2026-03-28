@@ -1,5 +1,6 @@
 import os
 import csv
+import zipfile
 from io import BytesIO, StringIO
 from textwrap import wrap
 from datetime import datetime, timedelta
@@ -973,6 +974,103 @@ def _report_payload_pdf_bytes(payload, username):
                 y = top
             doc.drawString(left, y, part)
             y -= line_height
+
+    doc.save()
+    return buffer.getvalue()
+
+
+def _report_payload_csv_text(payload, username):
+    buffer = StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow([payload['title']])
+    writer.writerow(['Month-Year', payload['month_year']])
+    writer.writerow(['User', username])
+    writer.writerow([])
+    writer.writerow(payload['headers'])
+    writer.writerows(payload['rows'])
+    return buffer.getvalue()
+
+
+def _admin_consolidated_month_pdf_bytes(month_year):
+    report_titles = {
+        'proforma_i': 'PROFORMA-I (HPI)',
+        'proforma_ii': 'PROFORMA-II (Morbidity)',
+        'cbhi_form1': 'CBHI FORM-1',
+        'cbhi_form2': 'CBHI FORM-2',
+    }
+    report_order = ['proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2']
+
+    submissions = UserReportSubmission.query.filter_by(month_year=month_year).all()
+    statuses = UserReportStatus.query.filter_by(month_year=month_year).all()
+    status_map = {(s.user_id, s.report_type): s.status for s in statuses}
+
+    grouped = {key: [] for key in report_order}
+    for item in submissions:
+        if item.report_type in grouped:
+            grouped[item.report_type].append(item)
+
+    for key in grouped:
+        grouped[key].sort(key=lambda x: (x.user.username.lower() if x.user else '', x.user_id))
+
+    buffer = BytesIO()
+    doc = canvas.Canvas(buffer, pagesize=landscape(A4))
+    width, height = landscape(A4)
+    left = 20
+    top = height - 24
+    line_height = 11
+
+    def _new_page():
+        doc.showPage()
+        doc.setFillColorRGB(0, 0, 0)
+        doc.setStrokeColorRGB(0, 0, 0)
+
+    y = top
+    doc.setFont('Helvetica-Bold', 13)
+    doc.drawString(left, y, f'Consolidated All Users Reports - {month_year}')
+    y -= line_height
+    doc.setFont('Helvetica', 9)
+    doc.drawString(left, y, 'Black-and-white export generated from admin consolidated dashboard')
+    y -= (line_height + 4)
+
+    for report_type in report_order:
+        title = report_titles[report_type]
+        rows = grouped[report_type]
+
+        if y < 46:
+            _new_page()
+            y = top
+
+        doc.setFont('Helvetica-Bold', 11)
+        doc.drawString(left, y, title)
+        y -= line_height
+
+        doc.setFont('Helvetica-Bold', 8)
+        doc.drawString(left, y, 'User | Status | OPD | IPD | Total Value')
+        y -= line_height
+        doc.setFont('Helvetica', 8)
+
+        if not rows:
+            if y < 24:
+                _new_page()
+                y = top
+            doc.drawString(left, y, 'No submissions')
+            y -= (line_height + 2)
+            continue
+
+        for item in rows:
+            if y < 24:
+                _new_page()
+                y = top
+            username = item.user.username if item.user else f'user_{item.user_id}'
+            status = status_map.get((item.user_id, report_type), 'draft')
+            line = f'{username} | {status} | {int(item.total_opd or 0)} | {int(item.total_ipd or 0)} | {int(item.total_value or 0)}'
+            for part in wrap(line, width=175) or ['']:
+                if y < 24:
+                    _new_page()
+                    y = top
+                doc.drawString(left, y, part)
+                y -= line_height
+        y -= 3
 
     doc.save()
     return buffer.getvalue()
@@ -2170,6 +2268,7 @@ def consolidated_reports():
                 'user_id': item.user_id,
                 'username': item.user.username if item.user else f'user_{item.user_id}',
                 'role': item.user.role if item.user else 'unknown',
+                'can_export_package': bool(item.user and current_user.can_manage(item.user)),
                 'p1': {'exists': False, 'total': 0, 'status': '-'},
                 'p2': {'exists': False, 'opd': 0, 'ipd': 0, 'status': '-'},
                 'cbhi1': {'exists': False, 'total': 0, 'status': '-'},
@@ -2267,6 +2366,72 @@ def consolidated_reports_export():
     return Response(
         buffer.getvalue(),
         mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename}'},
+    )
+
+
+@app.route('/admin/consolidated-reports/export-all-pdf')
+@login_required
+def consolidated_reports_export_all_pdf():
+    if not current_user.is_admin_or_above:
+        abort(403)
+
+    month_year = (request.args.get('month_year') or '').upper().strip()
+    if not month_year:
+        row = db.session.query(UserReportSubmission.month_year).distinct().all()
+        months = sorted([m[0] for m in row], key=_parse_month_year, reverse=True)
+        month_year = months[0] if months else ''
+
+    if not month_year:
+        flash('No consolidated month found for PDF export.', 'warning')
+        return redirect(url_for('consolidated_reports'))
+
+    pdf_bytes = _admin_consolidated_month_pdf_bytes(month_year)
+    filename = f'consolidated_all_users_{month_year}.pdf'
+    return Response(
+        pdf_bytes,
+        mimetype='application/pdf',
+        headers={'Content-Disposition': f'attachment; filename={filename}'},
+    )
+
+
+@app.route('/admin/consolidated-reports/export-user-package')
+@login_required
+def consolidated_reports_export_user_package():
+    if not current_user.is_admin_or_above:
+        abort(403)
+
+    user_id = _to_non_negative_int(request.args.get('user_id'))
+    month_year = _normalize_month_year(request.args.get('month_year'))
+    target_user = User.query.get_or_404(user_id)
+    if not current_user.can_manage(target_user):
+        abort(403)
+
+    report_types = ['hospital_indicator', 'proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2']
+    zip_buffer = BytesIO()
+
+    with zipfile.ZipFile(zip_buffer, mode='w', compression=zipfile.ZIP_DEFLATED) as zf:
+        manifest = [
+            f'User: {target_user.username}',
+            f'Month-Year: {month_year}',
+            f'Generated At (UTC): {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")}',
+            '',
+            'Included files per report: B/W PDF + Excel-compatible CSV',
+        ]
+        zf.writestr('README.txt', '\n'.join(manifest))
+
+        for report_type in report_types:
+            payload = _report_export_payload(report_type, month_year, target_user.id)
+            if not payload:
+                continue
+            base_name = f"{report_type.replace('_', '-')}_{month_year}_{target_user.username}"
+            zf.writestr(f'{base_name}.csv', _report_payload_csv_text(payload, target_user.username))
+            zf.writestr(f'{base_name}.pdf', _report_payload_pdf_bytes(payload, target_user.username))
+
+    filename = f'user_reports_package_{target_user.username}_{month_year}.zip'
+    return Response(
+        zip_buffer.getvalue(),
+        mimetype='application/zip',
         headers={'Content-Disposition': f'attachment; filename={filename}'},
     )
 

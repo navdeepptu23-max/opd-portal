@@ -78,6 +78,7 @@
     </div>
     <button type="submit" class="btn btn-primary btn-sm">Apply</button>
     <a href="{{ url_for('consolidated_reports_export', report_type=report_type, month_year=month_year, q=search, status=status_filter, sort_by=sort_by, sort_dir=sort_dir) }}" class="btn btn-ghost btn-sm">Export CSV</a>
+    <a href="{{ url_for('consolidated_reports_export_all_pdf', month_year=month_year) }}" class="btn btn-ghost btn-sm">Download Month B/W PDF</a>
     {% if search or status_filter != 'all' or sort_by != 'updated_at' or sort_dir != 'desc' %}
     <a href="{{ url_for('consolidated_reports', report_type=report_type, month_year=month_year) }}" class="btn btn-ghost btn-sm">Clear</a>
     {% endif %}
@@ -260,6 +261,7 @@
           <th>PROFORMA-II</th>
           <th>CBHI FORM-1</th>
           <th>CBHI FORM-2</th>
+          <th>Export Package</th>
         </tr>
       </thead>
       <tbody>
@@ -308,10 +310,20 @@
               <span style="color:var(--text-muted);">No Data</span>
             {% endif %}
           </td>
+          <td>
+            {% if row.can_export_package %}
+            <a
+              class="btn btn-ghost btn-sm"
+              href="{{ url_for('consolidated_reports_export_user_package', user_id=row.user_id, month_year=month_year) }}"
+            >Download ZIP</a>
+            {% else %}
+            <span style="color:var(--text-muted);">Not Allowed</span>
+            {% endif %}
+          </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="7" style="text-align:center; color:var(--text-muted); padding:1.8rem;">No user-wise consolidated data available for this month.</td>
+          <td colspan="8" style="text-align:center; color:var(--text-muted); padding:1.8rem;">No user-wise consolidated data available for this month.</td>
         </tr>
         {% endfor %}
       </tbody>
