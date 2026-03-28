@@ -1,0 +1,478 @@
+{% extends 'base.html' %}
+{% block title %}PROFORMA-I (Consolidated) – {{ month_year }}{% endblock %}
+
+{% block content %}
+<style>
+  .hpi-wrap {
+    background: #fff;
+    color: #000;
+    border-radius: 8px;
+    padding: 10px;
+    overflow-x: auto;
+  }
+  .hpi-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #e6e6e6;
+  }
+  .hpi-table th,
+  .hpi-table td {
+    border: 1px solid #444;
+    padding: 4px 6px;
+    vertical-align: middle;
+    font-weight: 700;
+  }
+  .hpi-table .head-1 { text-align: center; font-size: 26px; }
+  .hpi-table .head-2 { text-align: center; font-size: 18px; }
+  .hpi-table .head-3 { text-align: center; font-size: 20px; }
+  .hpi-table .c-code { width: 4%; text-align: center; white-space: nowrap; }
+  .hpi-table .c-name { width: 30%; }
+  .hpi-table .c-num { width: 8%; text-align: center; }
+  .hpi-table .c-total { width: 8%; text-align: center; }
+  .hpi-table .c-remarks { width: 10%; }
+  /* Header row colors */
+  .hpi-table thead tr:first-child th  { background: #1a237e; color: #fff; }
+  .hpi-table thead tr:nth-child(2) th { background: #1565c0; color: #fff; }
+  .hpi-table thead tr:nth-child(3) th { background: #0288d1; color: #fff; }
+  .hpi-table thead tr:nth-child(4) th { background: #bbdefb; color: #000; }
+  .hpi-table thead tr:nth-child(5) th { background: #90caf9; color: #000; }
+  .hpi-table thead tr:nth-child(6) th { background: #0d47a1; color: #fff; }
+  /* Data row colors */
+  .row-multi:nth-child(odd)  { background: #fff8e1; }
+  .row-multi:nth-child(even) { background: #e3f2fd; }
+  .row-single:nth-child(odd)  { background: #e8f5e9; }
+  .row-single:nth-child(even) { background: #f3e5f5; }
+  .row-auto { background: #fff3e0 !important; }
+  .row-single td { text-align: center; }
+  .row-auto input[readonly] { background: #ffe0b2 !important; font-weight: 900; }
+  .hpi-table input[type='text'],
+  .hpi-table input[type='number'],
+  .hpi-table textarea {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    border: 1px solid #888;
+    background: #fff;
+    padding: 3px;
+    font-weight: 700;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.9em;
+  }
+  .hpi-table textarea {
+    min-height: 34px;
+    resize: vertical;
+  }
+  .toolbar {
+    display: flex;
+    gap: 0.7rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .toolbar-left,
+  .toolbar-right {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .toolbar input {
+    padding: 0.45rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid #c3c3c3;
+  }
+  .btn-export {
+    padding: 0.4rem 0.85rem;
+    border-radius: 6px;
+    border: 1px solid #888;
+    background: #f4f4f4;
+    color: #222;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: background 0.15s;
+    text-decoration: none;
+  }
+  .btn-export:hover { background: #dde; }
+  @media print {
+    @page { size: A4 portrait; margin: 6mm; }
+    .no-print, nav, footer, .toolbar, .page-header, .flash-messages, .tabs-card { display: none !important; }
+    html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+    .hpi-wrap { padding: 0 !important; overflow: visible !important; background: #fff !important; }
+    .hpi-table { width: 100% !important; font-size: 10pt !important; font-weight: bold !important; table-layout: auto !important; color: #000 !important; }
+    .hpi-table th, .hpi-table td { padding: 3px 4px !important; font-weight: bold !important; color: #000 !important; border: 1px solid #000 !important; }
+    .hpi-table .head-1 { font-size: 14pt !important; font-weight: bold !important; }
+    .hpi-table .head-2 { font-size: 11pt !important; font-weight: bold !important; }
+    .hpi-table .head-3 { font-size: 12pt !important; font-weight: bold !important; }
+    .hpi-table input, .hpi-table textarea {
+      border: none !important; background: transparent !important; color: #000 !important;
+      padding: 0 !important; font-size: 10pt !important; font-weight: bold !important; resize: none !important;
+    }
+    .row-multi, .row-single, .row-auto { background: transparent !important; }
+  }
+</style>
+
+<div class="page-header no-print" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <h1>PROFORMA-I (Consolidated)</h1>
+    <p>Month: <strong>{{ month_year }}</strong> &nbsp;|&nbsp; Users Consolidated: <strong>{{ user_count }}</strong></p>
+  </div>
+  <a href="{{ url_for('consolidated_reports', report_type='proforma_i', month_year=month_year) }}" class="btn btn-ghost btn-sm">Back to Consolidated Reports</a>
+</div>
+
+{# ── Report Tabs ── #}
+<div class="card tabs-card no-print" style="margin-bottom:1rem; padding:0.9rem 1rem;">
+  <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.5px;">Switch Proforma</div>
+  <div style="display:flex; gap:0.55rem; flex-wrap:wrap;">
+    {% for key, label in report_labels.items() %}
+    <a
+      href="{{ url_for('consolidated_proforma_view', report_type=key, month_year=month_year) }}"
+      class="btn btn-sm {{ 'btn-primary' if report_type == key else 'btn-ghost' }}"
+    >{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="hpi-wrap">
+  <div class="toolbar no-print">
+    <div class="toolbar-left">
+      <label>Month &amp; Year</label>
+      <input type="text" value="{{ month_year }}" readonly>
+      <span style="font-size:0.8rem; color:var(--text-muted);">Users Consolidated: <strong>{{ user_count }}</strong></span>
+    </div>
+    <div class="toolbar-right">
+      <button type="button" class="btn-export" onclick="printReport()" title="Print">🖨 Print</button>
+      <button type="button" class="btn-export" onclick="exportPDF()" title="Download PDF">📄 PDF</button>
+      <button type="button" class="btn-export" onclick="exportExcel()" title="Download Excel">📊 Excel</button>
+      <a class="btn-export" href="{{ url_for('consolidated_proforma_export', fmt='docx', report_type='proforma_i', month_year=month_year) }}">📝 Word</a>
+    </div>
+  </div>
+
+  <table class="hpi-table" id="consolidated-hpi-table">
+    <colgroup>
+      <col class="c-code">
+      <col class="c-name">
+      <col class="c-num">
+      <col class="c-num">
+      <col class="c-num">
+      <col class="c-num">
+      <col class="c-total">
+      <col class="c-remarks">
+    </colgroup>
+    <thead>
+      <tr><th class="head-1" colspan="8">PROFORMA-I (CONSOLIDATED)</th></tr>
+      <tr><th class="head-2" colspan="8">HEALTH MANAGEMENT INFORMATION SYSTEM MONTHLY REPORT FOR HOSPITAL</th></tr>
+      <tr><th class="head-3" colspan="8">HOSPITAL PERFORMANCE INDICATOR (HPI)</th></tr>
+      <tr>
+        <th colspan="2" style="text-align:left;">
+          Name of Hospital:
+          <input type="text" id="meta-hospital" value="COMPILED REPORT OF BLOCK- POSSI">
+        </th>
+        <th colspan="3" style="text-align:left;">
+          Sanctioned Beds:
+          <input type="text" id="meta-beds" value="">
+        </th>
+        <th colspan="2" style="text-align:center;">
+          Month &amp; Year:
+          <input type="text" id="header-month-year" value="{{ month_year }}" style="width:120px; text-align:center; font-weight:700; font-size:1em;" readonly>
+        </th>
+        <th></th>
+      </tr>
+      <tr>
+        <th colspan="2" style="text-align:left;">
+          District:-
+          <input type="text" id="meta-district" value="HOSHIARPUR">
+        </th>
+        <th colspan="3" style="text-align:left;">
+          Functional beds:
+          <input type="text" id="meta-func-beds" value="">
+        </th>
+        <th colspan="3" style="text-align:left;">
+          Doctors Incharge:
+          <input type="text" id="meta-doctor" value="SMO POSSI">
+        </th>
+      </tr>
+      <tr>
+        <th colspan="2" style="text-align:left;">HP Indicator</th>
+        <th>MALE</th>
+        <th>FEMALE</th>
+        <th>MALE CHILD &lt;14 YEARS</th>
+        <th>FEMALE CHILD &lt;14 YEARS</th>
+        <th>TOTAL</th>
+        <th>Remarks</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set single_codes = ['13','14','15','16','17','21','22','23','24'] %}
+      {% for row in rows %}
+      {% if row.indicator_code in single_codes %}
+      <tr class="row-single{% if row.indicator_code == '15' %} row-auto{% endif %}">
+        <td class="c-code">{{ row.indicator_code }}</td>
+        <td class="c-name">{{ row.indicator_label }}</td>
+        <td colspan="5" style="text-align:center;">
+          {% if row.indicator_code == '15' %}
+            <div style="display:flex; gap:6px; align-items:center; justify-content:center;">
+            <input type="number" min="0" value="{{ row.total }}" data-role="single-auto" data-code="15" readonly style="width:70%;text-align:center;" title="Auto-calculated: 13+14">
+            <span style="font-size:0.75em; background:#ff9800; color:#fff; padding:2px 6px; border-radius:3px; white-space:nowrap; font-weight:bold;">Formula</span>
+            </div>
+          {% else %}
+            <input type="number" min="0" value="{{ row.total }}" data-role="single" data-code="{{ row.indicator_code }}" style="width:80%;text-align:center;">
+          {% endif %}
+        </td>
+        <td class="c-remarks">
+          <textarea>{{ row.remarks }}</textarea>
+        </td>
+      </tr>
+      {% else %}
+      {% if row.indicator_code in ['1D', '10'] %}
+      <tr class="row-multi row-auto">
+        <td class="c-code">{{ row.indicator_code }}</td>
+        <td class="c-name">{{ row.indicator_label }}</td>
+        <td class="c-num">
+          <input type="number" min="0" value="{{ row.male }}" data-role="male" data-code="{{ row.indicator_code }}" readonly>
+        </td>
+        <td class="c-num">
+          <input type="number" min="0" value="{{ row.female }}" data-role="female" data-code="{{ row.indicator_code }}" readonly>
+        </td>
+        <td class="c-num">
+          <input type="number" min="0" value="{{ row.male_child_u14 }}" data-role="male-child" data-code="{{ row.indicator_code }}" readonly>
+        </td>
+        <td class="c-num">
+          <input type="number" min="0" value="{{ row.female_child_u14 }}" data-role="female-child" data-code="{{ row.indicator_code }}" readonly>
+        </td>
+        <td class="c-total">
+          <div style="display:flex; gap:4px; align-items:center;">
+          <input type="number" min="0" value="{{ row.total }}" data-role="total" data-code="{{ row.indicator_code }}" readonly style="flex:1;">
+          <span style="font-size:0.7em; background:#ff9800; color:#fff; padding:2px 4px; border-radius:3px; white-space:nowrap; font-weight:bold;">Formula</span>
+          </div>
+        </td>
+        <td class="c-remarks">
+          <textarea>{{ row.remarks }}</textarea>
+        </td>
+      </tr>
+      {% else %}
+      <tr class="row-multi">
+        <td class="c-code">{{ row.indicator_code }}</td>
+        <td class="c-name">{{ row.indicator_label }}</td>
+        <td class="c-num">
+          <input type="number" min="0" value="{{ row.male }}" data-role="male" data-code="{{ row.indicator_code }}">
+        </td>
+        <td class="c-num">
+          <input type="number" min="0" value="{{ row.female }}" data-role="female" data-code="{{ row.indicator_code }}">
+        </td>
+        <td class="c-num">
+          <input type="number" min="0" value="{{ row.male_child_u14 }}" data-role="male-child" data-code="{{ row.indicator_code }}">
+        </td>
+        <td class="c-num">
+          <input type="number" min="0" value="{{ row.female_child_u14 }}" data-role="female-child" data-code="{{ row.indicator_code }}">
+        </td>
+        <td class="c-total">
+          <input type="number" min="0" value="{{ row.total }}" data-role="total" data-code="{{ row.indicator_code }}" readonly>
+        </td>
+        <td class="c-remarks">
+          <textarea>{{ row.remarks }}</textarea>
+        </td>
+      </tr>
+      {% endif %}
+      {% endif %}
+      {% endfor %}
+      <tr style="background:#e8eaf6;">
+        <td colspan="8" style="text-align:left; font-weight:700;">
+          Note:
+          <textarea id="note-text" style="min-height:50px; margin-top:4px;"></textarea>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  (function () {
+    const toInt = (value) => {
+      const n = parseInt(String(value || '').trim(), 10);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    };
+
+    const updateRowTotal = (code) => {
+      const male = document.querySelector(`input[data-role="male"][data-code="${code}"]`);
+      const female = document.querySelector(`input[data-role="female"][data-code="${code}"]`);
+      const maleChild = document.querySelector(`input[data-role="male-child"][data-code="${code}"]`);
+      const femaleChild = document.querySelector(`input[data-role="female-child"][data-code="${code}"]`);
+      const total = document.querySelector(`input[data-role="total"][data-code="${code}"]`);
+      if (!male || !female || !maleChild || !femaleChild || !total) return;
+      total.value = String(toInt(male.value) + toInt(female.value) + toInt(maleChild.value) + toInt(femaleChild.value));
+    };
+
+    const drivers = Array.from(document.querySelectorAll('input[data-code][data-role="male"], input[data-code][data-role="female"], input[data-code][data-role="male-child"], input[data-code][data-role="female-child"]'));
+    const uniqueCodes = [...new Set(drivers.map(i => i.dataset.code))];
+
+    drivers.forEach(input => {
+      input.addEventListener('input', () => updateRowTotal(input.dataset.code));
+      input.addEventListener('change', () => updateRowTotal(input.dataset.code));
+    });
+    uniqueCodes.forEach(updateRowTotal);
+
+    // Row 1D = 1A + 1B + 1C (column-wise)
+    const update1DCols = () => {
+      ['male', 'female', 'male-child', 'female-child', 'total'].forEach(role => {
+        const r1a = document.querySelector(`input[data-code="1A"][data-role="${role}"]`);
+        const r1b = document.querySelector(`input[data-code="1B"][data-role="${role}"]`);
+        const r1c = document.querySelector(`input[data-code="1C"][data-role="${role}"]`);
+        const r1d = document.querySelector(`input[data-code="1D"][data-role="${role}"]`);
+        if (r1a && r1b && r1c && r1d) {
+          r1d.value = String(toInt(r1a.value) + toInt(r1b.value) + toInt(r1c.value));
+        }
+      });
+    };
+    ['1A', '1B', '1C'].forEach(code => {
+      ['male', 'female', 'male-child', 'female-child'].forEach(role => {
+        const el = document.querySelector(`input[data-code="${code}"][data-role="${role}"]`);
+        if (el) { el.addEventListener('input', update1DCols); el.addEventListener('change', update1DCols); }
+      });
+    });
+    update1DCols();
+
+    // Row 10 = 5 + 6 + 7 + 8 (column-wise)
+    const update10Cols = () => {
+      ['male', 'female', 'male-child', 'female-child', 'total'].forEach(role => {
+        const r5 = document.querySelector(`input[data-code="5"][data-role="${role}"]`);
+        const r6 = document.querySelector(`input[data-code="6"][data-role="${role}"]`);
+        const r7 = document.querySelector(`input[data-code="7"][data-role="${role}"]`);
+        const r8 = document.querySelector(`input[data-code="8"][data-role="${role}"]`);
+        const r10 = document.querySelector(`input[data-code="10"][data-role="${role}"]`);
+        if (r5 && r6 && r7 && r8 && r10) {
+          r10.value = String(toInt(r5.value) + toInt(r6.value) + toInt(r7.value) + toInt(r8.value));
+        }
+      });
+    };
+    ['5', '6', '7', '8'].forEach(code => {
+      ['male', 'female', 'male-child', 'female-child'].forEach(role => {
+        const el = document.querySelector(`input[data-code="${code}"][data-role="${role}"]`);
+        if (el) { el.addEventListener('input', update10Cols); el.addEventListener('change', update10Cols); }
+      });
+    });
+    update10Cols();
+
+    // Row 15 = 13 + 14 (single-value total)
+    const update15 = () => {
+      const r13 = document.querySelector('input[data-code="13"]');
+      const r14 = document.querySelector('input[data-code="14"]');
+      const r15 = document.querySelector('input[data-code="15"]');
+      if (r13 && r14 && r15) {
+        r15.value = String(toInt(r13.value) + toInt(r14.value));
+      }
+    };
+    [document.querySelector('input[data-code="13"]'), document.querySelector('input[data-code="14"]')]
+      .filter(Boolean)
+      .forEach(el => { el.addEventListener('input', update15); el.addEventListener('change', update15); });
+    update15();
+  })();
+</script>
+
+<!-- CDN libraries for client-side export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+<script>
+  function printReport() { window.print(); }
+
+  function exportPDF() {
+    const source = document.querySelector('.hpi-table');
+    const month = '{{ month_year }}';
+    const el = source.cloneNode(true);
+
+    el.style.width = '100%';
+    el.style.background = '#ffffff';
+    el.style.color = '#000000';
+    el.querySelectorAll('th, td').forEach(cell => {
+      cell.style.background = '#ffffff';
+      cell.style.color = '#000000';
+      cell.style.border = '1px solid #000000';
+      cell.style.fontWeight = '700';
+    });
+    el.querySelectorAll('input, textarea').forEach(field => {
+      const span = document.createElement('span');
+      span.textContent = field.value || '';
+      span.style.display = 'inline-block';
+      span.style.width = '100%';
+      span.style.color = '#000000';
+      span.style.fontWeight = '700';
+      field.replaceWith(span);
+    });
+    // Remove formula badges from the PDF clone
+    el.querySelectorAll('span').forEach(s => {
+      if (s.textContent === 'Formula') s.remove();
+    });
+
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-10000px';
+    wrapper.style.top = '0';
+    wrapper.style.width = '1000px';
+    wrapper.style.background = '#ffffff';
+    wrapper.appendChild(el);
+    document.body.appendChild(wrapper);
+
+    const opt = {
+      margin: [5, 5, 5, 5],
+      filename: 'PROFORMA-I_CONSOLIDATED_' + month + '.pdf',
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 1.5, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait', compress: true },
+      pagebreak: { mode: 'avoid' }
+    };
+    html2pdf().set(opt).from(el).save().finally(() => { wrapper.remove(); });
+  }
+
+  function exportExcel() {
+    const month = '{{ month_year }}';
+    const table = document.querySelector('.hpi-table');
+    const data = [];
+    table.querySelectorAll('tr').forEach(tr => {
+      const rowData = [];
+      tr.querySelectorAll('th, td').forEach(cell => {
+        const inp = cell.querySelector('input[type="number"], input[type="text"]');
+        const ta = cell.querySelector('textarea');
+        if (inp) rowData.push(inp.value);
+        else if (ta) rowData.push(ta.value);
+        else rowData.push(cell.innerText.trim());
+      });
+      data.push(rowData);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!merges'] = [
+      {s:{r:0,c:0}, e:{r:0,c:7}},
+      {s:{r:1,c:0}, e:{r:1,c:7}},
+      {s:{r:2,c:0}, e:{r:2,c:7}},
+    ];
+    ws['!cols'] = [{wch:8},{wch:50},{wch:10},{wch:10},{wch:12},{wch:14},{wch:10},{wch:20}];
+
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const addr = XLSX.utils.encode_cell({r:R, c:C});
+        if (!ws[addr]) continue;
+        ws[addr].s = {
+          font: { bold: true, color: { rgb: '000000' } },
+          fill: { fgColor: { rgb: 'FFFFFF' } },
+          alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+          border: {
+            left: { style: 'thin', color: { rgb: '000000' } },
+            right: { style: 'thin', color: { rgb: '000000' } },
+            top: { style: 'thin', color: { rgb: '000000' } },
+            bottom: { style: 'thin', color: { rgb: '000000' } }
+          }
+        };
+      }
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'PROFORMA-I CONSOLIDATED');
+    XLSX.writeFile(wb, 'PROFORMA-I_CONSOLIDATED_' + month + '.xlsx');
+  }
+</script>
+{% endblock %}

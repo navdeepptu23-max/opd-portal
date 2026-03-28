@@ -1054,6 +1054,8 @@ def _consolidated_report_payload(report_type, month_year):
             model.month_year == normalized,
         )
 
+    _pf1_sorted = None
+
     if report_type == 'hospital_indicator':
         all_rows = HospitalIndicator.query.filter(_month_filter(HospitalIndicator)).all()
         agg = {}
@@ -1078,17 +1080,18 @@ def _consolidated_report_payload(report_type, month_year):
             if key not in agg:
                 agg[key] = {'indicator_code': key, 'indicator_label': r.indicator_label,
                             'male': 0, 'female': 0, 'male_child_u14': 0, 'female_child_u14': 0,
-                            'total': 0}
+                            'total': 0, 'remarks': ''}
             agg[key]['male'] += (r.male or 0)
             agg[key]['female'] += (r.female or 0)
             agg[key]['male_child_u14'] += (r.male_child_u14 or 0)
             agg[key]['female_child_u14'] += (r.female_child_u14 or 0)
             agg[key]['total'] += (r.total or 0)
+        _pf1_sorted = sorted(agg.values(), key=lambda x: PROFORMA_HPI_ORDER.get(x['indicator_code'], 9999))
         headers = ['Code', 'Indicator', 'Male', 'Female', 'Male Child <14', 'Female Child <14', 'Total']
         data_rows = [
             [v['indicator_code'], v['indicator_label'], v['male'], v['female'],
              v['male_child_u14'], v['female_child_u14'], v['total']]
-            for v in sorted(agg.values(), key=lambda x: x['indicator_code'])
+            for v in _pf1_sorted
         ]
 
     elif report_type == 'proforma_ii':
@@ -1157,13 +1160,16 @@ def _consolidated_report_payload(report_type, month_year):
         report_type, normalized, scoped_pattern, actual_user_count, len(data_rows),
     )
 
-    return {
+    result = {
         'title': report_titles[report_type],
         'month_year': normalized,
         'headers': headers,
         'rows': data_rows,
         'user_count': actual_user_count,
     }
+    if _pf1_sorted is not None:
+        result['proforma_i_rows'] = _pf1_sorted
+    return result
 
 
 def _consolidated_payload_docx_bytes(payload):
@@ -2741,6 +2747,16 @@ def consolidated_proforma_view():
         'cbhi_form1': 'CBHI FORM-1',
         'cbhi_form2': 'CBHI FORM-2',
     }
+
+    if report_type == 'proforma_i' and payload.get('proforma_i_rows'):
+        return render_template(
+            'consolidated_proforma_i_view.html',
+            month_year=month_year,
+            rows=payload['proforma_i_rows'],
+            user_count=payload.get('user_count', 0),
+            report_type=report_type,
+            report_labels=report_labels,
+        )
 
     return render_template(
         'consolidated_proforma_view.html',
