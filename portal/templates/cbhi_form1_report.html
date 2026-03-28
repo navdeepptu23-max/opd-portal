@@ -3,27 +3,44 @@
 
 {% block content %}
 <style>
-  .c1-wrap { overflow:auto; background:#f3f4f6; padding:10px; border-radius:8px; }
-  .c1-table { width:100%; border-collapse:collapse; min-width:1900px; font-size:11px; color:#111; background:#f9fafb; }
+  .page-header {
+    background:linear-gradient(135deg, #fdecef 0%, #eefaf0 100%);
+    border:1px solid #e7cfd5;
+    border-radius:12px;
+    padding:1rem 1.25rem;
+  }
+  .page-header h1, .page-header p { font-weight:600; }
+  .card:not(.no-print) {
+    background:linear-gradient(180deg, #fff6f8 0%, #f3fbf4 100%);
+    border:1px solid #e4d7db;
+  }
+  .c1-wrap {
+    overflow:auto;
+    background:linear-gradient(180deg, #fff3f6 0%, #eff9f0 100%);
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #e3d5d8;
+  }
+  .c1-table { width:100%; border-collapse:collapse; min-width:1900px; font-size:11px; color:#111; background:#fffafb; }
   .c1-table th, .c1-table td { border:1px solid #666; padding:3px 4px; vertical-align:middle; }
-  .c1-table thead th { background:#e5e7eb; text-align:center; }
-  .c1-table .form-head { background:#d1d5db; font-weight:700; }
-  .c1-table .form-subhead { background:#e5e7eb; font-size:10px; }
-  .c1-table .col-idx { font-size:9px; color:#333; background:#f3f4f6; }
-  .c1-table tbody tr:nth-child(odd) td { background:#f8fafc; }
-  .c1-table tbody tr:nth-child(even) td { background:#eef2f7; }
+  .c1-table thead th { background:#e7f4e8; text-align:center; font-weight:600; }
+  .c1-table .form-head { background:#f7dfe6; font-weight:700; }
+  .c1-table .form-subhead { background:#edf7ee; font-size:10px; font-weight:600; }
+  .c1-table .col-idx { font-size:9px; color:#333; background:#f9e9ee; font-weight:600; }
+  .c1-table tbody tr:nth-child(odd) td { background:#fff7f9; }
+  .c1-table tbody tr:nth-child(even) td { background:#f1faf2; }
   .c1-table .left { text-align:left; }
-  .c1-table input, .c1-table textarea { width:100%; box-sizing:border-box; border:1px solid #9ca3af; background:#f9fafb; padding:2px 3px; font-size:11px; }
-  .c1-table input[readonly] { background:#e5e7eb; font-weight:700; }
+  .c1-table input, .c1-table textarea { width:100%; box-sizing:border-box; border:1px solid #b7b0b2; background:#fffdfd; padding:2px 3px; font-size:11px; font-weight:600; }
+  .c1-table input[readonly] { background:#e9f4ea; font-weight:700; }
   .c1-table .num { width:48px; text-align:center; }
   .c1-table .disease { min-width:280px; }
   .c1-table .tight { padding:2px 3px; }
-  .c1-foot { margin-top:10px; width:100%; border-collapse:collapse; font-size:11px; color:#111; background:#f3f4f6; }
-  .c1-foot td { border:1px solid #666; padding:6px; vertical-align:top; min-height:56px; background:#eef2f7; }
+  .c1-foot { margin-top:10px; width:100%; border-collapse:collapse; font-size:11px; color:#111; background:#fef4f7; }
+  .c1-foot td { border:1px solid #666; padding:6px; vertical-align:top; min-height:56px; background:#eef8ef; }
   .c1-foot .label { font-weight:700; display:block; margin-bottom:4px; }
-  .c1-note { margin-top:6px; font-size:10px; color:#333; }
+  .c1-note { margin-top:6px; font-size:10px; color:#333; font-weight:600; }
   .c1-toolbar { display:flex; justify-content:space-between; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:10px; }
-  .c1-status { font-size:0.82rem; color:var(--text-muted); }
+  .c1-status { font-size:0.82rem; color:#314235; font-weight:600; }
   .c1-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
   .c1-pdf-export {
     background:#fff;
