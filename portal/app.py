@@ -12,7 +12,15 @@ from modules.morbidity import morbidity_bp
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'change-this-in-production-use-env-var')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///portal.db')
+
+database_url = os.environ.get('DATABASE_URL', '').strip()
+if database_url.startswith('postgres://'):
+    # Render/Heroku may provide postgres://, but SQLAlchemy expects postgresql://
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+if not database_url:
+    database_url = 'sqlite:///portal.db'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600
 
