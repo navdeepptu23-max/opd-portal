@@ -131,6 +131,7 @@
     <div style="margin-top:0.9rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.6rem;">
       <div style="font-size:0.82rem; color:var(--text-muted);">Status: <strong style="color:var(--text); text-transform:capitalize;">{{ submission_status }}</strong></div>
       <div style="display:flex; gap:0.5rem;">
+        <button class="btn btn-danger" type="submit" name="action" value="reset" onclick="return confirm('Reset this month report values to zero?');">Reset to Zero</button>
         <button class="btn btn-ghost" type="submit" name="submit_to_admin" value="0">Save Report</button>
         <button class="btn btn-primary" type="submit" name="submit_to_admin" value="1">Submit to Admin</button>
       </div>

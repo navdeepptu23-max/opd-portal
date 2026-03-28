@@ -137,6 +137,7 @@
         <button type="submit" form="load-month-form" class="btn btn-ghost btn-sm">Load</button>
         {% if current_user.is_authenticated %}
         <span style="font-size:0.8rem; color:var(--text-muted); margin-right:6px;">Status: <strong style="color:var(--text); text-transform:capitalize;">{{ submission_status }}</strong></span>
+        <button type="submit" name="action" value="reset" class="btn btn-danger btn-sm" onclick="return confirm('Reset this month report values to zero?');">Reset to Zero</button>
         <button type="submit" name="submit_to_admin" value="0" class="btn btn-ghost btn-sm">Save Report</button>
         <button type="submit" name="submit_to_admin" value="1" class="btn btn-primary btn-sm">Submit to Admin</button>
         {% endif %}

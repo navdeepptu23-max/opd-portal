@@ -945,6 +945,7 @@ def hospital_indicator_report():
     if request.method == 'POST':
         if not current_user.is_active:
             abort(403)
+        action = (request.form.get('action') or '').strip().lower()
         submit_to_admin = request.form.get('submit_to_admin') == '1'
 
         institution_name = (request.form.get('institution_name') or 'PHC POSSI').strip() or 'PHC POSSI'
@@ -952,6 +953,23 @@ def hospital_indicator_report():
         meta.institution_name = institution_name[:150]
 
         indicators = HospitalIndicator.query.filter_by(month_year=scoped_month_year).order_by(HospitalIndicator.indicator_no.asc()).all()
+        if action == 'reset':
+            for item in indicators:
+                item.opd_count = 0
+                item.ipd_count = 0
+            _upsert_report_submission(
+                user_id=current_user.id,
+                month_year=month_year,
+                report_type=report_type,
+                total_opd=0,
+                total_ipd=0,
+                total_value=0,
+            )
+            _set_report_status(current_user.id, month_year, report_type, 'draft')
+            db.session.commit()
+            flash('Hospital Indicator values reset to zero for this month.', 'success')
+            return redirect(url_for('hospital_indicator_report', month_year=month_year))
+
         for item in indicators:
             item.opd_count = _to_non_negative_int(request.form.get(f'opd_{item.id}', 0))
             item.ipd_count = _to_non_negative_int(request.form.get(f'ipd_{item.id}', 0))
@@ -1003,6 +1021,7 @@ def proforma_i_hpi_report():
     if request.method == 'POST':
         if not current_user.is_active:
             abort(403)
+        action = (request.form.get('action') or '').strip().lower()
         submit_to_admin = request.form.get('submit_to_admin') == '1'
 
         meta = ProformaHPIMeta.query.filter_by(month_year=scoped_month_year).first()
@@ -1015,6 +1034,27 @@ def proforma_i_hpi_report():
 
         rows = ProformaHPIRow.query.filter_by(month_year=scoped_month_year).all()
         rows.sort(key=lambda r: PROFORMA_HPI_ORDER.get(r.indicator_code, 9999))
+        if action == 'reset':
+            for row in rows:
+                row.male = 0
+                row.female = 0
+                row.male_child_u14 = 0
+                row.female_child_u14 = 0
+                row.total = 0
+                row.remarks = ''
+            _upsert_report_submission(
+                user_id=current_user.id,
+                month_year=month_year,
+                report_type=report_type,
+                total_opd=0,
+                total_ipd=0,
+                total_value=0,
+            )
+            _set_report_status(current_user.id, month_year, report_type, 'draft')
+            db.session.commit()
+            flash('PROFORMA-I values reset to zero for this month.', 'success')
+            return redirect(url_for('proforma_i_hpi_report', month_year=month_year))
+
         _single_codes = {'13', '14', '15', '16', '17', '21', '22', '23', '24'}
         for row in rows:
             if row.indicator_code in _single_codes:
@@ -1096,12 +1136,30 @@ def proforma_ii_editable_report():
     if request.method == 'POST':
         if not current_user.is_active:
             abort(403)
+        action = (request.form.get('action') or '').strip().lower()
         submit_to_admin = request.form.get('submit_to_admin') == '1'
 
         meta = ProformaIIMeta.query.filter_by(month_year=scoped_month_year).first()
         meta.institution_name = (request.form.get('institution_name') or 'PHC POSSI').strip()[:200] or 'PHC POSSI'
 
         rows = ProformaIIRow.query.filter_by(month_year=scoped_month_year).order_by(ProformaIIRow.sr_no.asc()).all()
+        if action == 'reset':
+            for row in rows:
+                row.opd_count = 0
+                row.ipd_count = 0
+            _upsert_report_submission(
+                user_id=current_user.id,
+                month_year=month_year,
+                report_type=report_type,
+                total_opd=0,
+                total_ipd=0,
+                total_value=0,
+            )
+            _set_report_status(current_user.id, month_year, report_type, 'draft')
+            db.session.commit()
+            flash('PROFORMA-II values reset to zero for this month.', 'success')
+            return redirect(url_for('proforma_ii_editable_report', month_year=month_year))
+
         for row in rows:
             row.opd_count = _to_non_negative_int(request.form.get(f'opd_{row.id}', 0))
             row.ipd_count = _to_non_negative_int(request.form.get(f'ipd_{row.id}', 0))
@@ -1174,6 +1232,28 @@ def cbhi_form1_report():
             ))
             db.session.commit()
             flash('New disease row added.', 'success')
+            return redirect(url_for('cbhi_form1_report', month_year=month_year))
+
+        if action == 'reset':
+            rows = CbhiForm1Row.query.filter_by(month_year=scoped_month_year).order_by(CbhiForm1Row.sr_no.asc()).all()
+            for row in rows:
+                for prefix in ['general', 'emergency', 'ipd_general', 'ipd_emergency', 'deaths', 'overall']:
+                    setattr(row, f'{prefix}_m', 0)
+                    setattr(row, f'{prefix}_f', 0)
+                    setattr(row, f'{prefix}_tr', 0)
+                    setattr(row, f'{prefix}_total', 0)
+                row.remarks = ''
+            _upsert_report_submission(
+                user_id=current_user.id,
+                month_year=month_year,
+                report_type=report_type,
+                total_opd=0,
+                total_ipd=0,
+                total_value=0,
+            )
+            _set_report_status(current_user.id, month_year, report_type, 'draft')
+            db.session.commit()
+            flash('CBHI FORM-1 values reset to zero for this month.', 'success')
             return redirect(url_for('cbhi_form1_report', month_year=month_year))
 
         rows = CbhiForm1Row.query.filter_by(month_year=scoped_month_year).order_by(CbhiForm1Row.sr_no.asc()).all()
@@ -1263,6 +1343,28 @@ def cbhi_form2_report():
             ))
             db.session.commit()
             flash('New disease row added.', 'success')
+            return redirect(url_for('cbhi_form2_report', month_year=month_year))
+
+        if action == 'reset':
+            rows = CbhiForm2Row.query.filter_by(month_year=scoped_month_year).order_by(CbhiForm2Row.sr_no.asc()).all()
+            for row in rows:
+                for prefix in ['general', 'emergency', 'ipd_general', 'ipd_emergency', 'deaths', 'overall']:
+                    setattr(row, f'{prefix}_m', 0)
+                    setattr(row, f'{prefix}_f', 0)
+                    setattr(row, f'{prefix}_tr', 0)
+                    setattr(row, f'{prefix}_total', 0)
+                row.remarks = ''
+            _upsert_report_submission(
+                user_id=current_user.id,
+                month_year=month_year,
+                report_type=report_type,
+                total_opd=0,
+                total_ipd=0,
+                total_value=0,
+            )
+            _set_report_status(current_user.id, month_year, report_type, 'draft')
+            db.session.commit()
+            flash('CBHI FORM-2 values reset to zero for this month.', 'success')
             return redirect(url_for('cbhi_form2_report', month_year=month_year))
 
         rows = CbhiForm2Row.query.filter_by(month_year=scoped_month_year).order_by(CbhiForm2Row.sr_no.asc()).all()
