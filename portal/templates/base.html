@@ -199,6 +199,10 @@
       margin: 0 auto;
       padding: 2rem 1.5rem;
     }
+    .container-fluid {
+      max-width: none;
+      padding: 1.5rem;
+    }
     .page-header {
       margin-bottom: 2rem;
     }
@@ -435,7 +439,7 @@
   </div>
 </nav>
 
-<div class="container">
+<div class="container {% block container_class %}{% endblock %}">
   {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
   <div class="alerts">
