@@ -412,7 +412,7 @@ def hospital_indicator_report():
     _ensure_hospital_indicator_rows(month_year)
 
     if request.method == 'POST':
-        if not current_user.is_admin_or_above:
+        if not current_user.is_active:
             abort(403)
 
         institution_name = (request.form.get('institution_name') or 'PHC POSSI').strip() or 'PHC POSSI'
@@ -450,7 +450,7 @@ def proforma_i_hpi_report():
     _ensure_proforma_hpi_rows(month_year)
 
     if request.method == 'POST':
-        if not current_user.is_admin_or_above:
+        if not current_user.is_active:
             abort(403)
 
         meta = ProformaHPIMeta.query.filter_by(month_year=month_year).first()
@@ -517,7 +517,7 @@ def proforma_ii_editable_report():
     _ensure_proforma_ii_rows(month_year)
 
     if request.method == 'POST':
-        if not current_user.is_admin_or_above:
+        if not current_user.is_active:
             abort(403)
 
         meta = ProformaIIMeta.query.filter_by(month_year=month_year).first()

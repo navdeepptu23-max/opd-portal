@@ -161,7 +161,7 @@
         <label>Load Month</label>
         <input type="text" name="month_year" value="{{ month_year }}" form="load-month-form">
         <button type="submit" form="load-month-form" class="btn btn-ghost btn-sm">Load</button>
-        {% if current_user.is_admin_or_above %}
+        {% if current_user.is_authenticated %}
         <button type="submit" class="btn btn-primary btn-sm">Save Report</button>
         {% endif %}
         <button type="button" class="btn-export" onclick="printReport()">Print</button>
@@ -177,7 +177,7 @@
         <tr>
           <th colspan="2" style="text-align:left;">
             Name of the Health Institution:
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="text" name="institution_name" value="{{ institution_name }}">
             {% else %}
             {{ institution_name }}
@@ -185,7 +185,7 @@
           </th>
           <th colspan="2" class="center">
             Month &amp; Year:
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="text" id="header-month-year" value="{{ month_year }}" style="width:130px; text-align:center; font-weight:700;" placeholder="e.g. MAR-2027">
             {% else %}
             {{ month_year }}
@@ -205,14 +205,14 @@
           <td class="sr">{{ row.sr_no }}</td>
           <td>{{ row.disease_name }}</td>
           <td>
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="number" min="0" name="opd_{{ row.id }}" value="{{ row.opd_count }}">
             {% else %}
             {{ row.opd_count }}
             {% endif %}
           </td>
           <td>
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="number" min="0" name="ipd_{{ row.id }}" value="{{ row.ipd_count }}">
             {% else %}
             {{ row.ipd_count }}
@@ -365,3 +365,4 @@
   }
 </script>
 {% endblock %}
+

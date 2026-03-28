@@ -135,7 +135,7 @@
         <label>Load Month</label>
         <input type="text" name="month_year" value="{{ month_year }}" form="load-month-form">
         <button type="submit" form="load-month-form" class="btn btn-ghost btn-sm">Load</button>
-        {% if current_user.is_admin_or_above %}
+        {% if current_user.is_authenticated %}
         <button type="submit" class="btn btn-primary btn-sm">Save Report</button>
         {% endif %}
         <button type="button" class="btn-export no-print" onclick="printReport()" title="Print report">🖨 Print</button>
@@ -162,7 +162,7 @@
         <tr>
           <th colspan="2" style="text-align:left;">
             Name of Hospital:
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="text" name="hospital_name" value="{{ meta.hospital_name }}">
             {% else %}
             {{ meta.hospital_name }}
@@ -170,7 +170,7 @@
           </th>
           <th colspan="3" style="text-align:left;">
             Sanctioned Beds:
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="text" name="sanctioned_beds" value="{{ meta.sanctioned_beds }}">
             {% else %}
             {{ meta.sanctioned_beds }}
@@ -178,7 +178,7 @@
           </th>
           <th colspan="2" style="text-align:center;">
             Month &amp; Year:
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="text" id="header-month-year" value="{{ month_year }}" style="width:120px; text-align:center; font-weight:700; font-size:1em;" placeholder="e.g. MAR-2026">
             {% else %}
             {{ month_year }}
@@ -189,7 +189,7 @@
         <tr>
           <th colspan="2" style="text-align:left;">
             District:-
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="text" name="district" value="{{ meta.district }}">
             {% else %}
             {{ meta.district }}
@@ -197,7 +197,7 @@
           </th>
           <th colspan="3" style="text-align:left;">
             Functional beds:
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="text" name="functional_beds" value="{{ meta.functional_beds }}">
             {% else %}
             {{ meta.functional_beds }}
@@ -205,7 +205,7 @@
           </th>
           <th colspan="3" style="text-align:left;">
             Doctors Incharge:
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="text" name="doctor_incharge" value="{{ meta.doctor_incharge }}">
             {% else %}
             {{ meta.doctor_incharge }}
@@ -231,20 +231,20 @@
           <td class="c-name">{{ row.indicator_label }}</td>
           <td colspan="5" style="text-align:center;">
             {% if row.indicator_code == '15' %}
-              {% if current_user.is_admin_or_above %}
+              {% if current_user.is_authenticated %}
               <div style="display:flex; gap:6px; align-items:center; justify-content:center;">
               <input type="number" min="0" name="single_{{ row.id }}" value="{{ row.total }}" data-role="single-auto" data-code="15" data-row-id="{{ row.id }}" readonly style="width:70%;text-align:center;" title="Auto-calculated: 13+14">
               <span style="font-size:0.75em; background:#ff9800; color:#fff; padding:2px 6px; border-radius:3px; white-space:nowrap; font-weight:bold;">Formula</span>
               </div>
               {% else %}{{ row.total }}{% endif %}
             {% else %}
-              {% if current_user.is_admin_or_above %}
+              {% if current_user.is_authenticated %}
               <input type="number" min="0" name="single_{{ row.id }}" value="{{ row.total }}" data-role="single" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}" style="width:80%;text-align:center;">
               {% else %}{{ row.total }}{% endif %}
             {% endif %}
           </td>
           <td class="c-remarks">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <textarea name="remarks_{{ row.id }}">{{ row.remarks }}</textarea>
             {% else %}{{ row.remarks }}{% endif %}
           </td>
@@ -255,34 +255,34 @@
           <td class="c-code">{{ row.indicator_code }}</td>
           <td class="c-name">{{ row.indicator_label }}</td>
           <td class="c-num">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="number" min="0" name="male_{{ row.id }}" value="{{ row.male }}" data-role="male" data-code="10" data-row-id="{{ row.id }}" readonly>
             {% else %}{{ row.male }}{% endif %}
           </td>
           <td class="c-num">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="number" min="0" name="female_{{ row.id }}" value="{{ row.female }}" data-role="female" data-code="10" data-row-id="{{ row.id }}" readonly>
             {% else %}{{ row.female }}{% endif %}
           </td>
           <td class="c-num">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="number" min="0" name="male_child_{{ row.id }}" value="{{ row.male_child_u14 }}" data-role="male-child" data-code="10" data-row-id="{{ row.id }}" readonly>
             {% else %}{{ row.male_child_u14 }}{% endif %}
           </td>
           <td class="c-num">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="number" min="0" name="female_child_{{ row.id }}" value="{{ row.female_child_u14 }}" data-role="female-child" data-code="10" data-row-id="{{ row.id }}" readonly>
             {% else %}{{ row.female_child_u14 }}{% endif %}
           </td>
           <td class="c-total">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <div style="display:flex; gap:4px; align-items:center;">
             <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-code="10" data-row-id="{{ row.id }}" readonly style="flex:1;">
             </div>
             {% else %}{{ row.total }}{% endif %}
           </td>
           <td class="c-remarks">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <textarea name="remarks_{{ row.id }}">{{ row.remarks }}</textarea>
             {% else %}{{ row.remarks }}{% endif %}
           </td>
@@ -292,32 +292,32 @@
           <td class="c-code">{{ row.indicator_code }}</td>
           <td class="c-name">{{ row.indicator_label }}</td>
           <td class="c-num">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="number" min="0" name="male_{{ row.id }}" value="{{ row.male }}" data-role="male" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}">
             {% else %}{{ row.male }}{% endif %}
           </td>
           <td class="c-num">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="number" min="0" name="female_{{ row.id }}" value="{{ row.female }}" data-role="female" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}">
             {% else %}{{ row.female }}{% endif %}
           </td>
           <td class="c-num">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="number" min="0" name="male_child_{{ row.id }}" value="{{ row.male_child_u14 }}" data-role="male-child" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}">
             {% else %}{{ row.male_child_u14 }}{% endif %}
           </td>
           <td class="c-num">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="number" min="0" name="female_child_{{ row.id }}" value="{{ row.female_child_u14 }}" data-role="female-child" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}">
             {% else %}{{ row.female_child_u14 }}{% endif %}
           </td>
           <td class="c-total">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}" readonly>
             {% else %}{{ row.total }}{% endif %}
           </td>
           <td class="c-remarks">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <textarea name="remarks_{{ row.id }}">{{ row.remarks }}</textarea>
             {% else %}{{ row.remarks }}{% endif %}
           </td>
@@ -328,7 +328,7 @@
         <tr style="background:#e8eaf6;">
           <td colspan="8" style="text-align:left; font-weight:700;">
             Note:
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
             <textarea name="note_text" style="min-height:50px; margin-top:4px;">{{ meta.note_text }}</textarea>
             {% else %}
             {{ meta.note_text }}
@@ -342,7 +342,7 @@
   <form id="load-month-form" method="GET" action="{{ url_for('proforma_i_hpi_report') }}"></form>
 </div>
 
-{% if current_user.is_admin_or_above %}
+{% if current_user.is_authenticated %}
 <script>
   (function () {
     const toInt = (value) => {
@@ -564,3 +564,4 @@
 
 </script>
 {% endblock %}
+

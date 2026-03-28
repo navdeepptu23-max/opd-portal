@@ -79,7 +79,7 @@
     <input type="hidden" name="month_year" value="{{ month_year }}">
 
     <div class="meta-controls">
-      <input type="text" name="institution_name" value="{{ institution_name }}" {% if not current_user.is_admin_or_above %}readonly{% endif %}>
+      <input type="text" name="institution_name" value="{{ institution_name }}" {% if not current_user.is_authenticated %}readonly{% endif %}>
       <input type="text" value="{{ month_year }}" readonly>
     </div>
 
@@ -104,14 +104,14 @@
           <td class="sr">{{ item.indicator_no }}</td>
           <td class="name">{{ item.indicator_name }}</td>
           <td class="opd">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
               <input type="number" min="0" name="opd_{{ item.id }}" value="{{ item.opd_count }}">
             {% else %}
               {{ item.opd_count }}
             {% endif %}
           </td>
           <td class="ipd">
-            {% if current_user.is_admin_or_above %}
+            {% if current_user.is_authenticated %}
               <input type="number" min="0" name="ipd_{{ item.id }}" value="{{ item.ipd_count }}">
             {% else %}
               {{ item.ipd_count }}
@@ -127,7 +127,7 @@
       </tbody>
     </table>
 
-    {% if current_user.is_admin_or_above %}
+    {% if current_user.is_authenticated %}
     <div style="margin-top:0.9rem; text-align:right;">
       <button class="btn btn-primary" type="submit">Save Report</button>
     </div>
@@ -135,7 +135,7 @@
   </form>
 </div>
 
-{% if current_user.is_admin_or_above %}
+{% if current_user.is_authenticated %}
 <script>
   (function () {
     const opdInputs = Array.from(document.querySelectorAll('input[name^="opd_"]'));
@@ -165,3 +165,4 @@
 </script>
 {% endif %}
 {% endblock %}
+
