@@ -63,6 +63,21 @@ def _session_debug_before_request():
     )
 
 
+@app.before_request
+def _enforce_active_account_session():
+    # Prevent stale remember-cookie sessions for deactivated accounts.
+    if not current_user.is_authenticated:
+        return
+    if current_user.is_active:
+        return
+    if request.endpoint in ('logout', 'login', 'static'):
+        return
+    logout_user()
+    session.clear()
+    flash('Your account is inactive. Contact admin.', 'danger')
+    return redirect(url_for('login'))
+
+
 @app.after_request
 def _session_debug_after_request(response):
     if app.config.get('SESSION_DEBUG'):
@@ -1431,7 +1446,11 @@ def cbhi_form2_report():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        if not current_user.is_active:
+            logout_user()
+            session.clear()
+        else:
+            return redirect(url_for('dashboard'))
     form = LoginForm()
     if form.validate_on_submit():
         username = _normalize_username(form.username.data)
@@ -1446,7 +1465,8 @@ def login():
         # Prefer active account match when legacy duplicate-case usernames exist.
         for user in active_users:
             if user.check_password(form.password.data):
-                login_user(user, remember=True)
+                session.clear()
+                login_user(user, remember=False)
                 session.permanent = True
                 next_page = request.args.get('next', '')
                 # Guard against open redirect
@@ -1489,6 +1509,7 @@ def signup():
 @login_required
 def logout():
     logout_user()
+    session.clear()
     flash('You have been signed out.', 'info')
     return redirect(url_for('login'))
 
