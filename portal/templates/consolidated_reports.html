@@ -67,7 +67,9 @@
           <th>OPD</th>
           <th>IPD</th>
           <th>Total Value</th>
+          <th>Status</th>
           <th>Last Updated</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody>
@@ -88,11 +90,27 @@
           <td>{{ item.total_opd }}</td>
           <td>{{ item.total_ipd }}</td>
           <td>{{ item.total_value }}</td>
+          <td style="text-transform:capitalize;">{{ item.workflow_status }}</td>
           <td style="color:var(--text-muted); font-size:0.82rem;">{{ item.updated_at.strftime('%d %b %Y %I:%M %p') }}</td>
+          <td>
+            <div class="td-actions">
+              <form method="POST" action="{{ url_for('consolidated_reports_status_update') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="user_id" value="{{ item.user_id }}">
+                <input type="hidden" name="report_type" value="{{ report_type }}">
+                <input type="hidden" name="month_year" value="{{ month_year }}">
+                <input type="hidden" name="next_report_type" value="{{ report_type }}">
+                <input type="hidden" name="next_month_year" value="{{ month_year }}">
+                <button class="btn btn-ghost btn-sm" type="submit" name="action" value="approve">Approve</button>
+                <button class="btn btn-ghost btn-sm" type="submit" name="action" value="reject">Reject</button>
+                <button class="btn btn-danger btn-sm" type="submit" name="action" value="reset">Reset</button>
+              </form>
+            </div>
+          </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="8" style="text-align:center; color:var(--text-muted); padding:2rem;">No user submissions found for selected proforma/month.</td>
+          <td colspan="10" style="text-align:center; color:var(--text-muted); padding:2rem;">No user submissions found for selected proforma/month.</td>
         </tr>
         {% endfor %}
       </tbody>

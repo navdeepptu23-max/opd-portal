@@ -301,6 +301,25 @@ class UserReportSubmission(db.Model):
     )
 
 
+class UserReportStatus(db.Model):
+    __tablename__ = 'user_report_statuses'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    report_type = db.Column(db.String(30), nullable=False, index=True)
+    month_year = db.Column(db.String(20), nullable=False, index=True)
+    status = db.Column(db.String(20), nullable=False, default='draft')
+    submitted_at = db.Column(db.DateTime, nullable=True)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    reviewed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
+    user = db.relationship('User', foreign_keys=[user_id])
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'report_type', 'month_year', name='uq_user_report_status_month_type'),
+    )
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -450,6 +469,39 @@ def _upsert_report_submission(user_id, month_year, report_type, total_opd=0, tot
     submission.total_value = _to_non_negative_int(total_value)
 
 
+def _get_or_create_report_status(user_id, month_year, report_type):
+    row = UserReportStatus.query.filter_by(
+        user_id=user_id,
+        month_year=month_year,
+        report_type=report_type,
+    ).first()
+    if not row:
+        row = UserReportStatus(
+            user_id=user_id,
+            month_year=month_year,
+            report_type=report_type,
+            status='draft',
+        )
+        db.session.add(row)
+    return row
+
+
+def _set_report_status(user_id, month_year, report_type, status, reviewed_by=None):
+    row = _get_or_create_report_status(user_id, month_year, report_type)
+    row.status = status
+    if status == 'submitted':
+        row.submitted_at = datetime.utcnow()
+        row.reviewed_at = None
+        row.reviewed_by = None
+    elif status in ('approved', 'rejected'):
+        row.reviewed_at = datetime.utcnow()
+        row.reviewed_by = reviewed_by
+    elif status == 'draft':
+        row.reviewed_at = None
+        row.reviewed_by = None
+    return row
+
+
 def _ensure_hospital_indicator_rows(month_year):
     existing_count = HospitalIndicator.query.filter_by(month_year=month_year).count()
     if existing_count == 0:
@@ -517,10 +569,12 @@ def _ensure_proforma_ii_rows(month_year):
 def hospital_indicator_report():
     month_year = (request.values.get('month_year') or datetime.utcnow().strftime('%b-%Y')).upper()
     _ensure_hospital_indicator_rows(month_year)
+    report_type = 'hospital_indicator'
 
     if request.method == 'POST':
         if not current_user.is_active:
             abort(403)
+        submit_to_admin = request.form.get('submit_to_admin') == '1'
 
         institution_name = (request.form.get('institution_name') or 'PHC POSSI').strip() or 'PHC POSSI'
         meta = HospitalIndicatorMeta.query.filter_by(month_year=month_year).first()
@@ -536,20 +590,25 @@ def hospital_indicator_report():
         _upsert_report_submission(
             user_id=current_user.id,
             month_year=month_year,
-            report_type='hospital_indicator',
+            report_type=report_type,
             total_opd=total_opd,
             total_ipd=total_ipd,
             total_value=0,
         )
+        _get_or_create_report_status(current_user.id, month_year, report_type)
+        if submit_to_admin:
+            _set_report_status(current_user.id, month_year, report_type, 'submitted')
 
         db.session.commit()
-        flash('Hospital Indicator Report updated successfully.', 'success')
+        flash('Report submitted to admin successfully.' if submit_to_admin else 'Hospital Indicator Report updated successfully.', 'success')
         return redirect(url_for('hospital_indicator_report', month_year=month_year))
 
     meta = HospitalIndicatorMeta.query.filter_by(month_year=month_year).first()
     indicators = HospitalIndicator.query.filter_by(month_year=month_year).order_by(HospitalIndicator.indicator_no.asc()).all()
     total_opd = sum(item.opd_count for item in indicators)
     total_ipd = sum(item.ipd_count for item in indicators)
+    status_row = _get_or_create_report_status(current_user.id, month_year, report_type)
+    db.session.commit()
 
     return render_template(
         'hospital_indicator_report.html',
@@ -558,6 +617,7 @@ def hospital_indicator_report():
         indicators=indicators,
         total_opd=total_opd,
         total_ipd=total_ipd,
+        submission_status=status_row.status,
     )
 
 
@@ -566,10 +626,12 @@ def hospital_indicator_report():
 def proforma_i_hpi_report():
     month_year = (request.values.get('month_year') or 'MAR-2026').upper()
     _ensure_proforma_hpi_rows(month_year)
+    report_type = 'proforma_i'
 
     if request.method == 'POST':
         if not current_user.is_active:
             abort(403)
+        submit_to_admin = request.form.get('submit_to_admin') == '1'
 
         meta = ProformaHPIMeta.query.filter_by(month_year=month_year).first()
         meta.hospital_name = (request.form.get('hospital_name') or '').strip()[:200] or 'COMPILED REPORT OF BLOCK- POSSI'
@@ -623,25 +685,31 @@ def proforma_i_hpi_report():
         _upsert_report_submission(
             user_id=current_user.id,
             month_year=month_year,
-            report_type='proforma_i',
+            report_type=report_type,
             total_opd=0,
             total_ipd=0,
             total_value=sum(r.total for r in rows),
         )
+        _get_or_create_report_status(current_user.id, month_year, report_type)
+        if submit_to_admin:
+            _set_report_status(current_user.id, month_year, report_type, 'submitted')
 
         db.session.commit()
-        flash('PROFORMA-I HPI report saved successfully.', 'success')
+        flash('Report submitted to admin successfully.' if submit_to_admin else 'PROFORMA-I HPI report saved successfully.', 'success')
         return redirect(url_for('proforma_i_hpi_report', month_year=month_year))
 
     meta = ProformaHPIMeta.query.filter_by(month_year=month_year).first()
     rows = ProformaHPIRow.query.filter_by(month_year=month_year).all()
     rows.sort(key=lambda r: PROFORMA_HPI_ORDER.get(r.indicator_code, 9999))
+    status_row = _get_or_create_report_status(current_user.id, month_year, report_type)
+    db.session.commit()
 
     return render_template(
         'proforma_i_hpi_report.html',
         month_year=month_year,
         meta=meta,
         rows=rows,
+        submission_status=status_row.status,
     )
 
 
@@ -650,10 +718,12 @@ def proforma_i_hpi_report():
 def proforma_ii_editable_report():
     month_year = (request.values.get('month_year') or 'MAR-2027').upper()
     _ensure_proforma_ii_rows(month_year)
+    report_type = 'proforma_ii'
 
     if request.method == 'POST':
         if not current_user.is_active:
             abort(403)
+        submit_to_admin = request.form.get('submit_to_admin') == '1'
 
         meta = ProformaIIMeta.query.filter_by(month_year=month_year).first()
         meta.institution_name = (request.form.get('institution_name') or 'PHC POSSI').strip()[:200] or 'PHC POSSI'
@@ -668,20 +738,25 @@ def proforma_ii_editable_report():
         _upsert_report_submission(
             user_id=current_user.id,
             month_year=month_year,
-            report_type='proforma_ii',
+            report_type=report_type,
             total_opd=total_opd,
             total_ipd=total_ipd,
             total_value=0,
         )
+        _get_or_create_report_status(current_user.id, month_year, report_type)
+        if submit_to_admin:
+            _set_report_status(current_user.id, month_year, report_type, 'submitted')
 
         db.session.commit()
-        flash('PROFORMA-II report saved successfully.', 'success')
+        flash('Report submitted to admin successfully.' if submit_to_admin else 'PROFORMA-II report saved successfully.', 'success')
         return redirect(url_for('proforma_ii_editable_report', month_year=month_year))
 
     meta = ProformaIIMeta.query.filter_by(month_year=month_year).first()
     rows = ProformaIIRow.query.filter_by(month_year=month_year).order_by(ProformaIIRow.sr_no.asc()).all()
     total_opd = sum(row.opd_count for row in rows)
     total_ipd = sum(row.ipd_count for row in rows)
+    status_row = _get_or_create_report_status(current_user.id, month_year, report_type)
+    db.session.commit()
 
     return render_template(
         'proforma_ii_editable_report.html',
@@ -690,6 +765,7 @@ def proforma_ii_editable_report():
         rows=rows,
         total_opd=total_opd,
         total_ipd=total_ipd,
+        submission_status=status_row.status,
     )
 
 
@@ -874,6 +950,15 @@ def consolidated_reports():
             month_year=month_year,
         ).order_by(UserReportSubmission.updated_at.desc()).all()
 
+    status_rows = UserReportStatus.query.filter_by(
+        report_type=report_type,
+        month_year=month_year,
+    ).all() if month_year else []
+    status_map = {row.user_id: row for row in status_rows}
+    for item in submissions:
+        row = status_map.get(item.user_id)
+        item.workflow_status = row.status if row else 'draft'
+
     consolidated = {
         'submitters': len(submissions),
         'total_opd': sum(item.total_opd for item in submissions),
@@ -911,6 +996,37 @@ def consolidated_reports():
         consolidated=consolidated,
         monthly_rows=monthly_rows,
     )
+
+
+@app.route('/admin/consolidated-reports/status', methods=['POST'])
+@login_required
+def consolidated_reports_status_update():
+    if not current_user.is_admin_or_above:
+        abort(403)
+
+    user_id = _to_non_negative_int(request.form.get('user_id'))
+    report_type = (request.form.get('report_type') or '').strip()
+    month_year = (request.form.get('month_year') or '').strip().upper()
+    action = (request.form.get('action') or '').strip().lower()
+    next_report_type = (request.form.get('next_report_type') or report_type).strip()
+    next_month_year = (request.form.get('next_month_year') or month_year).strip().upper()
+
+    if report_type not in ('hospital_indicator', 'proforma_i', 'proforma_ii') or action not in ('approve', 'reject', 'reset', 'submit'):
+        flash('Invalid status update request.', 'danger')
+        return redirect(url_for('consolidated_reports', report_type=next_report_type, month_year=next_month_year))
+
+    if action == 'approve':
+        _set_report_status(user_id, month_year, report_type, 'approved', reviewed_by=current_user.id)
+    elif action == 'reject':
+        _set_report_status(user_id, month_year, report_type, 'rejected', reviewed_by=current_user.id)
+    elif action == 'submit':
+        _set_report_status(user_id, month_year, report_type, 'submitted')
+    else:
+        _set_report_status(user_id, month_year, report_type, 'draft')
+
+    db.session.commit()
+    flash('Submission status updated.', 'success')
+    return redirect(url_for('consolidated_reports', report_type=next_report_type, month_year=next_month_year))
 
 
 @app.route('/profile', methods=['GET', 'POST'])

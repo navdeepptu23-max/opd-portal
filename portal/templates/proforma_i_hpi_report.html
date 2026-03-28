@@ -136,7 +136,9 @@
         <input type="text" name="month_year" value="{{ month_year }}" form="load-month-form">
         <button type="submit" form="load-month-form" class="btn btn-ghost btn-sm">Load</button>
         {% if current_user.is_authenticated %}
-        <button type="submit" class="btn btn-primary btn-sm">Save Report</button>
+        <span style="font-size:0.8rem; color:var(--text-muted); margin-right:6px;">Status: <strong style="color:var(--text); text-transform:capitalize;">{{ submission_status }}</strong></span>
+        <button type="submit" name="submit_to_admin" value="0" class="btn btn-ghost btn-sm">Save Report</button>
+        <button type="submit" name="submit_to_admin" value="1" class="btn btn-primary btn-sm">Submit to Admin</button>
         {% endif %}
         <button type="button" class="btn-export no-print" onclick="printReport()" title="Print report">🖨 Print</button>
         <button type="button" class="btn-export no-print" onclick="exportPDF()" title="Download black and white PDF">📄 Download B/W PDF</button>
