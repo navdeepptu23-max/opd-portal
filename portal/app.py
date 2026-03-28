@@ -1,6 +1,6 @@
 import os
-from datetime import datetime
-from flask import Flask, render_template, redirect, url_for, flash, request, abort
+from datetime import datetime, timedelta
+from flask import Flask, render_template, redirect, url_for, flash, request, abort, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm
@@ -23,6 +23,9 @@ if not database_url:
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['WTF_CSRF_TIME_LIMIT'] = 3600
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 db = SQLAlchemy(app)
 csrf = CSRFProtect(app)
@@ -30,6 +33,7 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'warning'
+login_manager.session_protection = None
 app.register_blueprint(morbidity_bp)
 
 HOSPITAL_INDICATOR_DEFAULTS = [
@@ -677,7 +681,8 @@ def login():
         # Prefer active account match when legacy duplicate-case usernames exist.
         for user in active_users:
             if user.check_password(form.password.data):
-                login_user(user)
+                login_user(user, remember=True)
+                session.permanent = True
                 next_page = request.args.get('next', '')
                 # Guard against open redirect
                 if next_page.startswith('/') and not next_page.startswith('//'):
