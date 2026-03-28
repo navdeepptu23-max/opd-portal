@@ -571,7 +571,8 @@ def _normalize_username(value):
 def _username_match_query(username):
     """Case-insensitive lookup so legacy uppercase rows are still found."""
     normalized = _normalize_username(username)
-    return User.query.filter(db.func.lower(User.username) == normalized)
+    username_expr = db.func.lower(db.func.trim(User.username))
+    return User.query.filter(username_expr == normalized)
 
 
 def _login_candidate_users(username):
@@ -583,10 +584,11 @@ def _login_candidate_users(username):
     normalized = _normalize_username(username)
     escaped = normalized.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
     suffix_pattern = f'{escaped}\\_%'
+    username_expr = db.func.lower(db.func.trim(User.username))
     return User.query.filter(
         db.or_(
-            db.func.lower(User.username) == normalized,
-            db.func.lower(User.username).like(suffix_pattern, escape='\\'),
+            username_expr == normalized,
+            username_expr.like(suffix_pattern, escape='\\'),
         )
     ).order_by(User.created_at.asc()).all()
 
@@ -2426,40 +2428,31 @@ def server_error(e):
 def seed_admin():
     db.create_all()
     # Startup migrations:
-    # 1. Normalize usernames to lowercase and repair legacy duplicates.
-    # 2. Enforce case-insensitive uniqueness with DB index.
-    # 3. Fix NULL is_active rows → active.
-    # 4. Ensure all admin-created accounts remain active.
+    # 1. Fix NULL is_active rows → active.
+    # 2. Ensure all admin-created accounts remain active.
+    # 3. Enforce case-insensitive unique index when safe.
+    #
+    # IMPORTANT: Do not auto-rename usernames at startup. That can change
+    # issued credentials and cause repeated "user id failed" complaints.
     try:
-        users = db.session.execute(
-            db.text("SELECT id, username FROM users ORDER BY id ASC")
-        ).fetchall()
-        seen = set()
-        for row in users:
-            user_id = int(row[0])
-            original = str(row[1] or '').strip()
-            base = original.lower()
-            if not base:
-                base = f'user{user_id}'
-
-            target = base
-            if target in seen:
-                target = f'{base}_{user_id}'
-            seen.add(target)
-
-            if target != original:
-                db.session.execute(
-                    db.text("UPDATE users SET username = :u WHERE id = :id"),
-                    {'u': target, 'id': user_id}
-                )
-
-        db.session.execute(
-            db.text("CREATE UNIQUE INDEX IF NOT EXISTS ux_users_username_lower ON users (LOWER(username))")
-        )
         db.session.execute(db.text("UPDATE users SET is_active = TRUE WHERE is_active IS NULL"))
         db.session.execute(
             db.text("UPDATE users SET is_active = TRUE WHERE created_by IS NOT NULL")
         )
+
+        # Create index only when there are no case-insensitive duplicates.
+        duplicates = db.session.execute(db.text(
+            """
+            SELECT LOWER(TRIM(username)) AS uname, COUNT(*) AS cnt
+            FROM users
+            GROUP BY LOWER(TRIM(username))
+            HAVING COUNT(*) > 1
+            """
+        )).fetchall()
+        if not duplicates:
+            db.session.execute(
+                db.text("CREATE UNIQUE INDEX IF NOT EXISTS ux_users_username_lower ON users (LOWER(TRIM(username)))")
+            )
         db.session.commit()
     except Exception:
         db.session.rollback()
