@@ -1983,6 +1983,54 @@ def consolidated_reports():
     ]
     monthly_rows.sort(key=lambda r: _parse_month_year(r['month_year']), reverse=True)
 
+    user_all_reports_rows = []
+    if month_year:
+        all_month_submissions = UserReportSubmission.query.filter_by(month_year=month_year).all()
+        all_month_statuses = UserReportStatus.query.filter_by(month_year=month_year).all()
+        status_map = {
+            (row.user_id, row.report_type): row.status
+            for row in all_month_statuses
+        }
+        by_user = {}
+        for item in all_month_submissions:
+            bucket = by_user.setdefault(item.user_id, {
+                'user_id': item.user_id,
+                'username': item.user.username if item.user else f'user_{item.user_id}',
+                'role': item.user.role if item.user else 'unknown',
+                'p1': {'exists': False, 'total': 0, 'status': '-'},
+                'p2': {'exists': False, 'opd': 0, 'ipd': 0, 'status': '-'},
+                'cbhi1': {'exists': False, 'total': 0, 'status': '-'},
+                'cbhi2': {'exists': False, 'total': 0, 'status': '-'},
+            })
+
+            if item.report_type == 'proforma_i':
+                bucket['p1'] = {
+                    'exists': True,
+                    'total': int(item.total_value or 0),
+                    'status': status_map.get((item.user_id, 'proforma_i'), 'draft'),
+                }
+            elif item.report_type == 'proforma_ii':
+                bucket['p2'] = {
+                    'exists': True,
+                    'opd': int(item.total_opd or 0),
+                    'ipd': int(item.total_ipd or 0),
+                    'status': status_map.get((item.user_id, 'proforma_ii'), 'draft'),
+                }
+            elif item.report_type == 'cbhi_form1':
+                bucket['cbhi1'] = {
+                    'exists': True,
+                    'total': int(item.total_value or 0),
+                    'status': status_map.get((item.user_id, 'cbhi_form1'), 'draft'),
+                }
+            elif item.report_type == 'cbhi_form2':
+                bucket['cbhi2'] = {
+                    'exists': True,
+                    'total': int(item.total_value or 0),
+                    'status': status_map.get((item.user_id, 'cbhi_form2'), 'draft'),
+                }
+
+        user_all_reports_rows = sorted(by_user.values(), key=lambda r: r['username'].lower())
+
     return render_template(
         'consolidated_reports.html',
         report_labels=report_labels,
@@ -1992,6 +2040,7 @@ def consolidated_reports():
         submissions=submissions,
         consolidated=consolidated,
         monthly_rows=monthly_rows,
+        user_all_reports_rows=user_all_reports_rows,
         search=search,
         status_filter=status_filter,
         sort_by=sort_by,

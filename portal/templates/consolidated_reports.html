@@ -235,6 +235,78 @@
   </div>
 </div>
 
+<div class="card" style="padding:0; overflow:hidden; margin-bottom:1.2rem;">
+  <div style="padding:0.9rem 1rem; border-bottom:1px solid var(--border); font-weight:700; color:var(--text);">All Proformas User-wise ({{ month_year or 'No month selected' }})</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>User</th>
+          <th>Role</th>
+          <th>PROFORMA-I</th>
+          <th>PROFORMA-II</th>
+          <th>CBHI FORM-1</th>
+          <th>CBHI FORM-2</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in user_all_reports_rows %}
+        <tr>
+          <td style="color:var(--text-muted); width:45px;">{{ loop.index }}</td>
+          <td><strong>{{ row.username }}</strong></td>
+          <td>
+            {% if row.role == 'super_admin' %}
+              <span class="badge badge-super">Super Admin</span>
+            {% elif row.role == 'admin' %}
+              <span class="badge badge-admin">Admin</span>
+            {% else %}
+              <span class="badge badge-sub">General User</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.p1.exists %}
+              Total: <strong>{{ row.p1.total }}</strong><br>
+              <span class="badge badge-sub" style="text-transform:capitalize;">{{ row.p1.status }}</span>
+            {% else %}
+              <span style="color:var(--text-muted);">No Data</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.p2.exists %}
+              OPD: <strong>{{ row.p2.opd }}</strong> | IPD: <strong>{{ row.p2.ipd }}</strong><br>
+              <span class="badge badge-sub" style="text-transform:capitalize;">{{ row.p2.status }}</span>
+            {% else %}
+              <span style="color:var(--text-muted);">No Data</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.cbhi1.exists %}
+              Total: <strong>{{ row.cbhi1.total }}</strong><br>
+              <span class="badge badge-sub" style="text-transform:capitalize;">{{ row.cbhi1.status }}</span>
+            {% else %}
+              <span style="color:var(--text-muted);">No Data</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.cbhi2.exists %}
+              Total: <strong>{{ row.cbhi2.total }}</strong><br>
+              <span class="badge badge-sub" style="text-transform:capitalize;">{{ row.cbhi2.status }}</span>
+            {% else %}
+              <span style="color:var(--text-muted);">No Data</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" style="text-align:center; color:var(--text-muted); padding:1.8rem;">No user-wise consolidated data available for this month.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <script>
   (function () {
     var selectAll = document.getElementById('select-all-submissions');
