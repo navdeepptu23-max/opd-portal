@@ -245,6 +245,10 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
+def _normalize_username(value):
+    return str(value or '').strip()
+
+
 # ── Forms ────────────────────────────────────────────────────────────────────
 
 class LoginForm(FlaskForm):
@@ -260,7 +264,10 @@ class SelfRegisterForm(FlaskForm):
     submit   = SubmitField('Create Account')
 
     def validate_username(self, field):
-        if User.query.filter_by(username=field.data).first():
+        username = _normalize_username(field.data)
+        if not username:
+            raise ValidationError('Username is required.')
+        if User.query.filter(db.func.lower(User.username) == username.lower()).first():
             raise ValidationError('Username already taken.')
 
 
@@ -272,7 +279,10 @@ class CreateUserForm(FlaskForm):
     submit   = SubmitField('Create User')
 
     def validate_username(self, field):
-        if User.query.filter_by(username=field.data).first():
+        username = _normalize_username(field.data)
+        if not username:
+            raise ValidationError('Username is required.')
+        if User.query.filter(db.func.lower(User.username) == username.lower()).first():
             raise ValidationError('Username already taken.')
 
 
@@ -281,7 +291,10 @@ class ProfileForm(FlaskForm):
     submit   = SubmitField('Save Changes')
 
     def validate_username(self, field):
-        user = User.query.filter_by(username=field.data).first()
+        username = _normalize_username(field.data)
+        if not username:
+            raise ValidationError('Username is required.')
+        user = User.query.filter(db.func.lower(User.username) == username.lower()).first()
         if user and user.id != current_user.id:
             raise ValidationError('Username already taken.')
 
@@ -305,7 +318,10 @@ class EditUserForm(FlaskForm):
         self._user_id = user_id
 
     def validate_username(self, field):
-        user = User.query.filter_by(username=field.data).first()
+        username = _normalize_username(field.data)
+        if not username:
+            raise ValidationError('Username is required.')
+        user = User.query.filter(db.func.lower(User.username) == username.lower()).first()
         if user and user.id != self._user_id:
             raise ValidationError('Username already taken.')
 
@@ -553,7 +569,8 @@ def login():
         return redirect(url_for('dashboard'))
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
+        username = _normalize_username(form.username.data)
+        user = User.query.filter(db.func.lower(User.username) == username.lower()).first()
         if user and user.is_active and user.check_password(form.password.data):
             login_user(user)
             next_page = request.args.get('next', '')
@@ -561,7 +578,10 @@ def login():
             if next_page.startswith('/') and not next_page.startswith('//'):
                 return redirect(next_page)
             return redirect(url_for('dashboard'))
-        flash('Invalid username or password.', 'danger')
+        if user and not user.is_active:
+            flash('Your account is inactive. Contact admin.', 'danger')
+        else:
+            flash('Invalid username or password.', 'danger')
     return render_template('login.html', form=form)
 
 
@@ -572,7 +592,7 @@ def signup():
     form = SelfRegisterForm()
     if form.validate_on_submit():
         new_user = User(
-            username=form.username.data,
+            username=_normalize_username(form.username.data),
             role='sub',
             created_by=None
         )
@@ -603,7 +623,7 @@ def register():
         form.role.choices = [('sub', 'Sub User')]
     if form.validate_on_submit():
         new_user = User(
-            username=form.username.data,
+            username=_normalize_username(form.username.data),
             role=form.role.data,
             created_by=current_user.id
         )
@@ -679,7 +699,7 @@ def reports_dashboard():
 def profile():
     form = ProfileForm(obj=current_user)
     if form.validate_on_submit():
-        current_user.username = form.username.data
+        current_user.username = _normalize_username(form.username.data)
         db.session.commit()
         flash('Profile updated.', 'success')
         return redirect(url_for('profile'))
@@ -743,7 +763,7 @@ def edit_user(user_id):
     if not current_user.is_super_admin:
         form.role.choices = [('sub', 'Sub User')]
     if form.validate_on_submit():
-        user.username = form.username.data
+        user.username = _normalize_username(form.username.data)
         user.role = form.role.data
         if form.new_password.data:
             user.set_password(form.new_password.data)
