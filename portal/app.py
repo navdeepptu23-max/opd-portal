@@ -1054,7 +1054,7 @@ def _consolidated_report_payload(report_type, month_year):
             model.month_year == normalized,
         )
 
-    _pf1_sorted = None
+    _structured_rows = None
 
     if report_type == 'hospital_indicator':
         all_rows = HospitalIndicator.query.filter(_month_filter(HospitalIndicator)).all()
@@ -1066,10 +1066,11 @@ def _consolidated_report_payload(report_type, month_year):
                             'opd_count': 0, 'ipd_count': 0}
             agg[key]['opd_count'] += (r.opd_count or 0)
             agg[key]['ipd_count'] += (r.ipd_count or 0)
+        _structured_rows = sorted(agg.values(), key=lambda x: x['indicator_no'])
         headers = ['Sr No', 'Indicator', 'OPD', 'IPD']
         data_rows = [
             [v['indicator_no'], v['indicator_name'], v['opd_count'], v['ipd_count']]
-            for v in sorted(agg.values(), key=lambda x: x['indicator_no'])
+            for v in _structured_rows
         ]
 
     elif report_type == 'proforma_i':
@@ -1086,12 +1087,12 @@ def _consolidated_report_payload(report_type, month_year):
             agg[key]['male_child_u14'] += (r.male_child_u14 or 0)
             agg[key]['female_child_u14'] += (r.female_child_u14 or 0)
             agg[key]['total'] += (r.total or 0)
-        _pf1_sorted = sorted(agg.values(), key=lambda x: PROFORMA_HPI_ORDER.get(x['indicator_code'], 9999))
+        _structured_rows = sorted(agg.values(), key=lambda x: PROFORMA_HPI_ORDER.get(x['indicator_code'], 9999))
         headers = ['Code', 'Indicator', 'Male', 'Female', 'Male Child <14', 'Female Child <14', 'Total']
         data_rows = [
             [v['indicator_code'], v['indicator_label'], v['male'], v['female'],
              v['male_child_u14'], v['female_child_u14'], v['total']]
-            for v in _pf1_sorted
+            for v in _structured_rows
         ]
 
     elif report_type == 'proforma_ii':
@@ -1104,10 +1105,11 @@ def _consolidated_report_payload(report_type, month_year):
                             'opd_count': 0, 'ipd_count': 0}
             agg[key]['opd_count'] += (r.opd_count or 0)
             agg[key]['ipd_count'] += (r.ipd_count or 0)
+        _structured_rows = sorted(agg.values(), key=lambda x: x['sr_no'])
         headers = ['Sr No', 'Disease', 'OPD', 'IPD']
         data_rows = [
             [v['sr_no'], v['disease_name'], v['opd_count'], v['ipd_count']]
-            for v in sorted(agg.values(), key=lambda x: x['sr_no'])
+            for v in _structured_rows
         ]
 
     elif report_type in ('cbhi_form1', 'cbhi_form2'):
@@ -1131,6 +1133,7 @@ def _consolidated_report_payload(report_type, month_year):
                     agg[key][field] = 0
             for field in numeric_fields:
                 agg[key][field] += (getattr(r, field, 0) or 0)
+        _structured_rows = sorted(agg.values(), key=lambda x: x['sr_no'])
 
         headers = [
             'Sr No', 'Disease', 'Code',
@@ -1144,7 +1147,7 @@ def _consolidated_report_payload(report_type, month_year):
         data_rows = [
             [v['sr_no'], v['disease_name'], v['code']] +
             [v[f] for f in numeric_fields]
-            for v in sorted(agg.values(), key=lambda x: x['sr_no'])
+            for v in _structured_rows
         ]
     else:
         return None
@@ -1167,8 +1170,8 @@ def _consolidated_report_payload(report_type, month_year):
         'rows': data_rows,
         'user_count': actual_user_count,
     }
-    if _pf1_sorted is not None:
-        result['proforma_i_rows'] = _pf1_sorted
+    if _structured_rows is not None:
+        result['structured_rows'] = _structured_rows
     return result
 
 
@@ -2748,11 +2751,20 @@ def consolidated_proforma_view():
         'cbhi_form2': 'CBHI FORM-2',
     }
 
-    if report_type == 'proforma_i' and payload.get('proforma_i_rows'):
+    _template_map = {
+        'hospital_indicator': 'consolidated_hospital_indicator_view.html',
+        'proforma_i': 'consolidated_proforma_i_view.html',
+        'proforma_ii': 'consolidated_proforma_ii_view.html',
+        'cbhi_form1': 'consolidated_cbhi_form1_view.html',
+        'cbhi_form2': 'consolidated_cbhi_form2_view.html',
+    }
+
+    structured_rows = payload.get('structured_rows')
+    if structured_rows is not None and report_type in _template_map:
         return render_template(
-            'consolidated_proforma_i_view.html',
+            _template_map[report_type],
             month_year=month_year,
-            rows=payload['proforma_i_rows'],
+            rows=structured_rows,
             user_count=payload.get('user_count', 0),
             report_type=report_type,
             report_labels=report_labels,

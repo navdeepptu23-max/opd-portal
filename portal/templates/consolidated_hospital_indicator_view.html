@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+{% block title %}Hospital Indicator (Consolidated) – {{ month_year }}{% endblock %}
+
+{% block content %}
+<style>
+  .report-panel {
+    background: #ffffff;
+    color: #111;
+    border-radius: 10px;
+    padding: 10px;
+    overflow-x: auto;
+  }
+  .report-table {
+    width: 100%;
+    min-width: 860px;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #e6e6e6;
+  }
+  .report-table th,
+  .report-table td {
+    border: 1px solid #444;
+    padding: 5px 6px;
+    font-weight: 700;
+    vertical-align: middle;
+  }
+  .report-table .head-main { text-align: center; font-size: 22px; }
+  .report-table .head-sub  { text-align: center; font-size: 20px; }
+  .report-table .sr   { width: 7%; text-align: center; }
+  .report-table .name { width: 55%; }
+  .report-table .opd, .report-table .ipd { width: 19%; text-align: center; }
+  .report-table input[type='number'] {
+    width: 100%;
+    text-align: center;
+    border: 1px solid #777;
+    padding: 5px;
+    background: #fff;
+    font-weight: 700;
+  }
+  .meta-controls {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 0.8rem;
+    margin-bottom: 0.8rem;
+  }
+  .meta-controls input {
+    width: 100%;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid #bbb;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+  .toolbar {
+    display: flex;
+    gap: 0.7rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.8rem;
+    flex-wrap: wrap;
+  }
+  .toolbar-left, .toolbar-right {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .btn-export {
+    padding: 0.4rem 0.85rem;
+    border-radius: 6px;
+    border: 1px solid #888;
+    background: #f4f4f4;
+    color: #222;
+    cursor: pointer;
+    font-size: 0.82rem;
+    font-weight: 600;
+    transition: background 0.15s;
+    text-decoration: none;
+  }
+  .btn-export:hover { background: #dde; }
+  @media (max-width: 760px) {
+    .meta-controls { grid-template-columns: 1fr; }
+  }
+  @media print {
+    @page { size: A4 portrait; margin: 6mm; }
+    .no-print, nav, footer, .toolbar, .page-header, .flash-messages, .tabs-card { display: none !important; }
+    html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+    .report-panel { padding: 0 !important; overflow: visible !important; background: #fff !important; }
+    .report-table { width: 100% !important; font-size: 10pt !important; color: #000 !important; }
+    .report-table th, .report-table td { border: 1px solid #000 !important; color: #000 !important; background: #fff !important; }
+    .report-table input { border: none !important; background: transparent !important; color: #000 !important; font-weight: bold !important; }
+  }
+</style>
+
+<div class="page-header no-print" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <h1>Hospital Indicator Report (Consolidated)</h1>
+    <p>Month: <strong>{{ month_year }}</strong> &nbsp;|&nbsp; Users Consolidated: <strong>{{ user_count }}</strong></p>
+  </div>
+  <a href="{{ url_for('consolidated_reports', report_type='hospital_indicator', month_year=month_year) }}" class="btn btn-ghost btn-sm">Back to Consolidated Reports</a>
+</div>
+
+{# ── Report Tabs ── #}
+<div class="card tabs-card no-print" style="margin-bottom:1rem; padding:0.9rem 1rem;">
+  <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.5px;">Switch Proforma</div>
+  <div style="display:flex; gap:0.55rem; flex-wrap:wrap;">
+    {% for key, label in report_labels.items() %}
+    <a href="{{ url_for('consolidated_proforma_view', report_type=key, month_year=month_year) }}"
+       class="btn btn-sm {{ 'btn-primary' if report_type == key else 'btn-ghost' }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="report-panel">
+  <div class="toolbar no-print">
+    <div class="toolbar-left">
+      <span style="font-size:0.8rem; color:var(--text-muted);">Users Consolidated: <strong>{{ user_count }}</strong></span>
+    </div>
+    <div class="toolbar-right">
+      <button type="button" class="btn-export" onclick="printReport()">🖨 Print</button>
+      <button type="button" class="btn-export" onclick="exportPDF()">📄 PDF</button>
+      <button type="button" class="btn-export" onclick="exportExcel()">📊 Excel</button>
+      <a class="btn-export" href="{{ url_for('consolidated_proforma_export', fmt='docx', report_type='hospital_indicator', month_year=month_year) }}">📝 Word</a>
+    </div>
+  </div>
+
+  <div class="meta-controls">
+    <input type="text" id="meta-institution" value="COMPILED REPORT OF BLOCK- POSSI">
+    <input type="text" value="{{ month_year }}" readonly>
+  </div>
+
+  <table class="report-table" id="report-table">
+    <thead>
+      <tr><th class="head-main" colspan="4">PROFORMA - HOSPITAL INDICATOR (CONSOLIDATED)</th></tr>
+      <tr><th class="head-sub" colspan="4">MONTHLY HOSPITAL INDICATOR REPORT</th></tr>
+      <tr>
+        <th colspan="2">Name of the Health Institution: <span id="inst-name">COMPILED REPORT</span></th>
+        <th colspan="2" style="text-align:center;">Month &amp; Year: {{ month_year }}</th>
+      </tr>
+      <tr>
+        <th class="sr">Sr. No.</th>
+        <th class="name">Indicator</th>
+        <th class="opd">OPD</th>
+        <th class="ipd">IPD</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% set ns = namespace(opd_total=0, ipd_total=0) %}
+      {% for row in rows %}
+      <tr>
+        <td class="sr">{{ row.indicator_no }}</td>
+        <td class="name">{{ row.indicator_name }}</td>
+        <td class="opd"><input type="number" min="0" value="{{ row.opd_count }}" data-col="opd"></td>
+        <td class="ipd"><input type="number" min="0" value="{{ row.ipd_count }}" data-col="ipd"></td>
+      </tr>
+      {% set ns.opd_total = ns.opd_total + row.opd_count %}
+      {% set ns.ipd_total = ns.ipd_total + row.ipd_count %}
+      {% endfor %}
+      <tr style="background:#e8eaf6;">
+        <td colspan="2" style="text-align:center;">Total</td>
+        <td id="opd-grand-total" style="text-align:center;">{{ ns.opd_total }}</td>
+        <td id="ipd-grand-total" style="text-align:center;">{{ ns.ipd_total }}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+  (function () {
+    const toInt = v => { const n = parseInt(String(v||'').trim(),10); return Number.isFinite(n)&&n>0?n:0; };
+    const opdInputs = Array.from(document.querySelectorAll('input[data-col="opd"]'));
+    const ipdInputs = Array.from(document.querySelectorAll('input[data-col="ipd"]'));
+    const recompute = () => {
+      document.getElementById('opd-grand-total').textContent = String(opdInputs.reduce((s,i)=>s+toInt(i.value),0));
+      document.getElementById('ipd-grand-total').textContent = String(ipdInputs.reduce((s,i)=>s+toInt(i.value),0));
+    };
+    [...opdInputs,...ipdInputs].forEach(i => { i.addEventListener('input',recompute); i.addEventListener('change',recompute); });
+    recompute();
+  })();
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
+<script>
+  function printReport() { window.print(); }
+
+  function exportPDF() {
+    const source = document.getElementById('report-table');
+    const el = source.cloneNode(true);
+    el.style.background = '#fff'; el.style.color = '#000';
+    el.querySelectorAll('th,td').forEach(c => { c.style.background='#fff'; c.style.color='#000'; c.style.border='1px solid #000'; });
+    el.querySelectorAll('input').forEach(f => { const s=document.createElement('span'); s.textContent=f.value||''; s.style.fontWeight='700'; f.replaceWith(s); });
+    const w=document.createElement('div'); w.style.position='fixed'; w.style.left='-10000px'; w.style.width='1000px'; w.style.background='#fff'; w.appendChild(el); document.body.appendChild(w);
+    html2pdf().set({ margin:[5,5,5,5], filename:'Hospital-Indicator_CONSOLIDATED_{{ month_year }}.pdf', image:{type:'jpeg',quality:0.95}, html2canvas:{scale:1.5,useCORS:true}, jsPDF:{unit:'mm',format:'a4',orientation:'portrait',compress:true}, pagebreak:{mode:'avoid'} }).from(el).save().finally(()=>w.remove());
+  }
+
+  function exportExcel() {
+    const table = document.getElementById('report-table');
+    const data = [];
+    table.querySelectorAll('tr').forEach(tr => {
+      const r = [];
+      tr.querySelectorAll('th,td').forEach(c => { const inp=c.querySelector('input'); r.push(inp?inp.value:c.innerText.trim()); });
+      data.push(r);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:3}},{s:{r:1,c:0},e:{r:1,c:3}}];
+    ws['!cols'] = [{wch:8},{wch:55},{wch:12},{wch:12}];
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for(let R=range.s.r;R<=range.e.r;R++) for(let C=range.s.c;C<=range.e.c;C++) {
+      const a=XLSX.utils.encode_cell({r:R,c:C}); if(!ws[a])continue;
+      ws[a].s={font:{bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'FFFFFF'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:{left:{style:'thin',color:{rgb:'000000'}},right:{style:'thin',color:{rgb:'000000'}},top:{style:'thin',color:{rgb:'000000'}},bottom:{style:'thin',color:{rgb:'000000'}}}};
+    }
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Hospital Indicator');
+    XLSX.writeFile(wb,'Hospital-Indicator_CONSOLIDATED_{{ month_year }}.xlsx');
+  }
+</script>
+{% endblock %}

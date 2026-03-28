@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% block title %}CBHI FORM-1 (Consolidated) – {{ month_year }}{% endblock %}
+
+{% block content %}
+<style>
+  .page-header {
+    background:linear-gradient(135deg, #fdecef 0%, #eefaf0 100%);
+    border:1px solid #e7cfd5;
+    border-radius:12px;
+    padding:1rem 1.25rem;
+  }
+  .page-header h1 { font-weight:800; color:#b4234d; letter-spacing:0.03em; }
+  .page-header p { font-weight:700; color:#246b3d; }
+  .c1-wrap {
+    overflow:auto;
+    background:linear-gradient(180deg, #fff3f6 0%, #eff9f0 100%);
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #e3d5d8;
+    font-weight:800;
+  }
+  .c1-wrap, .c1-wrap * { font-weight:700; }
+  .c1-table { width:100%; border-collapse:collapse; min-width:1900px; font-size:11px; color:#111; background:#fffafb; }
+  .c1-table th, .c1-table td { border:1px solid #666; padding:3px 4px; vertical-align:middle; font-weight:700; }
+  .c1-table thead th { background:#e7f4e8; text-align:center; font-weight:800; color:#1f5130; }
+  .c1-table .form-head { background:linear-gradient(90deg, #f8d8e3 0%, #e1f4e4 100%); font-weight:800; color:#8f1f45; }
+  .c1-table .form-subhead { background:#edf7ee; font-size:10px; font-weight:800; color:#215c34; }
+  .c1-table .col-idx { font-size:9px; color:#7a1f40; background:#f9e9ee; font-weight:800; }
+  .c1-table tbody tr:nth-child(odd) td { background:#fff7f9; }
+  .c1-table tbody tr:nth-child(even) td { background:#f1faf2; }
+  .c1-table thead tr:nth-child(6) th:nth-child(4n) { background:#fff4b8; color:#735500; }
+  .c1-table tbody td:nth-child(6),
+  .c1-table tbody td:nth-child(10),
+  .c1-table tbody td:nth-child(14),
+  .c1-table tbody td:nth-child(18),
+  .c1-table tbody td:nth-child(22),
+  .c1-table tbody td:nth-child(26) { background:#fff8cc !important; }
+  .c1-table .left { text-align:left; }
+  .c1-table input, .c1-table textarea { width:100%; box-sizing:border-box; border:1px solid #b7b0b2; background:#fffdfd; padding:2px 3px; font-size:11px; font-weight:800; color:#111; }
+  .c1-table input[readonly] { background:#fff4b8; font-weight:800; color:#4a3b00; }
+  .c1-table .num { width:48px; text-align:center; }
+  .c1-table .disease { min-width:280px; }
+  .c1-table .tight { padding:2px 3px; }
+  .c1-foot { margin-top:10px; width:100%; border-collapse:collapse; font-size:11px; color:#111; background:#fef4f7; }
+  .c1-foot td { border:1px solid #666; padding:6px; vertical-align:top; min-height:56px; background:#eef8ef; font-weight:800; }
+  .c1-foot .label { font-weight:800; display:block; margin-bottom:4px; color:#8f1f45; }
+  .c1-note { margin-top:6px; font-size:10px; color:#2a5c38; font-weight:800; }
+  .c1-toolbar { display:flex; justify-content:space-between; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:10px; }
+  .c1-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
+  .btn-export {
+    padding:0.4rem 0.85rem; border-radius:6px; border:1px solid #888;
+    background:#f4f4f4; color:#222; cursor:pointer; font-size:0.82rem;
+    font-weight:600; transition:background 0.15s; text-decoration:none;
+  }
+  .btn-export:hover { background:#dde; }
+  .c1-pdf-export {
+    background:#fff; color:#000; padding:6mm; width:420mm; box-sizing:border-box;
+  }
+  .c1-pdf-export .c1-table, .c1-pdf-export .c1-foot { width:100%; min-width:0; background:#fff !important; color:#000 !important; }
+  .c1-pdf-export .c1-table th, .c1-pdf-export .c1-table td, .c1-pdf-export .c1-foot td { background:#fff !important; color:#000 !important; border:1px solid #000 !important; }
+  .c1-pdf-export .c1-table input, .c1-pdf-export .c1-table textarea, .c1-pdf-export .c1-foot input { background:transparent !important; border:none !important; color:#000 !important; padding:0 !important; }
+  @media print {
+    @page { size: A3 landscape; margin: 8mm; }
+    .no-print, nav, .page-header, .alerts, footer, .tabs-card { display:none !important; }
+    .c1-wrap { overflow:visible !important; padding:0 !important; background:#fff !important; }
+    .c1-table { min-width:0 !important; font-size:8.5px !important; width:100% !important; color:#000 !important; }
+    .c1-foot { width:100% !important; color:#000 !important; }
+    .c1-table th, .c1-table td, .c1-foot td { border:1px solid #000 !important; color:#000 !important; }
+    .c1-table thead th, .c1-table tbody td, .c1-foot td, .c1-note { background:#fff !important; color:#000 !important; }
+    .c1-table input, .c1-table textarea, .c1-foot input { border:none !important; background:transparent !important; color:#000 !important; padding:0 !important; font-weight:700 !important; }
+  }
+</style>
+
+<div class="page-header no-print">
+  <h1>CBHI FORM-1 (Consolidated)</h1>
+  <p>Month: <strong>{{ month_year }}</strong> &nbsp;|&nbsp; Users Consolidated: <strong>{{ user_count }}</strong></p>
+</div>
+
+{# ── Report Tabs ── #}
+<div class="card tabs-card no-print" style="margin-bottom:1rem; padding:0.9rem 1rem;">
+  <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.5px;">Switch Proforma</div>
+  <div style="display:flex; gap:0.55rem; flex-wrap:wrap;">
+    {% for key, label in report_labels.items() %}
+    <a href="{{ url_for('consolidated_proforma_view', report_type=key, month_year=month_year) }}"
+       class="btn btn-sm {{ 'btn-primary' if report_type == key else 'btn-ghost' }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="c1-wrap">
+  <div class="c1-toolbar no-print">
+    <div style="font-size:0.82rem; color:#314235; font-weight:800;">Users Consolidated: <strong>{{ user_count }}</strong></div>
+    <div class="c1-actions">
+      <button type="button" class="btn-export" onclick="printReport()">🖨 Print</button>
+      <button type="button" class="btn-export" onclick="downloadPdf()">📄 PDF</button>
+      <button type="button" class="btn-export" onclick="downloadExcel()">📊 Excel</button>
+      <a class="btn-export" href="{{ url_for('consolidated_proforma_export', fmt='docx', report_type='cbhi_form1', month_year=month_year) }}">📝 Word</a>
+    </div>
+  </div>
+
+  <div id="c1-export-area">
+  <table class="c1-table" id="c1-table">
+    <thead>
+      <tr><th colspan="28" class="form-head">Annexure-B</th></tr>
+      <tr><th colspan="28" class="form-head">Form-1: Institutional Cases and Deaths Reported in the Month (CONSOLIDATED)</th></tr>
+      <tr>
+        <th colspan="10" class="left form-subhead">Month and Year: <input class="tight" type="text" value="{{ month_year }}" readonly></th>
+        <th colspan="18" class="left form-subhead">Health Establishment: <input class="tight" type="text" id="meta-health-est" value="COMPILED REPORT OF BLOCK- POSSI"></th>
+      </tr>
+      <tr>
+        <th colspan="10" class="left form-subhead">Complete Address: <input class="tight" type="text" id="meta-address" value=""></th>
+        <th colspan="18" class="left form-subhead">District/State: <input class="tight" type="text" id="meta-district" value="HOSHIARPUR"></th>
+      </tr>
+      <tr>
+        <th rowspan="2">Sr. No.</th>
+        <th rowspan="2" class="disease">Name of Disease / Event</th>
+        <th colspan="4">General OPD</th>
+        <th colspan="4">Emergency OPD</th>
+        <th colspan="4">IPD from General OPD</th>
+        <th colspan="4">IPD from Emergency OPD</th>
+        <th colspan="4">Overall Cases Reported</th>
+        <th colspan="4">Deaths Reported</th>
+        <th rowspan="2">Remarks</th>
+      </tr>
+      <tr>
+        {% for _ in range(6) %}
+        <th>M</th><th>F</th><th>TG</th><th>T</th>
+        {% endfor %}
+      </tr>
+      <tr class="col-idx">
+        {% for i in range(1, 29) %}
+        <th>{{ i }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td class="num">{{ r.sr_no }}</td>
+        <td class="left disease">
+          {{ r.disease_name }}
+          {% if r.code %}<br><small>{{ r.code }}</small>{% endif %}
+        </td>
+
+        <td><input class="num" type="number" min="0" value="{{ r.general_m }}" data-idx="{{ loop.index0 }}" data-group="general" data-role="m"></td>
+        <td><input class="num" type="number" min="0" value="{{ r.general_f }}" data-idx="{{ loop.index0 }}" data-group="general" data-role="f"></td>
+        <td><input class="num" type="number" min="0" value="{{ r.general_tr }}" data-idx="{{ loop.index0 }}" data-group="general" data-role="tr"></td>
+        <td><input class="num" type="number" readonly value="{{ r.general_total }}" data-idx="{{ loop.index0 }}" data-group="general" data-role="total"></td>
+
+        <td><input class="num" type="number" min="0" value="{{ r.emergency_m }}" data-idx="{{ loop.index0 }}" data-group="emergency" data-role="m"></td>
+        <td><input class="num" type="number" min="0" value="{{ r.emergency_f }}" data-idx="{{ loop.index0 }}" data-group="emergency" data-role="f"></td>
+        <td><input class="num" type="number" min="0" value="{{ r.emergency_tr }}" data-idx="{{ loop.index0 }}" data-group="emergency" data-role="tr"></td>
+        <td><input class="num" type="number" readonly value="{{ r.emergency_total }}" data-idx="{{ loop.index0 }}" data-group="emergency" data-role="total"></td>
+
+        <td><input class="num" type="number" min="0" value="{{ r.ipd_general_m }}" data-idx="{{ loop.index0 }}" data-group="ipd_general" data-role="m"></td>
+        <td><input class="num" type="number" min="0" value="{{ r.ipd_general_f }}" data-idx="{{ loop.index0 }}" data-group="ipd_general" data-role="f"></td>
+        <td><input class="num" type="number" min="0" value="{{ r.ipd_general_tr }}" data-idx="{{ loop.index0 }}" data-group="ipd_general" data-role="tr"></td>
+        <td><input class="num" type="number" readonly value="{{ r.ipd_general_total }}" data-idx="{{ loop.index0 }}" data-group="ipd_general" data-role="total"></td>
+
+        <td><input class="num" type="number" min="0" value="{{ r.ipd_emergency_m }}" data-idx="{{ loop.index0 }}" data-group="ipd_emergency" data-role="m"></td>
+        <td><input class="num" type="number" min="0" value="{{ r.ipd_emergency_f }}" data-idx="{{ loop.index0 }}" data-group="ipd_emergency" data-role="f"></td>
+        <td><input class="num" type="number" min="0" value="{{ r.ipd_emergency_tr }}" data-idx="{{ loop.index0 }}" data-group="ipd_emergency" data-role="tr"></td>
+        <td><input class="num" type="number" readonly value="{{ r.ipd_emergency_total }}" data-idx="{{ loop.index0 }}" data-group="ipd_emergency" data-role="total"></td>
+
+        <td><input class="num" type="number" readonly value="{{ r.overall_m }}" data-idx="{{ loop.index0 }}" data-group="overall" data-role="m"></td>
+        <td><input class="num" type="number" readonly value="{{ r.overall_f }}" data-idx="{{ loop.index0 }}" data-group="overall" data-role="f"></td>
+        <td><input class="num" type="number" readonly value="{{ r.overall_tr }}" data-idx="{{ loop.index0 }}" data-group="overall" data-role="tr"></td>
+        <td><input class="num" type="number" readonly value="{{ r.overall_total }}" data-idx="{{ loop.index0 }}" data-group="overall" data-role="total"></td>
+
+        <td><input class="num" type="number" min="0" value="{{ r.deaths_m }}" data-idx="{{ loop.index0 }}" data-group="deaths" data-role="m"></td>
+        <td><input class="num" type="number" min="0" value="{{ r.deaths_f }}" data-idx="{{ loop.index0 }}" data-group="deaths" data-role="f"></td>
+        <td><input class="num" type="number" min="0" value="{{ r.deaths_tr }}" data-idx="{{ loop.index0 }}" data-group="deaths" data-role="tr"></td>
+        <td><input class="num" type="number" readonly value="{{ r.deaths_total }}" data-idx="{{ loop.index0 }}" data-group="deaths" data-role="total"></td>
+
+        <td><textarea rows="1">{{ r.get('remarks','') }}</textarea></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="c1-foot">
+    <tr>
+      <td style="width:33%;"><span class="label">Name of Reporting Officer</span><input type="text" value=""></td>
+      <td style="width:33%;"><span class="label">Designation</span><input type="text" value=""></td>
+      <td style="width:34%;"><span class="label">Seal and Signature</span><div style="height:48px;"></div></td>
+    </tr>
+    <tr>
+      <td><span class="label">Mobile / Phone</span><input type="text" value=""></td>
+      <td><span class="label">Official Email</span><input type="email" value=""></td>
+      <td><span class="label">Date of Submission</span><input type="text" value="{{ month_year }}"></td>
+    </tr>
+  </table>
+
+  <div class="c1-note">Note: TG = Transgender. T = Total. Please verify totals before final submission.</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.3/dist/xlsx.full.min.js"></script>
+<script>
+  (function () {
+    const toInt = v => { const n=parseInt(String(v||'').trim(),10); return Number.isFinite(n)&&n>0?n:0; };
+
+    function updateGroup(idx, group) {
+      const m=document.querySelector(`input[data-idx="${idx}"][data-group="${group}"][data-role="m"]`);
+      const f=document.querySelector(`input[data-idx="${idx}"][data-group="${group}"][data-role="f"]`);
+      const tr=document.querySelector(`input[data-idx="${idx}"][data-group="${group}"][data-role="tr"]`);
+      const t=document.querySelector(`input[data-idx="${idx}"][data-group="${group}"][data-role="total"]`);
+      if(m&&f&&tr&&t) t.value=String(toInt(m.value)+toInt(f.value)+toInt(tr.value));
+    }
+
+    function updateOverall(idx) {
+      const gm=document.querySelector(`input[data-idx="${idx}"][data-group="general"][data-role="m"]`);
+      const gf=document.querySelector(`input[data-idx="${idx}"][data-group="general"][data-role="f"]`);
+      const gt=document.querySelector(`input[data-idx="${idx}"][data-group="general"][data-role="tr"]`);
+      const em=document.querySelector(`input[data-idx="${idx}"][data-group="emergency"][data-role="m"]`);
+      const ef=document.querySelector(`input[data-idx="${idx}"][data-group="emergency"][data-role="f"]`);
+      const et=document.querySelector(`input[data-idx="${idx}"][data-group="emergency"][data-role="tr"]`);
+      const om=document.querySelector(`input[data-idx="${idx}"][data-group="overall"][data-role="m"]`);
+      const of2=document.querySelector(`input[data-idx="${idx}"][data-group="overall"][data-role="f"]`);
+      const ot=document.querySelector(`input[data-idx="${idx}"][data-group="overall"][data-role="tr"]`);
+      const oT=document.querySelector(`input[data-idx="${idx}"][data-group="overall"][data-role="total"]`);
+      if(!gm||!gf||!gt||!em||!ef||!et||!om||!of2||!ot||!oT) return;
+      om.value=String(toInt(gm.value)+toInt(em.value));
+      of2.value=String(toInt(gf.value)+toInt(ef.value));
+      ot.value=String(toInt(gt.value)+toInt(et.value));
+      oT.value=String(toInt(om.value)+toInt(of2.value)+toInt(ot.value));
+    }
+
+    const edits=Array.from(document.querySelectorAll('input[data-role="m"],input[data-role="f"],input[data-role="tr"]'));
+    const idxs=[...new Set(edits.map(e=>e.dataset.idx))];
+    edits.forEach(el => {
+      el.addEventListener('input',()=>{ updateGroup(el.dataset.idx,el.dataset.group); if(el.dataset.group==='general'||el.dataset.group==='emergency') updateOverall(el.dataset.idx); });
+    });
+    idxs.forEach(idx=>['general','emergency','ipd_general','ipd_emergency','deaths'].forEach(g=>updateGroup(idx,g)));
+    idxs.forEach(updateOverall);
+  })();
+
+  function printReport() { window.print(); }
+
+  function buildMonochromeExport() {
+    const source=document.getElementById('c1-export-area');
+    const clone=source.cloneNode(true);
+    clone.classList.add('c1-pdf-export');
+    return clone;
+  }
+
+  function downloadPdf() {
+    const clone=buildMonochromeExport();
+    const host=document.createElement('div'); host.style.position='fixed'; host.style.left='-100000px'; host.style.top='0'; host.style.background='#fff'; host.appendChild(clone); document.body.appendChild(host);
+    html2pdf().set({ margin:[6,6,6,6], filename:'CBHI-FORM1-CONSOLIDATED-{{ month_year }}.pdf', pagebreak:{mode:['css','legacy','avoid-all']}, html2canvas:{scale:2,backgroundColor:'#ffffff',useCORS:true,windowWidth:clone.scrollWidth}, jsPDF:{unit:'mm',format:'a3',orientation:'landscape'} }).from(clone).save().then(()=>host.remove()).catch(()=>host.remove());
+  }
+
+  function downloadExcel() {
+    const table=document.getElementById('c1-table');
+    const ws=XLSX.utils.table_to_sheet(table,{raw:true});
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'FORM1 CONSOLIDATED');
+    XLSX.writeFile(wb,'CBHI-FORM1-CONSOLIDATED-{{ month_year }}.xlsx');
+  }
+</script>
+{% endblock %}
