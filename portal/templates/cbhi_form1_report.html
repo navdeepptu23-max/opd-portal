@@ -1,0 +1,214 @@
+{% extends 'base.html' %}
+{% block title %}CBHI FORM-1 – OPD Portal{% endblock %}
+
+{% block content %}
+<style>
+  .c1-wrap { overflow:auto; background:#fff; padding:10px; border-radius:8px; }
+  .c1-table { width:100%; border-collapse:collapse; min-width:1900px; font-size:11px; color:#111; }
+  .c1-table th, .c1-table td { border:1px solid #666; padding:3px 4px; vertical-align:middle; }
+  .c1-table thead th { background:#f4f4f4; text-align:center; }
+  .c1-table .left { text-align:left; }
+  .c1-table input, .c1-table textarea { width:100%; box-sizing:border-box; border:1px solid #888; padding:2px 3px; font-size:11px; }
+  .c1-table input[readonly] { background:#efefef; font-weight:700; }
+  .c1-table .num { width:48px; text-align:center; }
+  .c1-table .disease { min-width:280px; }
+  .c1-toolbar { display:flex; justify-content:space-between; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:10px; }
+  .c1-status { font-size:0.82rem; color:var(--text-muted); }
+  .c1-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
+
+  @media print {
+    .no-print, nav, .page-header, .alerts, footer { display:none !important; }
+    .c1-wrap { overflow:visible !important; padding:0 !important; }
+    .c1-table { min-width:0 !important; font-size:8.5px !important; }
+    .c1-table input, .c1-table textarea { border:none !important; background:transparent !important; padding:0 !important; }
+  }
+</style>
+
+<div class="page-header">
+  <h1>CBHI FORM-1</h1>
+  <p>Monthly report on institutional cases and deaths due to communicable diseases</p>
+</div>
+
+<div class="card" style="margin-bottom:1rem;">
+  <form method="GET" style="display:flex; gap:0.7rem; align-items:flex-end; flex-wrap:wrap;">
+    <div class="form-group" style="margin-bottom:0; min-width:180px;">
+      <label>Month &amp; Year</label>
+      <input type="text" name="month_year" value="{{ month_year }}" placeholder="MAR-2026">
+    </div>
+    <button type="submit" class="btn btn-ghost btn-sm">Load Month</button>
+  </form>
+</div>
+
+<div class="card no-print" style="margin-bottom:1rem;">
+  <form method="POST" style="display:flex; gap:0.6rem; align-items:flex-end; flex-wrap:wrap;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="month_year" value="{{ month_year }}">
+    <input type="hidden" name="action" value="add_row">
+    <div class="form-group" style="margin-bottom:0; min-width:340px;">
+      <label>Add New Disease Row</label>
+      <input type="text" name="new_disease_name" placeholder="Disease name">
+    </div>
+    <div class="form-group" style="margin-bottom:0; width:120px;">
+      <label>Code</label>
+      <input type="text" name="new_disease_code" placeholder="A00">
+    </div>
+    <button type="submit" class="btn btn-ghost btn-sm">+ Add Row</button>
+  </form>
+</div>
+
+<div class="c1-wrap">
+  <form method="POST" id="c1-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="month_year" value="{{ month_year }}">
+
+    <div class="c1-toolbar no-print">
+      <div class="c1-status">Status: <strong style="text-transform:capitalize; color:#111;">{{ submission_status }}</strong></div>
+      <div class="c1-actions">
+        <button type="submit" class="btn btn-ghost btn-sm" name="action" value="draft">Save Draft</button>
+        <button type="submit" class="btn btn-primary btn-sm" name="action" value="submit">Submit to Admin</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="window.print()">Print</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="downloadPdf()">Download PDF</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="downloadExcel()">Download Excel</button>
+      </div>
+    </div>
+
+    <table class="c1-table" id="c1-table">
+      <thead>
+        <tr>
+          <th colspan="2" class="left">Month: {{ month_year }}</th>
+          <th colspan="26" class="left">Health Establishment: <input type="text" name="health_establishment" value="{{ meta.health_establishment }}"></th>
+        </tr>
+        <tr>
+          <th colspan="2" class="left">Complete Address</th>
+          <th colspan="26" class="left"><input type="text" name="complete_address" value="{{ meta.complete_address }}"></th>
+        </tr>
+        <tr>
+          <th rowspan="2">Sr</th>
+          <th rowspan="2" class="disease">Disease</th>
+          <th colspan="4">General OPD</th>
+          <th colspan="4">Emergency OPD</th>
+          <th colspan="4">IPD from General OPD</th>
+          <th colspan="4">IPD from Emergency OPD</th>
+          <th colspan="4">Overall Cases Reported</th>
+          <th colspan="4">General Deaths</th>
+          <th rowspan="2">Remarks</th>
+        </tr>
+        <tr>
+          {% for _ in range(6) %}
+          <th>M</th><th>F</th><th>Tr</th><th>Total</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="num">{{ r.sr_no }}</td>
+          <td class="left disease">
+            <input type="text" name="disease_{{ r.id }}" value="{{ r.disease_name }}">
+            <input type="text" name="code_{{ r.id }}" value="{{ r.code }}" placeholder="Code" style="margin-top:2px; width:90px;">
+          </td>
+
+          <td><input class="num" type="number" min="0" name="general_m_{{ r.id }}" value="{{ r.general_m }}" data-id="{{ r.id }}" data-group="general" data-role="m"></td>
+          <td><input class="num" type="number" min="0" name="general_f_{{ r.id }}" value="{{ r.general_f }}" data-id="{{ r.id }}" data-group="general" data-role="f"></td>
+          <td><input class="num" type="number" min="0" name="general_tr_{{ r.id }}" value="{{ r.general_tr }}" data-id="{{ r.id }}" data-group="general" data-role="tr"></td>
+          <td><input class="num" type="number" readonly name="general_total_{{ r.id }}" value="{{ r.general_total }}" data-id="{{ r.id }}" data-group="general" data-role="total"></td>
+
+          <td><input class="num" type="number" min="0" name="emergency_m_{{ r.id }}" value="{{ r.emergency_m }}" data-id="{{ r.id }}" data-group="emergency" data-role="m"></td>
+          <td><input class="num" type="number" min="0" name="emergency_f_{{ r.id }}" value="{{ r.emergency_f }}" data-id="{{ r.id }}" data-group="emergency" data-role="f"></td>
+          <td><input class="num" type="number" min="0" name="emergency_tr_{{ r.id }}" value="{{ r.emergency_tr }}" data-id="{{ r.id }}" data-group="emergency" data-role="tr"></td>
+          <td><input class="num" type="number" readonly name="emergency_total_{{ r.id }}" value="{{ r.emergency_total }}" data-id="{{ r.id }}" data-group="emergency" data-role="total"></td>
+
+          <td><input class="num" type="number" min="0" name="ipd_general_m_{{ r.id }}" value="{{ r.ipd_general_m }}" data-id="{{ r.id }}" data-group="ipd_general" data-role="m"></td>
+          <td><input class="num" type="number" min="0" name="ipd_general_f_{{ r.id }}" value="{{ r.ipd_general_f }}" data-id="{{ r.id }}" data-group="ipd_general" data-role="f"></td>
+          <td><input class="num" type="number" min="0" name="ipd_general_tr_{{ r.id }}" value="{{ r.ipd_general_tr }}" data-id="{{ r.id }}" data-group="ipd_general" data-role="tr"></td>
+          <td><input class="num" type="number" readonly name="ipd_general_total_{{ r.id }}" value="{{ r.ipd_general_total }}" data-id="{{ r.id }}" data-group="ipd_general" data-role="total"></td>
+
+          <td><input class="num" type="number" min="0" name="ipd_emergency_m_{{ r.id }}" value="{{ r.ipd_emergency_m }}" data-id="{{ r.id }}" data-group="ipd_emergency" data-role="m"></td>
+          <td><input class="num" type="number" min="0" name="ipd_emergency_f_{{ r.id }}" value="{{ r.ipd_emergency_f }}" data-id="{{ r.id }}" data-group="ipd_emergency" data-role="f"></td>
+          <td><input class="num" type="number" min="0" name="ipd_emergency_tr_{{ r.id }}" value="{{ r.ipd_emergency_tr }}" data-id="{{ r.id }}" data-group="ipd_emergency" data-role="tr"></td>
+          <td><input class="num" type="number" readonly name="ipd_emergency_total_{{ r.id }}" value="{{ r.ipd_emergency_total }}" data-id="{{ r.id }}" data-group="ipd_emergency" data-role="total"></td>
+
+          <td><input class="num" type="number" readonly name="overall_m_{{ r.id }}" value="{{ r.overall_m }}" data-id="{{ r.id }}" data-group="overall" data-role="m"></td>
+          <td><input class="num" type="number" readonly name="overall_f_{{ r.id }}" value="{{ r.overall_f }}" data-id="{{ r.id }}" data-group="overall" data-role="f"></td>
+          <td><input class="num" type="number" readonly name="overall_tr_{{ r.id }}" value="{{ r.overall_tr }}" data-id="{{ r.id }}" data-group="overall" data-role="tr"></td>
+          <td><input class="num" type="number" readonly name="overall_total_{{ r.id }}" value="{{ r.overall_total }}" data-id="{{ r.id }}" data-group="overall" data-role="total"></td>
+
+          <td><input class="num" type="number" min="0" name="deaths_m_{{ r.id }}" value="{{ r.deaths_m }}" data-id="{{ r.id }}" data-group="deaths" data-role="m"></td>
+          <td><input class="num" type="number" min="0" name="deaths_f_{{ r.id }}" value="{{ r.deaths_f }}" data-id="{{ r.id }}" data-group="deaths" data-role="f"></td>
+          <td><input class="num" type="number" min="0" name="deaths_tr_{{ r.id }}" value="{{ r.deaths_tr }}" data-id="{{ r.id }}" data-group="deaths" data-role="tr"></td>
+          <td><input class="num" type="number" readonly name="deaths_total_{{ r.id }}" value="{{ r.deaths_total }}" data-id="{{ r.id }}" data-group="deaths" data-role="total"></td>
+
+          <td><textarea name="remarks_{{ r.id }}" rows="1">{{ r.remarks }}</textarea></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="margin-top:10px; display:grid; grid-template-columns:repeat(auto-fit, minmax(230px,1fr)); gap:8px;" class="no-print">
+      <input type="text" name="approving_authority" value="{{ meta.approving_authority }}" placeholder="Name of approving authority">
+      <input type="text" name="authority_designation" value="{{ meta.authority_designation }}" placeholder="Designation">
+      <input type="email" name="official_email" value="{{ meta.official_email }}" placeholder="Official Email">
+      <input type="text" name="official_phone" value="{{ meta.official_phone }}" placeholder="Official Phone">
+    </div>
+  </form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.3/dist/xlsx.full.min.js"></script>
+<script>
+  (function () {
+    const toInt = (v) => { const n = parseInt(String(v || '').trim(), 10); return Number.isFinite(n) && n > 0 ? n : 0; };
+
+    function updateGroup(id, group) {
+      const m = document.querySelector(`input[data-id="${id}"][data-group="${group}"][data-role="m"]`);
+      const f = document.querySelector(`input[data-id="${id}"][data-group="${group}"][data-role="f"]`);
+      const tr = document.querySelector(`input[data-id="${id}"][data-group="${group}"][data-role="tr"]`);
+      const t = document.querySelector(`input[data-id="${id}"][data-group="${group}"][data-role="total"]`);
+      if (m && f && tr && t) t.value = String(toInt(m.value) + toInt(f.value) + toInt(tr.value));
+    }
+
+    function updateOverall(id) {
+      const gm = document.querySelector(`input[data-id="${id}"][data-group="general"][data-role="m"]`);
+      const gf = document.querySelector(`input[data-id="${id}"][data-group="general"][data-role="f"]`);
+      const gt = document.querySelector(`input[data-id="${id}"][data-group="general"][data-role="tr"]`);
+      const em = document.querySelector(`input[data-id="${id}"][data-group="emergency"][data-role="m"]`);
+      const ef = document.querySelector(`input[data-id="${id}"][data-group="emergency"][data-role="f"]`);
+      const et = document.querySelector(`input[data-id="${id}"][data-group="emergency"][data-role="tr"]`);
+      const om = document.querySelector(`input[data-id="${id}"][data-group="overall"][data-role="m"]`);
+      const of = document.querySelector(`input[data-id="${id}"][data-group="overall"][data-role="f"]`);
+      const ot = document.querySelector(`input[data-id="${id}"][data-group="overall"][data-role="tr"]`);
+      const oT = document.querySelector(`input[data-id="${id}"][data-group="overall"][data-role="total"]`);
+      if (!gm || !gf || !gt || !em || !ef || !et || !om || !of || !ot || !oT) return;
+      om.value = String(toInt(gm.value) + toInt(em.value));
+      of.value = String(toInt(gf.value) + toInt(ef.value));
+      ot.value = String(toInt(gt.value) + toInt(et.value));
+      oT.value = String(toInt(om.value) + toInt(of.value) + toInt(ot.value));
+    }
+
+    const edits = Array.from(document.querySelectorAll('input[data-role="m"],input[data-role="f"],input[data-role="tr"]'));
+    const rowIds = [...new Set(edits.map(e => e.dataset.id))];
+    edits.forEach(el => {
+      el.addEventListener('input', () => {
+        updateGroup(el.dataset.id, el.dataset.group);
+        if (el.dataset.group === 'general' || el.dataset.group === 'emergency') updateOverall(el.dataset.id);
+      });
+      el.dispatchEvent(new Event('input'));
+    });
+    rowIds.forEach(id => ['general','emergency','ipd_general','ipd_emergency','deaths'].forEach(g => updateGroup(id, g)));
+    rowIds.forEach(updateOverall);
+  })();
+
+  function downloadPdf() {
+    const el = document.getElementById('c1-table');
+    html2pdf().set({ margin: 5, filename: 'CBHI-FORM1-{{ month_year }}.pdf', html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } }).from(el).save();
+  }
+
+  function downloadExcel() {
+    const table = document.getElementById('c1-table');
+    const ws = XLSX.utils.table_to_sheet(table, { raw: true });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'FORM1');
+    XLSX.writeFile(wb, 'CBHI-FORM1-{{ month_year }}.xlsx');
+  }
+</script>
+{% endblock %}

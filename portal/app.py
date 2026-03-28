@@ -161,6 +161,43 @@ PROFORMA_II_DEFAULTS = [
     (215, 'Bites of snake & other Venomous animals/DOG BITE'),
 ]
 
+CBHI_FORM1_DEFAULTS = [
+    (1, 'ACUTE DIARRHOEAL DISEASES (INCLUDING GASTRO ENTERITIS ETC) A09'),
+    (2, 'ACUTE POLIOMYELITIS A80'),
+    (3, 'ACUTE RESPIRATORY INFECTION (INCLUDING INFLUENZA AND EXCLUDING PNEUMONIA) J00-06, J11.1'),
+    (4, 'AIDS (AS REPORTED BY NACO)'),
+    (5, 'CHICKEN POX B01'),
+    (6, 'CHOLERA (LAB CONFIRMED) A00'),
+    (7, 'CORONA'),
+    (8, 'DIPHTHERIA (LAB CONFIRMED) A36'),
+    (9, 'DRY EYE DISEASE (DED)'),
+    (10, 'ENCEPHALITIS G04.0'),
+    (11, 'ENTERIC FEVER (LAB CONFIRMED) A01'),
+    (12, 'GONOCOCCAL INFECTION A54'),
+    (13, 'LEPTOSPIROSIS (LAB CONFIRMED)'),
+    (14, 'MEASLES (LAB CONFIRMED) B05'),
+    (15, 'MENINGITIS (OTHER THAN BACTERIAL)'),
+    (16, 'MENINGOCOCCAL MENINGITIS (LAB CONFIRMED)'),
+    (17, 'NEONATAL TETANUS (LAB CONFIRMED) A33'),
+    (18, 'OTHER STD DISEASES'),
+    (19, 'PLAGUE A20'),
+    (20, 'PNEUMONIA J12-18'),
+    (21, 'PULMONARY TUBERCULOSIS'),
+    (22, 'RABIES A82'),
+    (23, 'SCRUB TYPHUS (LAB CONFIRMED)'),
+    (24, 'SWINE FLU'),
+    (25, 'SYPHILIS A50-A53'),
+    (26, 'TETANUS OTHER THAN NEONATAL A35'),
+    (27, 'VIRAL HEPATITIS - A (LAB CONFIRMED) B15.9'),
+    (28, 'VIRAL HEPATITIS - B (LAB CONFIRMED) B16.9'),
+    (29, 'VIRAL HEPATITIS - C (LAB CONFIRMED)'),
+    (30, 'VIRAL HEPATITIS - D (LAB CONFIRMED)'),
+    (31, 'VIRAL HEPATITIS - E (LAB CONFIRMED)'),
+    (32, 'VIRAL HEPATITIS ALL'),
+    (33, 'VIRAL MENINGITIS - G03.9'),
+    (34, 'WHOOPING COUGH (LAB CONFIRMED) A37'),
+]
+
 PROFORMA_HPI_ORDER = {code: index for index, (code, _) in enumerate(PROFORMA_HPI_DEFAULTS)}
 
 
@@ -284,6 +321,67 @@ class ProformaIIMeta(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     month_year = db.Column(db.String(20), nullable=False, unique=True, index=True)
     institution_name = db.Column(db.String(200), nullable=False, default='PHC POSSI')
+
+
+class CbhiForm1Row(db.Model):
+    __tablename__ = 'cbhi_form1_rows'
+
+    id = db.Column(db.Integer, primary_key=True)
+    month_year = db.Column(db.String(20), nullable=False, index=True)
+    sr_no = db.Column(db.Integer, nullable=False)
+    disease_name = db.Column(db.String(320), nullable=False)
+    code = db.Column(db.String(40), nullable=False, default='')
+
+    general_m = db.Column(db.Integer, nullable=False, default=0)
+    general_f = db.Column(db.Integer, nullable=False, default=0)
+    general_tr = db.Column(db.Integer, nullable=False, default=0)
+    general_total = db.Column(db.Integer, nullable=False, default=0)
+
+    emergency_m = db.Column(db.Integer, nullable=False, default=0)
+    emergency_f = db.Column(db.Integer, nullable=False, default=0)
+    emergency_tr = db.Column(db.Integer, nullable=False, default=0)
+    emergency_total = db.Column(db.Integer, nullable=False, default=0)
+
+    ipd_general_m = db.Column(db.Integer, nullable=False, default=0)
+    ipd_general_f = db.Column(db.Integer, nullable=False, default=0)
+    ipd_general_tr = db.Column(db.Integer, nullable=False, default=0)
+    ipd_general_total = db.Column(db.Integer, nullable=False, default=0)
+
+    ipd_emergency_m = db.Column(db.Integer, nullable=False, default=0)
+    ipd_emergency_f = db.Column(db.Integer, nullable=False, default=0)
+    ipd_emergency_tr = db.Column(db.Integer, nullable=False, default=0)
+    ipd_emergency_total = db.Column(db.Integer, nullable=False, default=0)
+
+    overall_m = db.Column(db.Integer, nullable=False, default=0)
+    overall_f = db.Column(db.Integer, nullable=False, default=0)
+    overall_tr = db.Column(db.Integer, nullable=False, default=0)
+    overall_total = db.Column(db.Integer, nullable=False, default=0)
+
+    deaths_m = db.Column(db.Integer, nullable=False, default=0)
+    deaths_f = db.Column(db.Integer, nullable=False, default=0)
+    deaths_tr = db.Column(db.Integer, nullable=False, default=0)
+    deaths_total = db.Column(db.Integer, nullable=False, default=0)
+
+    remarks = db.Column(db.String(220), nullable=False, default='')
+    is_custom = db.Column(db.Boolean, nullable=False, default=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('month_year', 'sr_no', name='uq_cbhi_form1_month_sr'),
+    )
+
+
+class CbhiForm1Meta(db.Model):
+    __tablename__ = 'cbhi_form1_meta'
+
+    id = db.Column(db.Integer, primary_key=True)
+    month_year = db.Column(db.String(20), nullable=False, unique=True, index=True)
+    health_establishment = db.Column(db.String(220), nullable=False, default='PRIMARY HEALTH CENTRE, POSSI')
+    complete_address = db.Column(db.String(320), nullable=False, default='VPO: POSSI, TEHSIL-GARHSHANKAR, DISTRICT-HOSHIARPUR (PUNJAB)')
+    approving_authority = db.Column(db.String(160), nullable=False, default='')
+    authority_designation = db.Column(db.String(160), nullable=False, default='')
+    official_email = db.Column(db.String(160), nullable=False, default='')
+    official_phone = db.Column(db.String(40), nullable=False, default='')
 
 
 class UserReportSubmission(db.Model):
@@ -592,6 +690,24 @@ def _ensure_proforma_ii_rows(month_year):
         db.session.commit()
 
 
+def _ensure_cbhi_form1_rows(month_year):
+    existing_count = CbhiForm1Row.query.filter_by(month_year=month_year).count()
+    if existing_count == 0:
+        for sr_no, name in CBHI_FORM1_DEFAULTS:
+            db.session.add(CbhiForm1Row(
+                month_year=month_year,
+                sr_no=sr_no,
+                disease_name=name,
+                code='',
+            ))
+        db.session.commit()
+
+    meta = CbhiForm1Meta.query.filter_by(month_year=month_year).first()
+    if not meta:
+        db.session.add(CbhiForm1Meta(month_year=month_year))
+        db.session.commit()
+
+
 @app.route('/reports/hospital-indicator', methods=['GET', 'POST'])
 @login_required
 def hospital_indicator_report():
@@ -797,6 +913,92 @@ def proforma_ii_editable_report():
     )
 
 
+@app.route('/reports/cbhi-form1', methods=['GET', 'POST'])
+@login_required
+def cbhi_form1_report():
+    month_year = (request.values.get('month_year') or datetime.utcnow().strftime('%b-%Y')).upper()
+    _ensure_cbhi_form1_rows(month_year)
+    report_type = 'cbhi_form1'
+
+    if request.method == 'POST':
+        if not current_user.is_active:
+            abort(403)
+
+        action = (request.form.get('action') or '').strip().lower()
+        meta = CbhiForm1Meta.query.filter_by(month_year=month_year).first()
+        meta.health_establishment = (request.form.get('health_establishment') or '').strip()[:220] or meta.health_establishment
+        meta.complete_address = (request.form.get('complete_address') or '').strip()[:320] or meta.complete_address
+        meta.approving_authority = (request.form.get('approving_authority') or '').strip()[:160]
+        meta.authority_designation = (request.form.get('authority_designation') or '').strip()[:160]
+        meta.official_email = (request.form.get('official_email') or '').strip()[:160]
+        meta.official_phone = (request.form.get('official_phone') or '').strip()[:40]
+
+        if action == 'add_row':
+            max_sr = db.session.query(db.func.max(CbhiForm1Row.sr_no)).filter_by(month_year=month_year).scalar() or 0
+            db.session.add(CbhiForm1Row(
+                month_year=month_year,
+                sr_no=max_sr + 1,
+                disease_name=(request.form.get('new_disease_name') or 'NEW DISEASE').strip()[:320] or 'NEW DISEASE',
+                code=(request.form.get('new_disease_code') or '').strip()[:40],
+                is_custom=True,
+            ))
+            db.session.commit()
+            flash('New disease row added.', 'success')
+            return redirect(url_for('cbhi_form1_report', month_year=month_year))
+
+        rows = CbhiForm1Row.query.filter_by(month_year=month_year).order_by(CbhiForm1Row.sr_no.asc()).all()
+        for row in rows:
+            row.disease_name = (request.form.get(f'disease_{row.id}') or row.disease_name).strip()[:320] or row.disease_name
+            row.code = (request.form.get(f'code_{row.id}') or '').strip()[:40]
+
+            for prefix in ['general', 'emergency', 'ipd_general', 'ipd_emergency', 'deaths']:
+                m = _to_non_negative_int(request.form.get(f'{prefix}_m_{row.id}', 0))
+                f = _to_non_negative_int(request.form.get(f'{prefix}_f_{row.id}', 0))
+                tr = _to_non_negative_int(request.form.get(f'{prefix}_tr_{row.id}', 0))
+                setattr(row, f'{prefix}_m', m)
+                setattr(row, f'{prefix}_f', f)
+                setattr(row, f'{prefix}_tr', tr)
+                setattr(row, f'{prefix}_total', m + f + tr)
+
+            row.overall_m = row.general_m + row.emergency_m
+            row.overall_f = row.general_f + row.emergency_f
+            row.overall_tr = row.general_tr + row.emergency_tr
+            row.overall_total = row.overall_m + row.overall_f + row.overall_tr
+            row.remarks = (request.form.get(f'remarks_{row.id}') or '').strip()[:220]
+
+        _upsert_report_submission(
+            user_id=current_user.id,
+            month_year=month_year,
+            report_type=report_type,
+            total_opd=sum(r.general_total + r.emergency_total for r in rows),
+            total_ipd=sum(r.ipd_general_total + r.ipd_emergency_total for r in rows),
+            total_value=sum(r.overall_total for r in rows),
+        )
+        _get_or_create_report_status(current_user.id, month_year, report_type)
+
+        if action == 'submit':
+            _set_report_status(current_user.id, month_year, report_type, 'submitted')
+            flash('FORM-1 submitted to admin successfully.', 'success')
+        else:
+            flash('FORM-1 draft saved successfully.', 'success')
+
+        db.session.commit()
+        return redirect(url_for('cbhi_form1_report', month_year=month_year))
+
+    meta = CbhiForm1Meta.query.filter_by(month_year=month_year).first()
+    rows = CbhiForm1Row.query.filter_by(month_year=month_year).order_by(CbhiForm1Row.sr_no.asc()).all()
+    status_row = _get_or_create_report_status(current_user.id, month_year, report_type)
+    db.session.commit()
+
+    return render_template(
+        'cbhi_form1_report.html',
+        month_year=month_year,
+        meta=meta,
+        rows=rows,
+        submission_status=status_row.status,
+    )
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
@@ -914,25 +1116,29 @@ def reports_dashboard():
     hi_months  = {m.month_year for m in HospitalIndicatorMeta.query.all()}
     p1_months  = {m.month_year for m in ProformaHPIMeta.query.all()}
     p2_months  = {m.month_year for m in ProformaIIMeta.query.all()}
-    all_months = sorted(hi_months | p1_months | p2_months, key=_parse_month, reverse=True)
+    cbhi_months = {m.month_year for m in CbhiForm1Meta.query.all()}
+    all_months = sorted(hi_months | p1_months | p2_months | cbhi_months, key=_parse_month, reverse=True)
 
     report_data = []
     for month in all_months:
         hi_rows = HospitalIndicator.query.filter_by(month_year=month).all()
         p1_rows = ProformaHPIRow.query.filter_by(month_year=month).all()
         p2_rows = ProformaIIRow.query.filter_by(month_year=month).all()
+        cbhi_rows = CbhiForm1Row.query.filter_by(month_year=month).all()
 
         hi_opd  = sum(r.opd_count for r in hi_rows)
         hi_ipd  = sum(r.ipd_count for r in hi_rows)
         p1_total = sum(r.total for r in p1_rows)
         p2_opd  = sum(r.opd_count for r in p2_rows)
         p2_ipd  = sum(r.ipd_count for r in p2_rows)
+        cbhi_total = sum(r.overall_total for r in cbhi_rows)
 
         report_data.append({
             'month_year': month,
             'hi':  {'exists': month in hi_months, 'opd': hi_opd, 'ipd': hi_ipd},
             'p1':  {'exists': month in p1_months, 'total': p1_total},
             'p2':  {'exists': month in p2_months, 'opd': p2_opd, 'ipd': p2_ipd},
+            'cbhi': {'exists': month in cbhi_months, 'total': cbhi_total},
         })
 
     return render_template('reports_dashboard.html',
@@ -941,6 +1147,7 @@ def reports_dashboard():
         hi_count=len(hi_months),
         p1_count=len(p1_months),
         p2_count=len(p2_months),
+        cbhi_count=len(cbhi_months),
     )
 
 
@@ -954,6 +1161,7 @@ def consolidated_reports():
         'hospital_indicator': 'Hospital Indicator',
         'proforma_i': 'PROFORMA-I (HPI)',
         'proforma_ii': 'PROFORMA-II (Morbidity)',
+        'cbhi_form1': 'CBHI FORM-1',
     }
     report_type = request.args.get('report_type', 'proforma_i')
     if report_type not in report_labels:
@@ -1039,7 +1247,7 @@ def consolidated_reports_status_update():
     next_report_type = (request.form.get('next_report_type') or report_type).strip()
     next_month_year = (request.form.get('next_month_year') or month_year).strip().upper()
 
-    if report_type not in ('hospital_indicator', 'proforma_i', 'proforma_ii') or action not in ('approve', 'reject', 'reset', 'submit'):
+    if report_type not in ('hospital_indicator', 'proforma_i', 'proforma_ii', 'cbhi_form1') or action not in ('approve', 'reject', 'reset', 'submit'):
         flash('Invalid status update request.', 'danger')
         return redirect(url_for('consolidated_reports', report_type=next_report_type, month_year=next_month_year))
 
