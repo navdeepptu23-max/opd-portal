@@ -26,6 +26,7 @@ app.config['WTF_CSRF_TIME_LIMIT'] = 3600
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=12)
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_DEBUG'] = os.environ.get('SESSION_DEBUG', '0') == '1'
 
 db = SQLAlchemy(app)
 csrf = CSRFProtect(app)
@@ -35,6 +36,35 @@ login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'warning'
 login_manager.session_protection = None
 app.register_blueprint(morbidity_bp)
+
+
+@app.before_request
+def _session_debug_before_request():
+    if not app.config.get('SESSION_DEBUG'):
+        return
+    sid = request.cookies.get(app.config.get('SESSION_COOKIE_NAME', 'session'))
+    sid_preview = sid[:16] + '...' if sid else None
+    app.logger.info(
+        'SESSION_DEBUG before path=%s method=%s auth=%s user_id=%s remember=%s sid=%s',
+        request.path,
+        request.method,
+        current_user.is_authenticated,
+        session.get('_user_id'),
+        session.get('_remember'),
+        sid_preview,
+    )
+
+
+@app.after_request
+def _session_debug_after_request(response):
+    if app.config.get('SESSION_DEBUG'):
+        app.logger.info(
+            'SESSION_DEBUG after path=%s status=%s set_cookie=%s',
+            request.path,
+            response.status_code,
+            'Set-Cookie' in response.headers,
+        )
+    return response
 
 HOSPITAL_INDICATOR_DEFAULTS = [
     (1, 'Total OPD Attendance'),
