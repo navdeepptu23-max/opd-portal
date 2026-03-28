@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}{{ payload.title }} – {{ month_year }}{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+  <div>
+    <h1>{{ payload.title }}</h1>
+    <p>Month: <strong>{{ month_year }}</strong> &nbsp;|&nbsp; Users Consolidated: <strong>{{ payload.user_count }}</strong></p>
+  </div>
+  <a href="{{ url_for('consolidated_reports', report_type=report_type, month_year=month_year) }}" class="btn btn-ghost btn-sm">Back to Consolidated Reports</a>
+</div>
+
+{# ── Report Tabs ── #}
+<div class="card" style="margin-bottom:1rem; padding:0.9rem 1rem;">
+  <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.5px;">Switch Proforma</div>
+  <div style="display:flex; gap:0.55rem; flex-wrap:wrap;">
+    {% for key, label in report_labels.items() %}
+    <a
+      href="{{ url_for('consolidated_proforma_view', report_type=key, month_year=month_year) }}"
+      class="btn btn-sm {{ 'btn-primary' if report_type == key else 'btn-ghost' }}"
+    >{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+{# ── Export Toolbar ── #}
+<div class="card" style="margin-bottom:1.2rem; padding:0.9rem 1rem;">
+  <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.5px;">Export / Download</div>
+  <div style="display:flex; gap:0.55rem; flex-wrap:wrap;">
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('consolidated_proforma_export', fmt='print', report_type=report_type, month_year=month_year) }}" target="_blank">🖨️ Print B/W</a>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('consolidated_proforma_export', fmt='pdf', report_type=report_type, month_year=month_year) }}">📄 Download PDF</a>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('consolidated_proforma_export', fmt='csv', report_type=report_type, month_year=month_year) }}">📊 Download Excel (CSV)</a>
+    <a class="btn btn-ghost btn-sm" href="{{ url_for('consolidated_proforma_export', fmt='docx', report_type=report_type, month_year=month_year) }}">📝 Download Word</a>
+  </div>
+</div>
+
+{# ── Data Table ── #}
+<div class="card" style="padding:0; overflow:hidden;">
+  <div style="padding:0.9rem 1rem; border-bottom:1px solid var(--border); font-weight:700; color:var(--text);">
+    {{ payload.title }} &mdash; {{ month_year }}
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          {% for head in payload.headers %}
+          <th>{{ head }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in payload.rows %}
+        <tr>
+          {% for col in row %}
+          <td>{{ col }}</td>
+          {% endfor %}
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="{{ payload.headers|length }}" style="text-align:center; color:var(--text-muted); padding:2rem;">
+            No data available for this month across any users.
+          </td>
+        </tr>
+        {% endfor %}
+
+        {# ── Grand Total Row ── #}
+        {% if payload.rows %}
+        <tr style="font-weight:700; background:var(--bg-alt, #f5f5f5);">
+          {% for head in payload.headers %}
+            {% if loop.index0 == 0 %}
+              <td></td>
+            {% elif loop.index0 == 1 %}
+              <td>GRAND TOTAL</td>
+            {% elif loop.index0 >= 2 %}
+              {# Sum numeric columns #}
+              {% set ns = namespace(total=0, is_numeric=true) %}
+              {% for row in payload.rows %}
+                {% if row[loop.index0] is number %}
+                  {% set ns.total = ns.total + row[loop.index0] %}
+                {% else %}
+                  {% set ns.is_numeric = false %}
+                {% endif %}
+              {% endfor %}
+              <td>{{ ns.total if ns.is_numeric else '' }}</td>
+            {% endif %}
+          {% endfor %}
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

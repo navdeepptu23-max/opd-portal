@@ -14,6 +14,9 @@ from wtforms.validators import DataRequired, Length, EqualTo, ValidationError
 from werkzeug.security import generate_password_hash, check_password_hash
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
+from docx import Document as DocxDocument
+from docx.shared import Inches, Pt
+from docx.enum.table import WD_TABLE_ALIGNMENT
 from modules.morbidity import morbidity_bp
 
 app = Flask(__name__)
@@ -989,6 +992,187 @@ def _report_payload_csv_text(payload, username):
     writer.writerow(payload['headers'])
     writer.writerows(payload['rows'])
     return buffer.getvalue()
+
+
+def _consolidated_report_payload(report_type, month_year):
+    """Aggregate row-level data across ALL users for a given month, producing
+    a single consolidated payload with summed numeric values."""
+    report_titles = {
+        'hospital_indicator': 'Hospital Indicator Report (Consolidated)',
+        'proforma_i': 'PROFORMA-I HPI (Consolidated)',
+        'proforma_ii': 'PROFORMA-II Morbidity (Consolidated)',
+        'cbhi_form1': 'CBHI FORM-1 (Consolidated)',
+        'cbhi_form2': 'CBHI FORM-2 (Consolidated)',
+    }
+    if report_type not in report_titles:
+        return None
+
+    # Find all users who submitted this report for this month.
+    submissions = UserReportSubmission.query.filter_by(
+        report_type=report_type, month_year=month_year
+    ).all()
+    user_ids = [s.user_id for s in submissions]
+    if not user_ids:
+        return {
+            'title': report_titles[report_type],
+            'month_year': month_year,
+            'headers': [],
+            'rows': [],
+            'user_count': 0,
+        }
+
+    # Collect scoped month keys for each user.
+    scoped_keys = [_user_scoped_month_key(month_year, uid) for uid in user_ids]
+
+    if report_type == 'hospital_indicator':
+        all_rows = HospitalIndicator.query.filter(
+            HospitalIndicator.month_year.in_(scoped_keys)
+        ).all()
+        agg = {}
+        for r in all_rows:
+            key = r.indicator_no
+            if key not in agg:
+                agg[key] = {'indicator_no': r.indicator_no, 'indicator_name': r.indicator_name,
+                            'opd_count': 0, 'ipd_count': 0}
+            agg[key]['opd_count'] += (r.opd_count or 0)
+            agg[key]['ipd_count'] += (r.ipd_count or 0)
+        headers = ['Sr No', 'Indicator', 'OPD', 'IPD']
+        data_rows = [
+            [v['indicator_no'], v['indicator_name'], v['opd_count'], v['ipd_count']]
+            for v in sorted(agg.values(), key=lambda x: x['indicator_no'])
+        ]
+
+    elif report_type == 'proforma_i':
+        all_rows = ProformaHPIRow.query.filter(
+            ProformaHPIRow.month_year.in_(scoped_keys)
+        ).all()
+        agg = {}
+        for r in all_rows:
+            key = r.indicator_code
+            if key not in agg:
+                agg[key] = {'indicator_code': key, 'indicator_label': r.indicator_label,
+                            'male': 0, 'female': 0, 'male_child_u14': 0, 'female_child_u14': 0,
+                            'total': 0}
+            agg[key]['male'] += (r.male or 0)
+            agg[key]['female'] += (r.female or 0)
+            agg[key]['male_child_u14'] += (r.male_child_u14 or 0)
+            agg[key]['female_child_u14'] += (r.female_child_u14 or 0)
+            agg[key]['total'] += (r.total or 0)
+        headers = ['Code', 'Indicator', 'Male', 'Female', 'Male Child <14', 'Female Child <14', 'Total']
+        data_rows = [
+            [v['indicator_code'], v['indicator_label'], v['male'], v['female'],
+             v['male_child_u14'], v['female_child_u14'], v['total']]
+            for v in sorted(agg.values(), key=lambda x: x['indicator_code'])
+        ]
+
+    elif report_type == 'proforma_ii':
+        all_rows = ProformaIIRow.query.filter(
+            ProformaIIRow.month_year.in_(scoped_keys)
+        ).all()
+        agg = {}
+        for r in all_rows:
+            key = r.sr_no
+            if key not in agg:
+                agg[key] = {'sr_no': r.sr_no, 'disease_name': r.disease_name,
+                            'opd_count': 0, 'ipd_count': 0}
+            agg[key]['opd_count'] += (r.opd_count or 0)
+            agg[key]['ipd_count'] += (r.ipd_count or 0)
+        headers = ['Sr No', 'Disease', 'OPD', 'IPD']
+        data_rows = [
+            [v['sr_no'], v['disease_name'], v['opd_count'], v['ipd_count']]
+            for v in sorted(agg.values(), key=lambda x: x['sr_no'])
+        ]
+
+    elif report_type in ('cbhi_form1', 'cbhi_form2'):
+        ModelClass = CbhiForm1Row if report_type == 'cbhi_form1' else CbhiForm2Row
+        all_rows = ModelClass.query.filter(
+            ModelClass.month_year.in_(scoped_keys)
+        ).all()
+        agg = {}
+        numeric_fields = [
+            'general_m', 'general_f', 'general_tr', 'general_total',
+            'emergency_m', 'emergency_f', 'emergency_tr', 'emergency_total',
+            'ipd_general_m', 'ipd_general_f', 'ipd_general_tr', 'ipd_general_total',
+            'ipd_emergency_m', 'ipd_emergency_f', 'ipd_emergency_tr', 'ipd_emergency_total',
+            'overall_m', 'overall_f', 'overall_tr', 'overall_total',
+            'deaths_m', 'deaths_f', 'deaths_tr', 'deaths_total',
+        ]
+        for r in all_rows:
+            key = r.sr_no
+            if key not in agg:
+                agg[key] = {'sr_no': r.sr_no, 'disease_name': r.disease_name,
+                            'code': r.code}
+                for field in numeric_fields:
+                    agg[key][field] = 0
+            for field in numeric_fields:
+                agg[key][field] += (getattr(r, field, 0) or 0)
+
+        headers = [
+            'Sr No', 'Disease', 'Code',
+            'General M', 'General F', 'General TR', 'General Total',
+            'Emergency M', 'Emergency F', 'Emergency TR', 'Emergency Total',
+            'IPD General M', 'IPD General F', 'IPD General TR', 'IPD General Total',
+            'IPD Emergency M', 'IPD Emergency F', 'IPD Emergency TR', 'IPD Emergency Total',
+            'Overall M', 'Overall F', 'Overall TR', 'Overall Total',
+            'Deaths M', 'Deaths F', 'Deaths TR', 'Deaths Total',
+        ]
+        data_rows = [
+            [v['sr_no'], v['disease_name'], v['code']] +
+            [v[f] for f in numeric_fields]
+            for v in sorted(agg.values(), key=lambda x: x['sr_no'])
+        ]
+    else:
+        return None
+
+    return {
+        'title': report_titles[report_type],
+        'month_year': month_year,
+        'headers': headers,
+        'rows': data_rows,
+        'user_count': len(user_ids),
+    }
+
+
+def _consolidated_payload_docx_bytes(payload):
+    """Generate a Word (.docx) document from a consolidated payload."""
+    doc = DocxDocument()
+    style = doc.styles['Normal']
+    style.font.size = Pt(9)
+    style.font.name = 'Arial'
+
+    doc.add_heading(payload['title'], level=1)
+    doc.add_paragraph(f"Month-Year: {payload['month_year']}  |  Users Consolidated: {payload.get('user_count', '-')}")
+
+    if not payload['rows']:
+        doc.add_paragraph('No data available for selected month.')
+        buf = BytesIO()
+        doc.save(buf)
+        return buf.getvalue()
+
+    headers = payload['headers']
+    table = doc.add_table(rows=1 + len(payload['rows']), cols=len(headers))
+    table.style = 'Table Grid'
+    table.alignment = WD_TABLE_ALIGNMENT.LEFT
+
+    for i, h in enumerate(headers):
+        cell = table.rows[0].cells[i]
+        cell.text = str(h)
+        for paragraph in cell.paragraphs:
+            for run in paragraph.runs:
+                run.bold = True
+                run.font.size = Pt(8)
+
+    for row_idx, row_data in enumerate(payload['rows'], start=1):
+        for col_idx, value in enumerate(row_data):
+            cell = table.rows[row_idx].cells[col_idx]
+            cell.text = str(value)
+            for paragraph in cell.paragraphs:
+                for run in paragraph.runs:
+                    run.font.size = Pt(8)
+
+    buf = BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
 
 
 def _admin_consolidated_month_pdf_bytes(month_year):
@@ -2480,6 +2664,108 @@ def consolidated_reports_export_user_package():
         zip_buffer.getvalue(),
         mimetype='application/zip',
         headers={'Content-Disposition': f'attachment; filename={filename}'},
+    )
+
+
+@app.route('/admin/consolidated-proforma')
+@login_required
+def consolidated_proforma_view():
+    """Read-only consolidated proforma showing aggregated row-level data across
+    ALL users for a given month. Includes print/PDF/Excel/Word export buttons."""
+    if not current_user.is_admin_or_above:
+        abort(403)
+
+    report_type = (request.args.get('report_type') or 'proforma_i').strip()
+    if report_type not in ('hospital_indicator', 'proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2'):
+        report_type = 'proforma_i'
+    month_year = (request.args.get('month_year') or '').upper().strip()
+    if not month_year:
+        flash('No month specified.', 'warning')
+        return redirect(url_for('consolidated_reports'))
+
+    payload = _consolidated_report_payload(report_type, month_year)
+    if not payload:
+        flash('Invalid report type.', 'danger')
+        return redirect(url_for('consolidated_reports'))
+
+    report_labels = {
+        'hospital_indicator': 'Hospital Indicator Report',
+        'proforma_i': 'PROFORMA-I (HPI)',
+        'proforma_ii': 'PROFORMA-II (Morbidity)',
+        'cbhi_form1': 'CBHI FORM-1',
+        'cbhi_form2': 'CBHI FORM-2',
+    }
+
+    return render_template(
+        'consolidated_proforma_view.html',
+        payload=payload,
+        report_type=report_type,
+        month_year=month_year,
+        report_labels=report_labels,
+    )
+
+
+@app.route('/admin/consolidated-proforma/export/<fmt>')
+@login_required
+def consolidated_proforma_export(fmt):
+    """Export consolidated proforma as print / pdf / csv (Excel) / docx (Word)."""
+    if not current_user.is_admin_or_above:
+        abort(403)
+    if fmt not in ('print', 'pdf', 'csv', 'docx'):
+        abort(404)
+
+    report_type = (request.args.get('report_type') or 'proforma_i').strip()
+    if report_type not in ('hospital_indicator', 'proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2'):
+        abort(404)
+    month_year = (request.args.get('month_year') or '').upper().strip()
+    if not month_year:
+        abort(404)
+
+    payload = _consolidated_report_payload(report_type, month_year)
+    if not payload:
+        abort(404)
+
+    safe_name = f"consolidated_{report_type.replace('_', '-')}_{month_year}"
+
+    if fmt == 'print':
+        return render_template(
+            'report_export_print.html',
+            payload=payload,
+            username=f'Consolidated ({payload.get("user_count", 0)} users)',
+        )
+
+    if fmt == 'csv':
+        buffer = StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow([payload['title']])
+        writer.writerow(['Month-Year', payload['month_year']])
+        writer.writerow(['Scope', f'Consolidated ({payload.get("user_count", 0)} users)'])
+        writer.writerow([])
+        writer.writerow(payload['headers'])
+        writer.writerows(payload['rows'])
+        return Response(
+            buffer.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={safe_name}.csv'},
+        )
+
+    if fmt == 'pdf':
+        pdf_bytes = _report_payload_pdf_bytes(
+            payload,
+            f'Consolidated ({payload.get("user_count", 0)} users)',
+        )
+        return Response(
+            pdf_bytes,
+            mimetype='application/pdf',
+            headers={'Content-Disposition': f'attachment; filename={safe_name}.pdf'},
+        )
+
+    # fmt == 'docx'
+    docx_bytes = _consolidated_payload_docx_bytes(payload)
+    return Response(
+        docx_bytes,
+        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        headers={'Content-Disposition': f'attachment; filename={safe_name}.docx'},
     )
 
 
