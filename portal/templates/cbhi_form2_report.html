@@ -87,12 +87,16 @@
   .c2-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 1850px;
+    min-width: 2050px;
     table-layout: auto;
     font-size: 10px;
     color: #111;
     background: #fffafb;
   }
+  .c2-table col.c2-col-sr { width: 42px; }
+  .c2-table col.c2-col-disease { width: 460px; }
+  .c2-table col.c2-col-num { width: 54px; }
+  .c2-table col.c2-col-remarks { width: 150px; }
   .c2-table th, .c2-table td {
     border: 1px solid #555;
     padding: 2px 3px;
@@ -141,7 +145,7 @@
     text-align: center;
   }
   .c2-table .disease {
-    min-width: 360px;
+    min-width: 460px;
     width: auto;
   }
   .c2-table tbody tr:nth-child(odd) td { background: #fff7f9; }
@@ -220,6 +224,17 @@
   .c2-table textarea {
     resize: vertical;
     min-height: 28px;
+  }
+  .c2-disease-input {
+    min-height: 52px;
+    resize: vertical;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.25;
+  }
+  .c2-code {
+    margin-top: 4px;
+    width: 140px !important;
   }
   .c2-table .top-title {
     text-align: center;
@@ -326,6 +341,14 @@
 
     <div id="c2-export-area">
       <table class="c2-table" id="c2-table">
+        <colgroup>
+          <col class="c2-col-sr">
+          <col class="c2-col-disease">
+          {% for _ in range(24) %}
+          <col class="c2-col-num">
+          {% endfor %}
+          <col class="c2-col-remarks">
+        </colgroup>
         <thead>
           <tr>
             <th colspan="17" class="headline top-title">CENTRAL BUREAU OF HEALTH INTELLIGENCE (CBHI)</th>
@@ -380,7 +403,7 @@
           <tr>
             <td class="sr">{{ r.sr_no }}</td>
             <td class="left disease">
-              <input type="text" name="disease_{{ r.id }}" value="{{ r.disease_name }}">
+              <textarea class="c2-disease-input" name="disease_{{ r.id }}" rows="2">{{ r.disease_name }}</textarea>
               <input type="text" class="c2-code" name="code_{{ r.id }}" value="{{ r.code }}" placeholder="ICD Code">
             </td>
 
