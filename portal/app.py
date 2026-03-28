@@ -27,13 +27,14 @@ if database_url.startswith('postgres://'):
     # Render/Heroku may provide postgres://, but SQLAlchemy expects postgresql://
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
 if not database_url:
-    # NEVER fall back to SQLite. Render uses an ephemeral filesystem, so any data
-    # written to a local SQLite file would be silently lost on the next restart.
-    # This was the root cause of users disappearing minutes after CSV import.
-    raise RuntimeError(
-        'DATABASE_URL is not set. The app cannot start without a PostgreSQL database. '
-        'Check your Render dashboard → Environment → DATABASE_URL.'
-    )
+    # On Render (RENDER env is set) with no DATABASE_URL → the free DB likely
+    # expired. Use SQLite as emergency read-only fallback so the app boots and
+    # shows an admin warning rather than crashing entirely.
+    # Locally (no RENDER env) → SQLite is fine for development.
+    database_url = 'sqlite:///portal.db'
+    print('[STARTUP] WARNING: DATABASE_URL is not set – using SQLite fallback.')
+    print('[STARTUP] If on Render, your free PostgreSQL likely expired.')
+    print('[STARTUP] Create a new database and update DATABASE_URL in Environment settings.')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -68,6 +69,28 @@ def _session_debug_before_request():
         session.get('_remember'),
         sid_preview,
     )
+
+
+_USING_SQLITE = 'sqlite' in database_url.lower()
+
+
+@app.before_request
+def _sqlite_warning():
+    """Flash a prominent warning when running on SQLite (database likely expired)."""
+    if not _USING_SQLITE:
+        return
+    if not current_user.is_authenticated:
+        return
+    if request.endpoint in ('static', 'login', 'logout'):
+        return
+    if not session.get('_sqlite_warned'):
+        flash(
+            'WARNING: The PostgreSQL database is not connected. '
+            'Data entered now will be LOST on next restart. '
+            'Admin must create a new database on Render and update DATABASE_URL.',
+            'danger',
+        )
+        session['_sqlite_warned'] = True
 
 
 @app.before_request
