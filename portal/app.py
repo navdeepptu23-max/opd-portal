@@ -18,10 +18,12 @@ if database_url.startswith('postgres://'):
     # Render/Heroku may provide postgres://, but SQLAlchemy expects postgresql://
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
 if not database_url:
-    # In production platforms (e.g., Render), do not silently fall back to sqlite,
-    # otherwise users may appear/disappear across restarts.
-    if os.environ.get('RENDER') == 'true':
-        raise RuntimeError('DATABASE_URL is required on Render.')
+    # Allow explicit strict behavior via env var when required.
+    if os.environ.get('STRICT_DATABASE_URL', '0') == '1':
+        raise RuntimeError('DATABASE_URL is required. Set it in environment variables.')
+
+    # Render deployments may occasionally start without DATABASE_URL attached yet
+    # (e.g., during service wiring changes). Keep the app bootable with sqlite fallback.
     database_url = 'sqlite:///portal.db'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
