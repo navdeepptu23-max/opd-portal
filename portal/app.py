@@ -576,8 +576,9 @@ def _normalize_username(value):
 
 
 def _username_match_query(username):
-    """Exact match on normalised (lowercase) username."""
-    return User.query.filter_by(username=_normalize_username(username))
+    """Case-insensitive lookup so legacy uppercase rows are still found."""
+    normalized = _normalize_username(username)
+    return User.query.filter(db.func.lower(User.username) == normalized)
 
 
 def _parse_month_year(value):
@@ -2192,11 +2193,24 @@ def server_error(e):
 
 def seed_admin():
     db.create_all()
-    # One-time data migrations at startup:
-    # 1. Lowercase all usernames so every login ID is strictly individual
+    # Startup migrations:
+    # 1. Lowercase usernames row-by-row (skips conflicts to avoid unique violation)
     # 2. Fix NULL is_active rows → active
     try:
-        db.session.execute(db.text("UPDATE users SET username = LOWER(username) WHERE username != LOWER(username)"))
+        mixed_case_users = db.session.execute(
+            db.text("SELECT id, username FROM users WHERE username != LOWER(username)")
+        ).fetchall()
+        for row in mixed_case_users:
+            target = row[1].lower()
+            conflict = db.session.execute(
+                db.text("SELECT id FROM users WHERE username = :u AND id != :id"),
+                {'u': target, 'id': row[0]}
+            ).fetchone()
+            if not conflict:
+                db.session.execute(
+                    db.text("UPDATE users SET username = :u WHERE id = :id"),
+                    {'u': target, 'id': row[0]}
+                )
         db.session.execute(db.text("UPDATE users SET is_active = TRUE WHERE is_active IS NULL"))
         db.session.commit()
     except Exception:
