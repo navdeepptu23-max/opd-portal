@@ -2296,28 +2296,40 @@ def server_error(e):
 def seed_admin():
     db.create_all()
     # Startup migrations:
-    # 1. Lowercase usernames row-by-row (skips conflicts to avoid unique violation)
-    # 2. Fix NULL is_active rows → active
+    # 1. Normalize usernames to lowercase and repair legacy duplicates.
+    # 2. Enforce case-insensitive uniqueness with DB index.
+    # 3. Fix NULL is_active rows → active.
     try:
-        mixed_case_users = db.session.execute(
-            db.text("SELECT id, username FROM users WHERE username != LOWER(username)")
+        users = db.session.execute(
+            db.text("SELECT id, username FROM users ORDER BY id ASC")
         ).fetchall()
-        for row in mixed_case_users:
-            target = row[1].lower()
-            conflict = db.session.execute(
-                db.text("SELECT id FROM users WHERE username = :u AND id != :id"),
-                {'u': target, 'id': row[0]}
-            ).fetchone()
-            if not conflict:
+        seen = set()
+        for row in users:
+            user_id = int(row[0])
+            original = str(row[1] or '').strip()
+            base = original.lower()
+            if not base:
+                base = f'user{user_id}'
+
+            target = base
+            if target in seen:
+                target = f'{base}_{user_id}'
+            seen.add(target)
+
+            if target != original:
                 db.session.execute(
                     db.text("UPDATE users SET username = :u WHERE id = :id"),
-                    {'u': target, 'id': row[0]}
+                    {'u': target, 'id': user_id}
                 )
+
+        db.session.execute(
+            db.text("CREATE UNIQUE INDEX IF NOT EXISTS ux_users_username_lower ON users (LOWER(username))")
+        )
         db.session.execute(db.text("UPDATE users SET is_active = TRUE WHERE is_active IS NULL"))
         db.session.commit()
     except Exception:
         db.session.rollback()
-    if not User.query.filter_by(username='admin').first():
+    if not _username_match_query('admin').first():
         admin = User(username='admin', role='super_admin')
         admin.set_password('admin123')
         db.session.add(admin)
