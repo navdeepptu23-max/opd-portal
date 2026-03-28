@@ -116,7 +116,6 @@
     font-size: 0.75rem;
     background: rgba(255,255,255,0.03);
   }
-  thead th.th-module.hi  { border-top: 2px solid var(--info); }
   thead th.th-module.p1  { border-top: 2px solid var(--success); }
   thead th.th-module.p2  { border-top: 2px solid var(--warning); }
   thead th.th-module.cb1 { border-top: 2px solid var(--primary); }
@@ -133,10 +132,6 @@
   <div class="rd-stat-card color-primary">
     <div class="rd-stat-num color-primary">{{ total_months }}</div>
     <div class="rd-stat-lbl">Months with Any Data</div>
-  </div>
-  <div class="rd-stat-card color-info">
-    <div class="rd-stat-num color-info">{{ hi_count }}</div>
-    <div class="rd-stat-lbl">Hospital Indicator</div>
   </div>
   <div class="rd-stat-card color-success">
     <div class="rd-stat-num color-success">{{ p1_count }}</div>
@@ -165,7 +160,6 @@
       <thead>
         <tr>
           <th rowspan="1">Month / Year</th>
-          <th class="th-module hi">Hospital Indicator</th>
           <th class="th-module p1">PROFORMA-I (HPI)</th>
           <th class="th-module p2">PROFORMA-II (Morbidity)</th>
           <th class="th-module cb1">CBHI FORM-1</th>
@@ -177,23 +171,6 @@
         <tr>
           {# Month label #}
           <td class="month-col">{{ row.month_year }}</td>
-
-          {# Hospital Indicator #}
-          <td>
-            <div class="cell-module">
-              {% if row.hi.exists %}
-                <span class="mod-badge saved"><span class="mod-dot saved"></span>Saved</span>
-                <div class="cell-counts">
-                  <span><span class="lbl">OPD </span><span class="val">{{ row.hi.opd }}</span></span>
-                  <span><span class="lbl">IPD </span><span class="val">{{ row.hi.ipd }}</span></span>
-                </div>
-                <a class="btn-open" href="{{ url_for('hospital_indicator_report') }}?month_year={{ row.month_year }}">Open ↗</a>
-              {% else %}
-                <span class="mod-badge absent"><span class="mod-dot absent"></span>No Data</span>
-                <a class="btn-open" href="{{ url_for('hospital_indicator_report') }}?month_year={{ row.month_year }}">Add ↗</a>
-              {% endif %}
-            </div>
-          </td>
 
           {# PROFORMA-I #}
           <td>
@@ -260,7 +237,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="6">
+          <td colspan="5">
             <div class="empty-state">
               <div class="empty-icon">📋</div>
               No reports have been saved yet.<br>

@@ -1318,23 +1318,19 @@ def reports_dashboard():
         except ValueError:
             return datetime.min
 
-    hi_months  = {m.month_year for m in HospitalIndicatorMeta.query.all()}
     p1_months  = {m.month_year for m in ProformaHPIMeta.query.all()}
     p2_months  = {m.month_year for m in ProformaIIMeta.query.all()}
     cbhi_months = {m.month_year for m in CbhiForm1Meta.query.all()}
     cbhi2_months = {m.month_year for m in CbhiForm2Meta.query.all()}
-    all_months = sorted(hi_months | p1_months | p2_months | cbhi_months | cbhi2_months, key=_parse_month, reverse=True)
+    all_months = sorted(p1_months | p2_months | cbhi_months | cbhi2_months, key=_parse_month, reverse=True)
 
     report_data = []
     for month in all_months:
-        hi_rows = HospitalIndicator.query.filter_by(month_year=month).all()
         p1_rows = ProformaHPIRow.query.filter_by(month_year=month).all()
         p2_rows = ProformaIIRow.query.filter_by(month_year=month).all()
         cbhi_rows = CbhiForm1Row.query.filter_by(month_year=month).all()
         cbhi2_rows = CbhiForm2Row.query.filter_by(month_year=month).all()
 
-        hi_opd  = sum(r.opd_count for r in hi_rows)
-        hi_ipd  = sum(r.ipd_count for r in hi_rows)
         p1_total = sum(r.total for r in p1_rows)
         p2_opd  = sum(r.opd_count for r in p2_rows)
         p2_ipd  = sum(r.ipd_count for r in p2_rows)
@@ -1343,7 +1339,6 @@ def reports_dashboard():
 
         report_data.append({
             'month_year': month,
-            'hi':  {'exists': month in hi_months, 'opd': hi_opd, 'ipd': hi_ipd},
             'p1':  {'exists': month in p1_months, 'total': p1_total},
             'p2':  {'exists': month in p2_months, 'opd': p2_opd, 'ipd': p2_ipd},
             'cbhi': {'exists': month in cbhi_months, 'total': cbhi_total},
@@ -1353,7 +1348,6 @@ def reports_dashboard():
     return render_template('reports_dashboard.html',
         report_data=report_data,
         total_months=len(all_months),
-        hi_count=len(hi_months),
         p1_count=len(p1_months),
         p2_count=len(p2_months),
         cbhi_count=len(cbhi_months),
@@ -1368,7 +1362,6 @@ def consolidated_reports():
         abort(403)
 
     report_labels = {
-        'hospital_indicator': 'Hospital Indicator',
         'proforma_i': 'PROFORMA-I (HPI)',
         'proforma_ii': 'PROFORMA-II (Morbidity)',
         'cbhi_form1': 'CBHI FORM-1',
