@@ -28,24 +28,37 @@
     padding:10px;
     border-radius:8px;
     border:1px solid #e3d5d8;
-    font-weight:700;
+    font-weight:800;
   }
+  .c1-wrap, .c1-wrap * { font-weight:700; }
   .c1-table { width:100%; border-collapse:collapse; min-width:1900px; font-size:11px; color:#111; background:#fffafb; }
-  .c1-table th, .c1-table td { border:1px solid #666; padding:3px 4px; vertical-align:middle; }
+  .c1-table th, .c1-table td { border:1px solid #666; padding:3px 4px; vertical-align:middle; font-weight:700; }
   .c1-table thead th { background:#e7f4e8; text-align:center; font-weight:800; color:#1f5130; }
   .c1-table .form-head { background:linear-gradient(90deg, #f8d8e3 0%, #e1f4e4 100%); font-weight:800; color:#8f1f45; }
   .c1-table .form-subhead { background:#edf7ee; font-size:10px; font-weight:800; color:#215c34; }
   .c1-table .col-idx { font-size:9px; color:#7a1f40; background:#f9e9ee; font-weight:800; }
   .c1-table tbody tr:nth-child(odd) td { background:#fff7f9; }
   .c1-table tbody tr:nth-child(even) td { background:#f1faf2; }
+  .c1-table thead tr:nth-child(6) th:nth-child(4n) {
+    background:#fff4b8;
+    color:#735500;
+  }
+  .c1-table tbody td:nth-child(6),
+  .c1-table tbody td:nth-child(10),
+  .c1-table tbody td:nth-child(14),
+  .c1-table tbody td:nth-child(18),
+  .c1-table tbody td:nth-child(22),
+  .c1-table tbody td:nth-child(26) {
+    background:#fff8cc !important;
+  }
   .c1-table .left { text-align:left; }
-  .c1-table input, .c1-table textarea { width:100%; box-sizing:border-box; border:1px solid #b7b0b2; background:#fffdfd; padding:2px 3px; font-size:11px; font-weight:700; color:#111; }
-  .c1-table input[readonly] { background:#e9f4ea; font-weight:800; }
+  .c1-table input, .c1-table textarea { width:100%; box-sizing:border-box; border:1px solid #b7b0b2; background:#fffdfd; padding:2px 3px; font-size:11px; font-weight:800; color:#111; }
+  .c1-table input[readonly] { background:#fff4b8; font-weight:800; color:#4a3b00; }
   .c1-table .num { width:48px; text-align:center; }
   .c1-table .disease { min-width:280px; }
   .c1-table .tight { padding:2px 3px; }
   .c1-foot { margin-top:10px; width:100%; border-collapse:collapse; font-size:11px; color:#111; background:#fef4f7; }
-  .c1-foot td { border:1px solid #666; padding:6px; vertical-align:top; min-height:56px; background:#eef8ef; font-weight:700; }
+  .c1-foot td { border:1px solid #666; padding:6px; vertical-align:top; min-height:56px; background:#eef8ef; font-weight:800; }
   .c1-foot .label { font-weight:800; display:block; margin-bottom:4px; color:#8f1f45; }
   .c1-note { margin-top:6px; font-size:10px; color:#2a5c38; font-weight:800; }
   .c1-toolbar { display:flex; justify-content:space-between; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:10px; }
