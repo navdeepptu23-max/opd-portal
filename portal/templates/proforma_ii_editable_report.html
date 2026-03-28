@@ -147,7 +147,7 @@
   </div>
 </div>
 
-<div class="p2-wrap">
+<div class="p2-wrap" id="export-area">
   <form method="POST">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="month_year" value="{{ month_year }}">
@@ -170,6 +170,8 @@
         <a class="btn-export" href="{{ url_for('report_export', report_type='proforma_ii', fmt='print', month_year=month_year) }}" target="_blank">Print B/W</a>
         <a class="btn-export" href="{{ url_for('report_export', report_type='proforma_ii', fmt='pdf', month_year=month_year) }}">Download B/W PDF</a>
         <a class="btn-export" href="{{ url_for('report_export', report_type='proforma_ii', fmt='csv', month_year=month_year) }}">Download Excel</a>
+        <button type="button" class="btn-export" onclick="exportExcel()">📊 Full Page Excel</button>
+        <button type="button" class="btn-export" onclick="exportWord()">📝 Word</button>
       </div>
     </div>
 
@@ -320,51 +322,58 @@
 
   function exportExcel() {
     const month = '{{ month_year }}';
-    const table = document.getElementById('p2-table');
-    const data = [];
-
-    table.querySelectorAll('tr').forEach((tr) => {
-      const rowData = [];
-      tr.querySelectorAll('th, td').forEach((cell) => {
-        const inp = cell.querySelector('input[type="number"], input[type="text"]');
-        if (inp) rowData.push(inp.value);
-        else rowData.push(cell.innerText.trim());
-      });
-      data.push(rowData);
+    const area = document.getElementById('export-area');
+    const clone = area.cloneNode(true);
+    clone.querySelectorAll('.p2-toolbar, .no-print, button[type="submit"], .btn-danger, a.btn-export, a.btn, input[type="hidden"]').forEach(el => el.remove());
+    clone.querySelectorAll('form').forEach(el => el.replaceWith(...el.childNodes));
+    clone.querySelectorAll('input, textarea').forEach(el => {
+      const span = document.createElement('span');
+      span.textContent = el.value || '';
+      el.replaceWith(span);
     });
-
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    ws['!merges'] = [
-      {s:{r:0,c:0}, e:{r:0,c:3}},
-      {s:{r:1,c:0}, e:{r:1,c:3}},
-      {s:{r:2,c:0}, e:{r:2,c:1}},
-      {s:{r:2,c:2}, e:{r:2,c:3}},
-      {s:{r:data.length-1,c:0}, e:{r:data.length-1,c:1}},
-    ];
-    ws['!cols'] = [{wch:8}, {wch:65}, {wch:12}, {wch:12}];
-
+    const allData = [];
+    clone.querySelectorAll('table').forEach((table, idx) => {
+      if (idx > 0) allData.push([]);
+      table.querySelectorAll('tr').forEach(tr => {
+        const r = [];
+        tr.querySelectorAll('th,td').forEach(c => r.push(c.innerText.trim()));
+        if (r.some(v => v !== '')) allData.push(r);
+      });
+    });
+    const ws = XLSX.utils.aoa_to_sheet(allData);
+    ws['!cols'] = [{wch:8},{wch:65},{wch:14},{wch:14}];
     const range = XLSX.utils.decode_range(ws['!ref']);
-    for (let r = range.s.r; r <= range.e.r; r++) {
-      for (let c = range.s.c; c <= range.e.c; c++) {
-        const addr = XLSX.utils.encode_cell({r:r, c:c});
-        if (!ws[addr]) continue;
-        ws[addr].s = {
-          font: { bold: true, color: { rgb: '000000' } },
-          fill: { fgColor: { rgb: 'FFFFFF' } },
-          alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-          border: {
-            left: { style: 'thin', color: { rgb: '000000' } },
-            right: { style: 'thin', color: { rgb: '000000' } },
-            top: { style: 'thin', color: { rgb: '000000' } },
-            bottom: { style: 'thin', color: { rgb: '000000' } }
-          }
-        };
-      }
+    for(let r=range.s.r;r<=range.e.r;r++) for(let c=range.s.c;c<=range.e.c;c++) {
+      const a=XLSX.utils.encode_cell({r,c}); if(!ws[a])continue;
+      ws[a].s={font:{bold:true,color:{rgb:'000000'}},fill:{fgColor:{rgb:'FFFFFF'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:{left:{style:'thin',color:{rgb:'000000'}},right:{style:'thin',color:{rgb:'000000'}},top:{style:'thin',color:{rgb:'000000'}},bottom:{style:'thin',color:{rgb:'000000'}}}};
     }
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'PROFORMA-II');
+    XLSX.writeFile(wb,'PROFORMA-II_' + month + '.xlsx');
+  }
 
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'PROFORMA-II');
-    XLSX.writeFile(wb, 'PROFORMA-II_' + month + '.xlsx');
+  function exportWord() {
+    const month = '{{ month_year }}';
+    const area = document.getElementById('export-area');
+    const clone = area.cloneNode(true);
+    clone.querySelectorAll('.p2-toolbar, .no-print, button[type="submit"], .btn-danger, a.btn-export, a.btn, input[type="hidden"]').forEach(el => el.remove());
+    clone.querySelectorAll('form').forEach(el => el.replaceWith(...el.childNodes));
+    clone.querySelectorAll('input, textarea').forEach(el => {
+      const span = document.createElement('span');
+      span.textContent = el.value || '';
+      span.style.fontWeight = '700';
+      el.replaceWith(span);
+    });
+    const styles = 'table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:4px 6px;font-weight:700;font-family:Arial,sans-serif;font-size:12px}th{background:#f0f0f0}';
+    const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>' + styles + '</style></head><body>' + clone.innerHTML + '</body></html>';
+    const blob = new Blob(['\ufeff' + html], {type:'application/msword'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'PROFORMA-II_' + month + '.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 </script>
 {% endblock %}

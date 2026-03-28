@@ -126,7 +126,7 @@
   </div>
 </div>
 
-<div class="p2-wrap">
+<div class="p2-wrap" id="export-area">
   <div class="p2-toolbar no-print">
     <div class="p2-toolbar-left">
       <span style="font-size:0.8rem; color:var(--text-muted);">Users Consolidated: <strong>{{ user_count }}</strong></span>
@@ -135,7 +135,7 @@
       <button type="button" class="btn-export" onclick="printReport()">🖨 Print</button>
       <button type="button" class="btn-export" onclick="exportPDF()">📄 PDF</button>
       <button type="button" class="btn-export" onclick="exportExcel()">📊 Excel</button>
-      <a class="btn-export" href="{{ url_for('consolidated_proforma_export', fmt='docx', report_type='proforma_ii', month_year=month_year) }}">📝 Word</a>
+      <button type="button" class="btn-export" onclick="exportWord()">📝 Word</button>
     </div>
   </div>
 
@@ -209,16 +209,25 @@
   }
 
   function exportExcel() {
-    const table = document.getElementById('p2-table');
-    const data = [];
-    table.querySelectorAll('tr').forEach(tr => {
-      const r = [];
-      tr.querySelectorAll('th,td').forEach(c => { const inp=c.querySelector('input'); r.push(inp?inp.value:c.innerText.trim()); });
-      data.push(r);
+    const area = document.getElementById('export-area');
+    const clone = area.cloneNode(true);
+    clone.querySelectorAll('.p2-toolbar, .no-print').forEach(el => el.remove());
+    clone.querySelectorAll('input, textarea').forEach(el => {
+      const span = document.createElement('span');
+      span.textContent = el.value || '';
+      el.replaceWith(span);
     });
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:3}},{s:{r:1,c:0},e:{r:1,c:3}},{s:{r:2,c:0},e:{r:2,c:1}},{s:{r:2,c:2},e:{r:2,c:3}},{s:{r:data.length-1,c:0},e:{r:data.length-1,c:1}}];
-    ws['!cols'] = [{wch:8},{wch:65},{wch:12},{wch:12}];
+    const allData = [];
+    clone.querySelectorAll('table').forEach((table, idx) => {
+      if (idx > 0) allData.push([]);
+      table.querySelectorAll('tr').forEach(tr => {
+        const r = [];
+        tr.querySelectorAll('th,td').forEach(c => r.push(c.innerText.trim()));
+        if (r.some(v => v !== '')) allData.push(r);
+      });
+    });
+    const ws = XLSX.utils.aoa_to_sheet(allData);
+    ws['!cols'] = [{wch:8},{wch:65},{wch:14},{wch:14}];
     const range = XLSX.utils.decode_range(ws['!ref']);
     for(let r=range.s.r;r<=range.e.r;r++) for(let c=range.s.c;c<=range.e.c;c++) {
       const a=XLSX.utils.encode_cell({r,c}); if(!ws[a])continue;
@@ -226,6 +235,29 @@
     }
     const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'PROFORMA-II');
     XLSX.writeFile(wb,'PROFORMA-II_CONSOLIDATED_{{ month_year }}.xlsx');
+  }
+
+  function exportWord() {
+    const area = document.getElementById('export-area');
+    const clone = area.cloneNode(true);
+    clone.querySelectorAll('.p2-toolbar, .no-print').forEach(el => el.remove());
+    clone.querySelectorAll('input, textarea').forEach(el => {
+      const span = document.createElement('span');
+      span.textContent = el.value || '';
+      span.style.fontWeight = '700';
+      el.replaceWith(span);
+    });
+    const styles = 'table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:4px 6px;font-weight:700;font-family:Arial,sans-serif;font-size:12px}th{background:#f0f0f0}';
+    const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>' + styles + '</style></head><body>' + clone.innerHTML + '</body></html>';
+    const blob = new Blob(['\ufeff' + html], {type:'application/msword'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'PROFORMA-II_CONSOLIDATED_{{ month_year }}.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 </script>
 {% endblock %}

@@ -94,7 +94,7 @@
       <button type="button" class="btn-export" onclick="printReport()">🖨 Print</button>
       <button type="button" class="btn-export" onclick="downloadPdf()">📄 PDF</button>
       <button type="button" class="btn-export" onclick="downloadExcel()">📊 Excel</button>
-      <a class="btn-export" href="{{ url_for('consolidated_proforma_export', fmt='docx', report_type='cbhi_form1', month_year=month_year) }}">📝 Word</a>
+      <button type="button" class="btn-export" onclick="exportWord()">📝 Word</button>
     </div>
   </div>
 
@@ -252,10 +252,49 @@
   }
 
   function downloadExcel() {
-    const table=document.getElementById('c1-table');
-    const ws=XLSX.utils.table_to_sheet(table,{raw:true});
-    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'FORM1 CONSOLIDATED');
+    const area = document.getElementById('c1-export-area');
+    const clone = area.cloneNode(true);
+    clone.querySelectorAll('input, textarea').forEach(el => {
+      const span = document.createElement('span');
+      span.textContent = el.value || '';
+      el.replaceWith(span);
+    });
+    const allData = [];
+    clone.querySelectorAll('table').forEach((table, idx) => {
+      if (idx > 0) allData.push([]);
+      table.querySelectorAll('tr').forEach(tr => {
+        const r = [];
+        tr.querySelectorAll('th,td').forEach(c => r.push(c.innerText.trim()));
+        if (r.some(v => v !== '')) allData.push(r);
+      });
+    });
+    const noteEl = clone.querySelector('.c1-note');
+    if (noteEl) { allData.push([]); allData.push([noteEl.innerText.trim()]); }
+    const ws = XLSX.utils.aoa_to_sheet(allData);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'FORM1 CONSOLIDATED');
     XLSX.writeFile(wb,'CBHI-FORM1-CONSOLIDATED-{{ month_year }}.xlsx');
+  }
+
+  function exportWord() {
+    const area = document.getElementById('c1-export-area');
+    const clone = area.cloneNode(true);
+    clone.querySelectorAll('input, textarea').forEach(el => {
+      const span = document.createElement('span');
+      span.textContent = el.value || '';
+      span.style.fontWeight = '700';
+      el.replaceWith(span);
+    });
+    const styles = 'table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:3px 5px;font-weight:700;font-family:Arial,sans-serif;font-size:10px}th{background:#f0f0f0}.label{font-weight:800}';
+    const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>' + styles + '</style></head><body>' + clone.innerHTML + '</body></html>';
+    const blob = new Blob(['\ufeff' + html], {type:'application/msword'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'CBHI-FORM1-CONSOLIDATED-{{ month_year }}.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 </script>
 {% endblock %}

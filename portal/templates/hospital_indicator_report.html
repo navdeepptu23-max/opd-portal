@@ -73,7 +73,7 @@
   </form>
 </div>
 
-<div class="report-panel">
+<div class="report-panel" id="export-area">
   <form method="POST">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="month_year" value="{{ month_year }}">
@@ -134,6 +134,8 @@
         <a class="btn btn-ghost" href="{{ url_for('report_export', report_type='hospital_indicator', fmt='print', month_year=month_year) }}" target="_blank">Print B/W</a>
         <a class="btn btn-ghost" href="{{ url_for('report_export', report_type='hospital_indicator', fmt='pdf', month_year=month_year) }}">Download B/W PDF</a>
         <a class="btn btn-ghost" href="{{ url_for('report_export', report_type='hospital_indicator', fmt='csv', month_year=month_year) }}">Download Excel</a>
+        <button type="button" class="btn btn-ghost" onclick="exportFullExcel()">📊 Full Page Excel</button>
+        <button type="button" class="btn btn-ghost" onclick="exportWord()">📝 Word</button>
         <button class="btn btn-danger" type="submit" name="action" value="reset" onclick="return confirm('Reset this month report values to zero?');">Reset to Zero</button>
         <button class="btn btn-ghost" type="submit" name="submit_to_admin" value="0">Save Report</button>
         <button class="btn btn-primary" type="submit" name="submit_to_admin" value="1">Submit to Admin</button>
@@ -170,6 +172,61 @@
 
     recompute();
   })();
+</script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script>
+  function exportFullExcel() {
+    const area = document.getElementById('export-area');
+    const clone = area.cloneNode(true);
+    clone.querySelectorAll('.no-print, button[type="submit"], .btn-danger, .btn-ghost[type="submit"], .btn-primary[type="submit"]').forEach(el => el.remove());
+    clone.querySelectorAll('a.btn').forEach(el => el.remove());
+    clone.querySelectorAll('input[type="hidden"]').forEach(el => el.remove());
+    clone.querySelectorAll('input, textarea').forEach(el => {
+      const span = document.createElement('span');
+      span.textContent = el.value || '';
+      el.replaceWith(span);
+    });
+    const allData = [];
+    clone.querySelectorAll('table').forEach((table, idx) => {
+      if (idx > 0) allData.push([]);
+      table.querySelectorAll('tr').forEach(tr => {
+        const r = [];
+        tr.querySelectorAll('th,td').forEach(c => r.push(c.innerText.trim()));
+        if (r.some(v => v !== '')) allData.push(r);
+      });
+    });
+    const ws = XLSX.utils.aoa_to_sheet(allData);
+    ws['!cols'] = [{wch:8},{wch:55},{wch:14},{wch:14}];
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for(let R=range.s.r;R<=range.e.r;R++) for(let C=range.s.c;C<=range.e.c;C++) {
+      const a=XLSX.utils.encode_cell({r:R,c:C}); if(!ws[a])continue;
+      ws[a].s={font:{bold:true},alignment:{horizontal:'center',vertical:'center',wrapText:true},border:{left:{style:'thin'},right:{style:'thin'},top:{style:'thin'},bottom:{style:'thin'}}};
+    }
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Hospital Indicator');
+    XLSX.writeFile(wb,'Hospital-Indicator_{{ month_year }}.xlsx');
+  }
+  function exportWord() {
+    const area = document.getElementById('export-area');
+    const clone = area.cloneNode(true);
+    clone.querySelectorAll('button[type="submit"], .btn-danger, a.btn, input[type="hidden"]').forEach(el => el.remove());
+    clone.querySelectorAll('input, textarea').forEach(el => {
+      const span = document.createElement('span');
+      span.textContent = el.value || '';
+      span.style.fontWeight = '700';
+      el.replaceWith(span);
+    });
+    const styles = 'table{border-collapse:collapse;width:100%}th,td{border:1px solid #000;padding:4px 6px;font-weight:700;font-family:Arial,sans-serif;font-size:12px}th{background:#f0f0f0}';
+    const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><style>' + styles + '</style></head><body>' + clone.innerHTML + '</body></html>';
+    const blob = new Blob(['\ufeff' + html], {type:'application/msword'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Hospital-Indicator_{{ month_year }}.doc';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
 </script>
 {% endif %}
 {% endblock %}
