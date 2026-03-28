@@ -299,6 +299,21 @@ class User(UserMixin, db.Model):
         return False
 
 
+class LoginAudit(db.Model):
+    __tablename__ = 'login_audits'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
+    success = db.Column(db.Boolean, nullable=False, default=False, index=True)
+    reason = db.Column(db.String(120), nullable=False, default='')
+    ip_address = db.Column(db.String(64), nullable=False, default='')
+    user_agent = db.Column(db.String(260), nullable=False, default='')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    user = db.relationship('User', foreign_keys=[user_id])
+
+
 class HospitalIndicator(db.Model):
     __tablename__ = 'hospital_indicators'
 
@@ -715,6 +730,28 @@ def _to_non_negative_int(value):
         return max(0, int(str(value).strip()))
     except (ValueError, TypeError):
         return 0
+
+
+def _client_ip_address():
+    forwarded_for = (request.headers.get('X-Forwarded-For') or '').strip()
+    if forwarded_for:
+        return forwarded_for.split(',')[0].strip()[:64]
+    return (request.remote_addr or '')[:64]
+
+
+def _record_login_attempt(username, success, reason, user=None):
+    try:
+        db.session.add(LoginAudit(
+            username=(username or '').strip()[:80] or 'unknown',
+            user_id=(user.id if user else None),
+            success=bool(success),
+            reason=(reason or '').strip()[:120],
+            ip_address=_client_ip_address(),
+            user_agent=(request.user_agent.string if request.user_agent else '')[:260],
+        ))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 
 def _upsert_report_submission(user_id, month_year, report_type, total_opd=0, total_ipd=0, total_value=0):
@@ -1456,6 +1493,7 @@ def login():
         username = _normalize_username(form.username.data)
         users = _username_match_query(username).order_by(User.created_at.asc()).all()
         if not users:
+            _record_login_attempt(username=username, success=False, reason='user_not_found')
             flash('No account found for this username. Please register first.', 'danger')
             return render_template('login.html', form=form)
 
@@ -1468,6 +1506,7 @@ def login():
                 session.clear()
                 login_user(user, remember=False)
                 session.permanent = True
+                _record_login_attempt(username=user.username, success=True, reason='login_success', user=user)
                 next_page = request.args.get('next', '')
                 # Guard against open redirect
                 if next_page.startswith('/') and not next_page.startswith('//'):
@@ -1476,12 +1515,15 @@ def login():
 
         for user in inactive_users:
             if user.check_password(form.password.data):
+                _record_login_attempt(username=user.username, success=False, reason='inactive_account', user=user)
                 flash('Your account is inactive. Contact admin.', 'danger')
                 return render_template('login.html', form=form)
 
         if not active_users and inactive_users:
+            _record_login_attempt(username=username, success=False, reason='inactive_account_no_active_match')
             flash('Your account is inactive. Contact admin.', 'danger')
         else:
+            _record_login_attempt(username=username, success=False, reason='invalid_password')
             flash('Invalid username or password.', 'danger')
     return render_template('login.html', form=form)
 
@@ -1565,6 +1607,10 @@ def dashboard():
         'filtered': len(users),
     }
 
+    login_audits = []
+    if current_user.is_admin_or_above:
+        login_audits = LoginAudit.query.order_by(LoginAudit.created_at.desc()).limit(12).all()
+
     return render_template(
         'dashboard.html',
         users=users,
@@ -1574,7 +1620,29 @@ def dashboard():
         sort_by=sort_by,
         sort_dir=sort_dir,
         stats=stats,
+        login_audits=login_audits,
     )
+
+
+@app.route('/admin/login-audit')
+@login_required
+def login_audit():
+    if not current_user.is_admin_or_above:
+        abort(403)
+
+    q = request.args.get('q', '').strip().lower()
+    result = (request.args.get('result') or 'all').strip().lower()
+
+    query = LoginAudit.query
+    if q:
+        query = query.filter(db.func.lower(LoginAudit.username).contains(q))
+    if result == 'success':
+        query = query.filter(LoginAudit.success.is_(True))
+    elif result == 'failed':
+        query = query.filter(LoginAudit.success.is_(False))
+
+    audits = query.order_by(LoginAudit.created_at.desc()).limit(500).all()
+    return render_template('login_audit.html', audits=audits, q=q, result=result)
 
 
 @app.route('/admin/users/export')

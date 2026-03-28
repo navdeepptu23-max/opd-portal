@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Login Audit – OPD Portal{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+  <div>
+    <h1>Login Audit</h1>
+    <p>Track login success and failure events with reason and source details.</p>
+  </div>
+  <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm">Back to Dashboard</a>
+</div>
+
+<form method="GET" class="search-row">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search username..." autocomplete="off">
+  <select name="result" style="min-width:150px;">
+    <option value="all" {% if result == 'all' %}selected{% endif %}>All Results</option>
+    <option value="success" {% if result == 'success' %}selected{% endif %}>Success</option>
+    <option value="failed" {% if result == 'failed' %}selected{% endif %}>Failed</option>
+  </select>
+  <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+  {% if q or result != 'all' %}
+  <a href="{{ url_for('login_audit') }}" class="btn btn-ghost btn-sm">Clear</a>
+  {% endif %}
+</form>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Time</th>
+          <th>Username</th>
+          <th>Result</th>
+          <th>Reason</th>
+          <th>IP</th>
+          <th>User Agent</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in audits %}
+        <tr>
+          <td style="color:var(--text-muted); width:40px;">{{ loop.index }}</td>
+          <td style="font-size:0.82rem; color:var(--text-muted);">{{ row.created_at.strftime('%d %b %Y %I:%M:%S %p') }}</td>
+          <td><strong>{{ row.username }}</strong></td>
+          <td>
+            {% if row.success %}
+            <span class="badge badge-admin">Success</span>
+            {% else %}
+            <span class="badge" style="background:rgba(255,77,109,0.2); color:var(--danger);">Failed</span>
+            {% endif %}
+          </td>
+          <td style="text-transform:capitalize;">{{ row.reason.replace('_', ' ') }}</td>
+          <td style="font-size:0.82rem; color:var(--text-muted);">{{ row.ip_address or '-' }}</td>
+          <td style="font-size:0.82rem; color:var(--text-muted); max-width:380px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ row.user_agent or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" style="text-align:center; color:var(--text-muted); padding:2rem;">No login audit records found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

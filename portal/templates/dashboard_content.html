@@ -43,6 +43,48 @@
   <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
     <a href="{{ url_for('reports_dashboard') }}" class="btn btn-ghost btn-sm">Reports Dashboard</a>
     <a href="{{ url_for('consolidated_reports') }}" class="btn btn-primary btn-sm">Consolidated Reports</a>
+    <a href="{{ url_for('login_audit') }}" class="btn btn-ghost btn-sm">Login Audit</a>
+  </div>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden; margin-bottom:1.2rem;">
+  <div style="padding:0.9rem 1rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:0.8rem;">
+    <div style="font-weight:700; color:var(--text);">Recent Login Activity</div>
+    <a href="{{ url_for('login_audit') }}" class="btn btn-ghost btn-sm">View All</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>User</th>
+          <th>Result</th>
+          <th>Reason</th>
+          <th>IP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for log in login_audits %}
+        <tr>
+          <td style="font-size:0.82rem; color:var(--text-muted);">{{ log.created_at.strftime('%d %b %I:%M %p') }}</td>
+          <td><strong>{{ log.username }}</strong></td>
+          <td>
+            {% if log.success %}
+            <span class="badge badge-admin">Success</span>
+            {% else %}
+            <span class="badge" style="background:rgba(255,77,109,0.2); color:var(--danger);">Failed</span>
+            {% endif %}
+          </td>
+          <td style="text-transform:capitalize;">{{ log.reason.replace('_', ' ') }}</td>
+          <td style="font-size:0.82rem; color:var(--text-muted);">{{ log.ip_address or '-' }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" style="text-align:center; color:var(--text-muted); padding:1.5rem;">No login activity recorded yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
 </div>
 
