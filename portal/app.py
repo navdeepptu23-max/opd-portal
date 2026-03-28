@@ -1501,8 +1501,9 @@ def login():
             flash('No account found for this username. Please register first.', 'danger')
             return render_template('login.html', form=form)
 
-        active_users = [u for u in users if u.is_active]
-        inactive_users = [u for u in users if not u.is_active]
+        # Treat NULL is_active as active (data-migration guard for older rows)
+        active_users = [u for u in users if u.is_active is not False]
+        inactive_users = [u for u in users if u.is_active is False]
 
         # Prefer active account match when legacy duplicate-case usernames exist.
         for user in active_users:
@@ -2217,6 +2218,12 @@ def server_error(e):
 
 def seed_admin():
     db.create_all()
+    # Patch any legacy rows where is_active is NULL → treat as active
+    try:
+        db.session.execute(db.text("UPDATE users SET is_active = TRUE WHERE is_active IS NULL"))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
     if not User.query.filter_by(username='admin').first():
         admin = User(username='admin', role='super_admin')
         admin.set_password('admin123')
