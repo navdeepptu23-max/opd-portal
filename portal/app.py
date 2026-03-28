@@ -2750,7 +2750,7 @@ def consolidated_proforma_view():
         abort(403)
 
     report_type = (request.args.get('report_type') or 'proforma_i').strip()
-    if report_type not in ('hospital_indicator', 'proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2'):
+    if report_type not in ('proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2'):
         report_type = 'proforma_i'
     month_year = (request.args.get('month_year') or '').upper().strip()
     if not month_year:
@@ -2763,7 +2763,6 @@ def consolidated_proforma_view():
         return redirect(url_for('consolidated_reports'))
 
     report_labels = {
-        'hospital_indicator': 'Hospital Indicator Report',
         'proforma_i': 'PROFORMA-I (HPI)',
         'proforma_ii': 'PROFORMA-II (Morbidity)',
         'cbhi_form1': 'CBHI FORM-1',
@@ -2771,7 +2770,6 @@ def consolidated_proforma_view():
     }
 
     _template_map = {
-        'hospital_indicator': 'consolidated_hospital_indicator_view.html',
         'proforma_i': 'consolidated_proforma_i_view.html',
         'proforma_ii': 'consolidated_proforma_ii_view.html',
         'cbhi_form1': 'consolidated_cbhi_form1_view.html',
@@ -2808,7 +2806,7 @@ def consolidated_proforma_export(fmt):
         abort(404)
 
     report_type = (request.args.get('report_type') or 'proforma_i').strip()
-    if report_type not in ('hospital_indicator', 'proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2'):
+    if report_type not in ('proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2'):
         abort(404)
     month_year = (request.args.get('month_year') or '').upper().strip()
     if not month_year:
