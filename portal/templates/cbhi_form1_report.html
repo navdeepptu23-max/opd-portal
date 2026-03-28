@@ -3,32 +3,71 @@
 
 {% block content %}
 <style>
-  .c1-wrap { overflow:auto; background:#fff; padding:10px; border-radius:8px; }
-  .c1-table { width:100%; border-collapse:collapse; min-width:1900px; font-size:11px; color:#111; }
+  .c1-wrap { overflow:auto; background:#f3f4f6; padding:10px; border-radius:8px; }
+  .c1-table { width:100%; border-collapse:collapse; min-width:1900px; font-size:11px; color:#111; background:#f9fafb; }
   .c1-table th, .c1-table td { border:1px solid #666; padding:3px 4px; vertical-align:middle; }
-  .c1-table thead th { background:#f4f4f4; text-align:center; }
-  .c1-table .form-head { background:#fff; font-weight:700; }
-  .c1-table .form-subhead { background:#fff; font-size:10px; }
-  .c1-table .col-idx { font-size:9px; color:#333; background:#fafafa; }
+  .c1-table thead th { background:#e5e7eb; text-align:center; }
+  .c1-table .form-head { background:#d1d5db; font-weight:700; }
+  .c1-table .form-subhead { background:#e5e7eb; font-size:10px; }
+  .c1-table .col-idx { font-size:9px; color:#333; background:#f3f4f6; }
+  .c1-table tbody tr:nth-child(odd) td { background:#f8fafc; }
+  .c1-table tbody tr:nth-child(even) td { background:#eef2f7; }
   .c1-table .left { text-align:left; }
-  .c1-table input, .c1-table textarea { width:100%; box-sizing:border-box; border:1px solid #888; padding:2px 3px; font-size:11px; }
-  .c1-table input[readonly] { background:#efefef; font-weight:700; }
+  .c1-table input, .c1-table textarea { width:100%; box-sizing:border-box; border:1px solid #9ca3af; background:#f9fafb; padding:2px 3px; font-size:11px; }
+  .c1-table input[readonly] { background:#e5e7eb; font-weight:700; }
   .c1-table .num { width:48px; text-align:center; }
   .c1-table .disease { min-width:280px; }
   .c1-table .tight { padding:2px 3px; }
-  .c1-foot { margin-top:10px; width:100%; border-collapse:collapse; font-size:11px; color:#111; }
-  .c1-foot td { border:1px solid #666; padding:6px; vertical-align:top; min-height:56px; }
+  .c1-foot { margin-top:10px; width:100%; border-collapse:collapse; font-size:11px; color:#111; background:#f3f4f6; }
+  .c1-foot td { border:1px solid #666; padding:6px; vertical-align:top; min-height:56px; background:#eef2f7; }
   .c1-foot .label { font-weight:700; display:block; margin-bottom:4px; }
   .c1-note { margin-top:6px; font-size:10px; color:#333; }
   .c1-toolbar { display:flex; justify-content:space-between; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:10px; }
   .c1-status { font-size:0.82rem; color:var(--text-muted); }
   .c1-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
+  .c1-pdf-export {
+    background:#fff;
+    color:#000;
+    padding:6mm;
+    width:420mm;
+    box-sizing:border-box;
+  }
+  .c1-pdf-export .c1-table,
+  .c1-pdf-export .c1-foot {
+    width:100%;
+    min-width:0;
+    background:#fff !important;
+    color:#000 !important;
+  }
+  .c1-pdf-export .c1-table th,
+  .c1-pdf-export .c1-table td,
+  .c1-pdf-export .c1-foot td {
+    background:#fff !important;
+    color:#000 !important;
+    border:1px solid #000 !important;
+  }
+  .c1-pdf-export .c1-table input,
+  .c1-pdf-export .c1-table textarea,
+  .c1-pdf-export .c1-foot input {
+    background:transparent !important;
+    border:none !important;
+    color:#000 !important;
+    padding:0 !important;
+    box-shadow:none !important;
+  }
+  .c1-pdf-export .c1-note {
+    color:#000 !important;
+  }
 
   @media print {
+    @page { size: A3 landscape; margin: 8mm; }
     .no-print, nav, .page-header, .alerts, footer { display:none !important; }
-    .c1-wrap { overflow:visible !important; padding:0 !important; }
-    .c1-table { min-width:0 !important; font-size:8.5px !important; }
-    .c1-table input, .c1-table textarea { border:none !important; background:transparent !important; padding:0 !important; }
+    .c1-wrap { overflow:visible !important; padding:0 !important; background:#fff !important; }
+    .c1-table { min-width:0 !important; font-size:8.5px !important; width:100% !important; color:#000 !important; }
+    .c1-foot { width:100% !important; color:#000 !important; }
+    .c1-table th, .c1-table td, .c1-foot td { border:1px solid #000 !important; color:#000 !important; }
+    .c1-table thead th, .c1-table tbody td, .c1-foot td, .c1-note { background:#fff !important; color:#000 !important; }
+    .c1-table input, .c1-table textarea, .c1-foot input { border:none !important; background:transparent !important; color:#000 !important; padding:0 !important; box-shadow:none !important; }
   }
 </style>
 
@@ -75,7 +114,7 @@
         <button type="submit" class="btn btn-ghost btn-sm" name="action" value="draft">Save Draft</button>
         <button type="submit" class="btn btn-primary btn-sm" name="action" value="submit">Submit to Admin</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="window.print()">Print</button>
-        <button type="button" class="btn btn-ghost btn-sm" onclick="downloadPdf()">Download PDF</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="downloadPdf()">Download Full Page PDF</button>
         <button type="button" class="btn btn-ghost btn-sm" onclick="downloadExcel()">Download Excel</button>
       </div>
     </div>
@@ -247,9 +286,39 @@
     rowIds.forEach(updateOverall);
   })();
 
+  function buildMonochromeExport() {
+    const source = document.getElementById('c1-export-area');
+    const clone = source.cloneNode(true);
+    clone.classList.add('c1-pdf-export');
+    return clone;
+  }
+
   function downloadPdf() {
-    const el = document.getElementById('c1-export-area');
-    html2pdf().set({ margin: 5, filename: 'CBHI-FORM1-{{ month_year }}.pdf', html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } }).from(el).save();
+    const clone = buildMonochromeExport();
+    const host = document.createElement('div');
+    host.style.position = 'fixed';
+    host.style.left = '-100000px';
+    host.style.top = '0';
+    host.style.background = '#fff';
+    host.appendChild(clone);
+    document.body.appendChild(host);
+
+    html2pdf().set({
+      margin: [6, 6, 6, 6],
+      filename: 'CBHI-FORM1-{{ month_year }}-full-page.pdf',
+      pagebreak: { mode: ['css', 'legacy', 'avoid-all'] },
+      html2canvas: {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        windowWidth: clone.scrollWidth
+      },
+      jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
+    }).from(clone).save().then(() => {
+      host.remove();
+    }).catch(() => {
+      host.remove();
+    });
   }
 
   function downloadExcel() {
