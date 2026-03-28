@@ -1,6 +1,7 @@
 import os
 import csv
-from io import StringIO
+from io import BytesIO, StringIO
+from textwrap import wrap
 from datetime import datetime, timedelta
 from flask import Flask, render_template, redirect, url_for, flash, request, abort, session, Response
 from flask_sqlalchemy import SQLAlchemy
@@ -10,6 +11,8 @@ from flask_wtf.csrf import CSRFProtect
 from wtforms import StringField, PasswordField, SelectField, SubmitField
 from wtforms.validators import DataRequired, Length, EqualTo, ValidationError
 from werkzeug.security import generate_password_hash, check_password_hash
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.pdfgen import canvas
 from modules.morbidity import morbidity_bp
 
 app = Flask(__name__)
@@ -727,6 +730,52 @@ def contact():
     return render_template('contact.html')
 
 
+@app.route('/reports/export/<report_type>/<fmt>')
+@login_required
+def report_export(report_type, fmt):
+    if report_type not in {'hospital_indicator', 'proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2'}:
+        abort(404)
+    if fmt not in {'print', 'csv', 'pdf'}:
+        abort(404)
+
+    month_year = _normalize_month_year(request.args.get('month_year'))
+    payload = _report_export_payload(report_type, month_year, current_user.id)
+    if not payload:
+        abort(404)
+
+    safe_name = report_type.replace('_', '-')
+    if fmt == 'print':
+        return render_template(
+            'report_export_print.html',
+            payload=payload,
+            username=current_user.username,
+        )
+
+    if fmt == 'csv':
+        buffer = StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow([payload['title']])
+        writer.writerow(['Month-Year', payload['month_year']])
+        writer.writerow(['User', current_user.username])
+        writer.writerow([])
+        writer.writerow(payload['headers'])
+        writer.writerows(payload['rows'])
+        filename = f'{safe_name}_{payload["month_year"]}_{current_user.username}.csv'
+        return Response(
+            buffer.getvalue(),
+            mimetype='text/csv',
+            headers={'Content-Disposition': f'attachment; filename={filename}'},
+        )
+
+    pdf_bytes = _report_payload_pdf_bytes(payload, current_user.username)
+    filename = f'{safe_name}_{payload["month_year"]}_{current_user.username}.pdf'
+    return Response(
+        pdf_bytes,
+        mimetype='application/pdf',
+        headers={'Content-Disposition': f'attachment; filename={filename}'},
+    )
+
+
 def _to_non_negative_int(value):
     try:
         return max(0, int(str(value).strip()))
@@ -805,6 +854,128 @@ def _set_report_status(user_id, month_year, report_type, status, reviewed_by=Non
         row.reviewed_at = None
         row.reviewed_by = None
     return row
+
+
+def _report_export_payload(report_type, month_year, user_id):
+    scoped_month_year = _user_scoped_month_key(month_year, user_id)
+    report_titles = {
+        'hospital_indicator': 'Hospital Indicator Report',
+        'proforma_i': 'PROFORMA-I (HPI)',
+        'proforma_ii': 'PROFORMA-II (Morbidity)',
+        'cbhi_form1': 'CBHI FORM-1',
+        'cbhi_form2': 'CBHI FORM-2',
+    }
+
+    if report_type == 'hospital_indicator':
+        rows = HospitalIndicator.query.filter_by(month_year=scoped_month_year).order_by(HospitalIndicator.indicator_no.asc()).all()
+        headers = ['Sr No', 'Indicator', 'OPD', 'IPD']
+        data_rows = [[r.indicator_no, r.indicator_name, r.opd_count, r.ipd_count] for r in rows]
+    elif report_type == 'proforma_i':
+        rows = ProformaHPIRow.query.filter_by(month_year=scoped_month_year).order_by(ProformaHPIRow.id.asc()).all()
+        headers = ['Code', 'Indicator', 'Male', 'Female', 'Male Child <14', 'Female Child <14', 'Total', 'Remarks']
+        data_rows = [[r.indicator_code, r.indicator_label, r.male, r.female, r.male_child_u14, r.female_child_u14, r.total, r.remarks] for r in rows]
+    elif report_type == 'proforma_ii':
+        rows = ProformaIIRow.query.filter_by(month_year=scoped_month_year).order_by(ProformaIIRow.sr_no.asc()).all()
+        headers = ['Sr No', 'Disease', 'OPD', 'IPD']
+        data_rows = [[r.sr_no, r.disease_name, r.opd_count, r.ipd_count] for r in rows]
+    elif report_type == 'cbhi_form1':
+        rows = CbhiForm1Row.query.filter_by(month_year=scoped_month_year).order_by(CbhiForm1Row.sr_no.asc()).all()
+        headers = [
+            'Sr No', 'Disease', 'Code',
+            'General M', 'General F', 'General TR', 'General Total',
+            'Emergency M', 'Emergency F', 'Emergency TR', 'Emergency Total',
+            'IPD General M', 'IPD General F', 'IPD General TR', 'IPD General Total',
+            'IPD Emergency M', 'IPD Emergency F', 'IPD Emergency TR', 'IPD Emergency Total',
+            'Overall M', 'Overall F', 'Overall TR', 'Overall Total',
+            'Deaths M', 'Deaths F', 'Deaths TR', 'Deaths Total',
+            'Remarks',
+        ]
+        data_rows = [[
+            r.sr_no, r.disease_name, r.code,
+            r.general_m, r.general_f, r.general_tr, r.general_total,
+            r.emergency_m, r.emergency_f, r.emergency_tr, r.emergency_total,
+            r.ipd_general_m, r.ipd_general_f, r.ipd_general_tr, r.ipd_general_total,
+            r.ipd_emergency_m, r.ipd_emergency_f, r.ipd_emergency_tr, r.ipd_emergency_total,
+            r.overall_m, r.overall_f, r.overall_tr, r.overall_total,
+            r.deaths_m, r.deaths_f, r.deaths_tr, r.deaths_total,
+            r.remarks,
+        ] for r in rows]
+    elif report_type == 'cbhi_form2':
+        rows = CbhiForm2Row.query.filter_by(month_year=scoped_month_year).order_by(CbhiForm2Row.sr_no.asc()).all()
+        headers = [
+            'Sr No', 'Disease', 'Code',
+            'General M', 'General F', 'General TR', 'General Total',
+            'Emergency M', 'Emergency F', 'Emergency TR', 'Emergency Total',
+            'IPD General M', 'IPD General F', 'IPD General TR', 'IPD General Total',
+            'IPD Emergency M', 'IPD Emergency F', 'IPD Emergency TR', 'IPD Emergency Total',
+            'Overall M', 'Overall F', 'Overall TR', 'Overall Total',
+            'Deaths M', 'Deaths F', 'Deaths TR', 'Deaths Total',
+            'Remarks',
+        ]
+        data_rows = [[
+            r.sr_no, r.disease_name, r.code,
+            r.general_m, r.general_f, r.general_tr, r.general_total,
+            r.emergency_m, r.emergency_f, r.emergency_tr, r.emergency_total,
+            r.ipd_general_m, r.ipd_general_f, r.ipd_general_tr, r.ipd_general_total,
+            r.ipd_emergency_m, r.ipd_emergency_f, r.ipd_emergency_tr, r.ipd_emergency_total,
+            r.overall_m, r.overall_f, r.overall_tr, r.overall_total,
+            r.deaths_m, r.deaths_f, r.deaths_tr, r.deaths_total,
+            r.remarks,
+        ] for r in rows]
+    else:
+        return None
+
+    return {
+        'title': report_titles[report_type],
+        'month_year': month_year,
+        'headers': headers,
+        'rows': data_rows,
+    }
+
+
+def _report_payload_pdf_bytes(payload, username):
+    buffer = BytesIO()
+    doc = canvas.Canvas(buffer, pagesize=landscape(A4))
+    width, height = landscape(A4)
+    left = 20
+    top = height - 24
+    line_height = 11
+
+    def _new_page():
+        doc.showPage()
+        doc.setFillColorRGB(0, 0, 0)
+        doc.setStrokeColorRGB(0, 0, 0)
+
+    y = top
+    doc.setFont('Helvetica-Bold', 12)
+    doc.drawString(left, y, f"{payload['title']} - {payload['month_year']}")
+    y -= line_height
+    doc.setFont('Helvetica', 9)
+    doc.drawString(left, y, f'User: {username}')
+    y -= (line_height + 2)
+
+    header_line = ' | '.join(str(h) for h in payload['headers'])
+    doc.setFont('Helvetica-Bold', 8)
+    for part in wrap(header_line, width=175):
+        if y < 24:
+            _new_page()
+            y = top
+        doc.drawString(left, y, part)
+        y -= line_height
+
+    doc.setFont('Helvetica', 8)
+    for row in payload['rows']:
+        row_line = ' | '.join(str(v) for v in row)
+        wrapped = wrap(row_line, width=175) or ['']
+        for part in wrapped:
+            if y < 24:
+                _new_page()
+                y = top
+            doc.drawString(left, y, part)
+            y -= line_height
+
+    doc.save()
+    return buffer.getvalue()
 
 
 def _manageable_users_query(manager_user):

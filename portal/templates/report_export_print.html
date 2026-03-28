@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ payload.title }} - {{ payload.month_year }}</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #fff;
+      color: #000;
+      margin: 18px;
+    }
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .btn {
+      border: 1px solid #000;
+      color: #000;
+      background: #fff;
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0 0 6px 0;
+      color: #000;
+    }
+    .meta {
+      margin-bottom: 12px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th, td {
+      border: 1px solid #000;
+      padding: 4px 6px;
+      color: #000;
+      background: #fff;
+      vertical-align: top;
+    }
+    th {
+      font-weight: 800;
+    }
+    @media print {
+      .toolbar { display: none !important; }
+      * {
+        color: #000 !important;
+        background: #fff !important;
+        border-color: #000 !important;
+      }
+      @page {
+        margin: 8mm;
+        size: A4 landscape;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button class="btn" onclick="window.print()">Print</button>
+    <a class="btn" href="javascript:window.close();">Close</a>
+  </div>
+
+  <h1>{{ payload.title }}</h1>
+  <div class="meta">Month-Year: {{ payload.month_year }} | User: {{ username }}</div>
+
+  <table>
+    <thead>
+      <tr>
+        {% for head in payload.headers %}
+        <th>{{ head }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in payload.rows %}
+      <tr>
+        {% for col in row %}
+        <td>{{ col }}</td>
+        {% endfor %}
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="{{ payload.headers|length }}" style="text-align:center;">No data available for selected month.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

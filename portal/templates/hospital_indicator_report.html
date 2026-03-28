@@ -130,7 +130,10 @@
     {% if current_user.is_authenticated %}
     <div style="margin-top:0.9rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.6rem;">
       <div style="font-size:0.82rem; color:var(--text-muted);">Status: <strong style="color:var(--text); text-transform:capitalize;">{{ submission_status }}</strong></div>
-      <div style="display:flex; gap:0.5rem;">
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <a class="btn btn-ghost" href="{{ url_for('report_export', report_type='hospital_indicator', fmt='print', month_year=month_year) }}" target="_blank">Print B/W</a>
+        <a class="btn btn-ghost" href="{{ url_for('report_export', report_type='hospital_indicator', fmt='pdf', month_year=month_year) }}">Download B/W PDF</a>
+        <a class="btn btn-ghost" href="{{ url_for('report_export', report_type='hospital_indicator', fmt='csv', month_year=month_year) }}">Download Excel</a>
         <button class="btn btn-danger" type="submit" name="action" value="reset" onclick="return confirm('Reset this month report values to zero?');">Reset to Zero</button>
         <button class="btn btn-ghost" type="submit" name="submit_to_admin" value="0">Save Report</button>
         <button class="btn btn-primary" type="submit" name="submit_to_admin" value="1">Submit to Admin</button>

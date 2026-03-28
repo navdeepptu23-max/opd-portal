@@ -141,9 +141,9 @@
         <button type="submit" name="submit_to_admin" value="0" class="btn btn-ghost btn-sm">Save Report</button>
         <button type="submit" name="submit_to_admin" value="1" class="btn btn-primary btn-sm">Submit to Admin</button>
         {% endif %}
-        <button type="button" class="btn-export no-print" onclick="printReport()" title="Print report">🖨 Print</button>
-        <button type="button" class="btn-export no-print" onclick="exportPDF()" title="Download black and white PDF">📄 Download B/W PDF</button>
-        <button type="button" class="btn-export no-print" onclick="exportExcel()" title="Download as Excel file">📊 Download Excel</button>
+        <a class="btn-export no-print" href="{{ url_for('report_export', report_type='proforma_i', fmt='print', month_year=month_year) }}" target="_blank" title="Print report">🖨 Print B/W</a>
+        <a class="btn-export no-print" href="{{ url_for('report_export', report_type='proforma_i', fmt='pdf', month_year=month_year) }}" title="Download black and white PDF">📄 Download B/W PDF</a>
+        <a class="btn-export no-print" href="{{ url_for('report_export', report_type='proforma_i', fmt='csv', month_year=month_year) }}" title="Download Excel-compatible CSV">📊 Download Excel</a>
       </div>
     </div>
 

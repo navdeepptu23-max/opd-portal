@@ -10,6 +10,18 @@
   <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm">Back to Dashboard</a>
 </div>
 
+<div class="card" style="margin-bottom:1rem; padding:0.9rem 1rem;">
+  <div style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.5rem; text-transform:uppercase; letter-spacing:0.5px;">Report Tabs</div>
+  <div style="display:flex; gap:0.55rem; flex-wrap:wrap;">
+    {% for key, label in report_labels.items() %}
+    <a
+      href="{{ url_for('consolidated_reports', report_type=key, month_year=month_year, q=search, status=status_filter, sort_by=sort_by, sort_dir=sort_dir) }}"
+      class="btn btn-sm {{ 'btn-primary' if report_type == key else 'btn-ghost' }}"
+    >{{ label }}</a>
+    {% endfor %}
+  </div>
+</div>
+
 <div class="card" style="margin-bottom:1.25rem;">
   <form method="GET" style="display:flex; gap:0.8rem; align-items:flex-end; flex-wrap:wrap;">
     <div class="form-group" style="margin-bottom:0; min-width:240px;">
