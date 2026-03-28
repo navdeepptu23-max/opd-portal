@@ -560,6 +560,22 @@ def _parse_month_year(value):
         return datetime.min
 
 
+def _normalize_month_year(value, fallback=None):
+    default_value = fallback or datetime.utcnow().strftime('%b-%Y')
+    raw_value = (value or default_value).strip().upper()
+    parsed = _parse_month_year(raw_value)
+    if parsed == datetime.min:
+        parsed = _parse_month_year(default_value)
+    if parsed == datetime.min:
+        parsed = datetime.utcnow()
+    return parsed.strftime('%b-%Y').upper()
+
+
+def _user_scoped_month_key(month_year, user_id):
+    normalized_month = _normalize_month_year(month_year)
+    return f'{normalized_month}__U{user_id}'
+
+
 # ── Forms ────────────────────────────────────────────────────────────────────
 
 class LoginForm(FlaskForm):
@@ -921,8 +937,9 @@ def _ensure_cbhi_form2_rows(month_year):
 @app.route('/reports/hospital-indicator', methods=['GET', 'POST'])
 @login_required
 def hospital_indicator_report():
-    month_year = (request.values.get('month_year') or datetime.utcnow().strftime('%b-%Y')).upper()
-    _ensure_hospital_indicator_rows(month_year)
+    month_year = _normalize_month_year(request.values.get('month_year'))
+    scoped_month_year = _user_scoped_month_key(month_year, current_user.id)
+    _ensure_hospital_indicator_rows(scoped_month_year)
     report_type = 'hospital_indicator'
 
     if request.method == 'POST':
@@ -931,10 +948,10 @@ def hospital_indicator_report():
         submit_to_admin = request.form.get('submit_to_admin') == '1'
 
         institution_name = (request.form.get('institution_name') or 'PHC POSSI').strip() or 'PHC POSSI'
-        meta = HospitalIndicatorMeta.query.filter_by(month_year=month_year).first()
+        meta = HospitalIndicatorMeta.query.filter_by(month_year=scoped_month_year).first()
         meta.institution_name = institution_name[:150]
 
-        indicators = HospitalIndicator.query.filter_by(month_year=month_year).order_by(HospitalIndicator.indicator_no.asc()).all()
+        indicators = HospitalIndicator.query.filter_by(month_year=scoped_month_year).order_by(HospitalIndicator.indicator_no.asc()).all()
         for item in indicators:
             item.opd_count = _to_non_negative_int(request.form.get(f'opd_{item.id}', 0))
             item.ipd_count = _to_non_negative_int(request.form.get(f'ipd_{item.id}', 0))
@@ -957,8 +974,8 @@ def hospital_indicator_report():
         flash('Report submitted to admin successfully.' if submit_to_admin else 'Hospital Indicator Report updated successfully.', 'success')
         return redirect(url_for('hospital_indicator_report', month_year=month_year))
 
-    meta = HospitalIndicatorMeta.query.filter_by(month_year=month_year).first()
-    indicators = HospitalIndicator.query.filter_by(month_year=month_year).order_by(HospitalIndicator.indicator_no.asc()).all()
+    meta = HospitalIndicatorMeta.query.filter_by(month_year=scoped_month_year).first()
+    indicators = HospitalIndicator.query.filter_by(month_year=scoped_month_year).order_by(HospitalIndicator.indicator_no.asc()).all()
     total_opd = sum(item.opd_count for item in indicators)
     total_ipd = sum(item.ipd_count for item in indicators)
     status_row = _get_or_create_report_status(current_user.id, month_year, report_type)
@@ -978,8 +995,9 @@ def hospital_indicator_report():
 @app.route('/reports/proforma-i-hpi', methods=['GET', 'POST'])
 @login_required
 def proforma_i_hpi_report():
-    month_year = (request.values.get('month_year') or 'MAR-2026').upper()
-    _ensure_proforma_hpi_rows(month_year)
+    month_year = _normalize_month_year(request.values.get('month_year'), 'MAR-2026')
+    scoped_month_year = _user_scoped_month_key(month_year, current_user.id)
+    _ensure_proforma_hpi_rows(scoped_month_year)
     report_type = 'proforma_i'
 
     if request.method == 'POST':
@@ -987,7 +1005,7 @@ def proforma_i_hpi_report():
             abort(403)
         submit_to_admin = request.form.get('submit_to_admin') == '1'
 
-        meta = ProformaHPIMeta.query.filter_by(month_year=month_year).first()
+        meta = ProformaHPIMeta.query.filter_by(month_year=scoped_month_year).first()
         meta.hospital_name = (request.form.get('hospital_name') or '').strip()[:200] or 'COMPILED REPORT OF BLOCK- POSSI'
         meta.district = (request.form.get('district') or '').strip()[:120] or 'HOSHIARPUR'
         meta.sanctioned_beds = (request.form.get('sanctioned_beds') or '').strip()[:60]
@@ -995,7 +1013,7 @@ def proforma_i_hpi_report():
         meta.doctor_incharge = (request.form.get('doctor_incharge') or '').strip()[:120] or 'SMO POSSI'
         meta.note_text = (request.form.get('note_text') or '').strip()[:400] or meta.note_text
 
-        rows = ProformaHPIRow.query.filter_by(month_year=month_year).all()
+        rows = ProformaHPIRow.query.filter_by(month_year=scoped_month_year).all()
         rows.sort(key=lambda r: PROFORMA_HPI_ORDER.get(r.indicator_code, 9999))
         _single_codes = {'13', '14', '15', '16', '17', '21', '22', '23', '24'}
         for row in rows:
@@ -1052,8 +1070,8 @@ def proforma_i_hpi_report():
         flash('Report submitted to admin successfully.' if submit_to_admin else 'PROFORMA-I HPI report saved successfully.', 'success')
         return redirect(url_for('proforma_i_hpi_report', month_year=month_year))
 
-    meta = ProformaHPIMeta.query.filter_by(month_year=month_year).first()
-    rows = ProformaHPIRow.query.filter_by(month_year=month_year).all()
+    meta = ProformaHPIMeta.query.filter_by(month_year=scoped_month_year).first()
+    rows = ProformaHPIRow.query.filter_by(month_year=scoped_month_year).all()
     rows.sort(key=lambda r: PROFORMA_HPI_ORDER.get(r.indicator_code, 9999))
     status_row = _get_or_create_report_status(current_user.id, month_year, report_type)
     db.session.commit()
@@ -1070,8 +1088,9 @@ def proforma_i_hpi_report():
 @app.route('/reports/proforma-ii-editable', methods=['GET', 'POST'])
 @login_required
 def proforma_ii_editable_report():
-    month_year = (request.values.get('month_year') or 'MAR-2027').upper()
-    _ensure_proforma_ii_rows(month_year)
+    month_year = _normalize_month_year(request.values.get('month_year'), 'MAR-2027')
+    scoped_month_year = _user_scoped_month_key(month_year, current_user.id)
+    _ensure_proforma_ii_rows(scoped_month_year)
     report_type = 'proforma_ii'
 
     if request.method == 'POST':
@@ -1079,10 +1098,10 @@ def proforma_ii_editable_report():
             abort(403)
         submit_to_admin = request.form.get('submit_to_admin') == '1'
 
-        meta = ProformaIIMeta.query.filter_by(month_year=month_year).first()
+        meta = ProformaIIMeta.query.filter_by(month_year=scoped_month_year).first()
         meta.institution_name = (request.form.get('institution_name') or 'PHC POSSI').strip()[:200] or 'PHC POSSI'
 
-        rows = ProformaIIRow.query.filter_by(month_year=month_year).order_by(ProformaIIRow.sr_no.asc()).all()
+        rows = ProformaIIRow.query.filter_by(month_year=scoped_month_year).order_by(ProformaIIRow.sr_no.asc()).all()
         for row in rows:
             row.opd_count = _to_non_negative_int(request.form.get(f'opd_{row.id}', 0))
             row.ipd_count = _to_non_negative_int(request.form.get(f'ipd_{row.id}', 0))
@@ -1105,8 +1124,8 @@ def proforma_ii_editable_report():
         flash('Report submitted to admin successfully.' if submit_to_admin else 'PROFORMA-II report saved successfully.', 'success')
         return redirect(url_for('proforma_ii_editable_report', month_year=month_year))
 
-    meta = ProformaIIMeta.query.filter_by(month_year=month_year).first()
-    rows = ProformaIIRow.query.filter_by(month_year=month_year).order_by(ProformaIIRow.sr_no.asc()).all()
+    meta = ProformaIIMeta.query.filter_by(month_year=scoped_month_year).first()
+    rows = ProformaIIRow.query.filter_by(month_year=scoped_month_year).order_by(ProformaIIRow.sr_no.asc()).all()
     total_opd = sum(row.opd_count for row in rows)
     total_ipd = sum(row.ipd_count for row in rows)
     status_row = _get_or_create_report_status(current_user.id, month_year, report_type)
@@ -1126,8 +1145,9 @@ def proforma_ii_editable_report():
 @app.route('/reports/cbhi-form1', methods=['GET', 'POST'])
 @login_required
 def cbhi_form1_report():
-    month_year = (request.values.get('month_year') or datetime.utcnow().strftime('%b-%Y')).upper()
-    _ensure_cbhi_form1_rows(month_year)
+    month_year = _normalize_month_year(request.values.get('month_year'))
+    scoped_month_year = _user_scoped_month_key(month_year, current_user.id)
+    _ensure_cbhi_form1_rows(scoped_month_year)
     report_type = 'cbhi_form1'
 
     if request.method == 'POST':
@@ -1135,7 +1155,7 @@ def cbhi_form1_report():
             abort(403)
 
         action = (request.form.get('action') or '').strip().lower()
-        meta = CbhiForm1Meta.query.filter_by(month_year=month_year).first()
+        meta = CbhiForm1Meta.query.filter_by(month_year=scoped_month_year).first()
         meta.health_establishment = (request.form.get('health_establishment') or '').strip()[:220] or meta.health_establishment
         meta.complete_address = (request.form.get('complete_address') or '').strip()[:320] or meta.complete_address
         meta.approving_authority = (request.form.get('approving_authority') or '').strip()[:160]
@@ -1144,9 +1164,9 @@ def cbhi_form1_report():
         meta.official_phone = (request.form.get('official_phone') or '').strip()[:40]
 
         if action == 'add_row':
-            max_sr = db.session.query(db.func.max(CbhiForm1Row.sr_no)).filter_by(month_year=month_year).scalar() or 0
+            max_sr = db.session.query(db.func.max(CbhiForm1Row.sr_no)).filter_by(month_year=scoped_month_year).scalar() or 0
             db.session.add(CbhiForm1Row(
-                month_year=month_year,
+                month_year=scoped_month_year,
                 sr_no=max_sr + 1,
                 disease_name=(request.form.get('new_disease_name') or 'NEW DISEASE').strip()[:320] or 'NEW DISEASE',
                 code=(request.form.get('new_disease_code') or '').strip()[:40],
@@ -1156,7 +1176,7 @@ def cbhi_form1_report():
             flash('New disease row added.', 'success')
             return redirect(url_for('cbhi_form1_report', month_year=month_year))
 
-        rows = CbhiForm1Row.query.filter_by(month_year=month_year).order_by(CbhiForm1Row.sr_no.asc()).all()
+        rows = CbhiForm1Row.query.filter_by(month_year=scoped_month_year).order_by(CbhiForm1Row.sr_no.asc()).all()
         for row in rows:
             row.disease_name = (request.form.get(f'disease_{row.id}') or row.disease_name).strip()[:320] or row.disease_name
             row.code = (request.form.get(f'code_{row.id}') or '').strip()[:40]
@@ -1195,8 +1215,8 @@ def cbhi_form1_report():
         db.session.commit()
         return redirect(url_for('cbhi_form1_report', month_year=month_year))
 
-    meta = CbhiForm1Meta.query.filter_by(month_year=month_year).first()
-    rows = CbhiForm1Row.query.filter_by(month_year=month_year).order_by(CbhiForm1Row.sr_no.asc()).all()
+    meta = CbhiForm1Meta.query.filter_by(month_year=scoped_month_year).first()
+    rows = CbhiForm1Row.query.filter_by(month_year=scoped_month_year).order_by(CbhiForm1Row.sr_no.asc()).all()
     status_row = _get_or_create_report_status(current_user.id, month_year, report_type)
     db.session.commit()
 
@@ -1212,8 +1232,9 @@ def cbhi_form1_report():
 @app.route('/reports/cbhi-form2', methods=['GET', 'POST'])
 @login_required
 def cbhi_form2_report():
-    month_year = (request.values.get('month_year') or datetime.utcnow().strftime('%b-%Y')).upper()
-    _ensure_cbhi_form2_rows(month_year)
+    month_year = _normalize_month_year(request.values.get('month_year'))
+    scoped_month_year = _user_scoped_month_key(month_year, current_user.id)
+    _ensure_cbhi_form2_rows(scoped_month_year)
     report_type = 'cbhi_form2'
 
     if request.method == 'POST':
@@ -1221,7 +1242,7 @@ def cbhi_form2_report():
             abort(403)
 
         action = (request.form.get('action') or '').strip().lower()
-        meta = CbhiForm2Meta.query.filter_by(month_year=month_year).first()
+        meta = CbhiForm2Meta.query.filter_by(month_year=scoped_month_year).first()
         meta.health_establishment = (request.form.get('health_establishment') or '').strip()[:220] or meta.health_establishment
         meta.establishment_phone = (request.form.get('establishment_phone') or '').strip()[:60]
         meta.complete_address = (request.form.get('complete_address') or '').strip()[:320] or meta.complete_address
@@ -1232,9 +1253,9 @@ def cbhi_form2_report():
         meta.official_phone = (request.form.get('official_phone') or '').strip()[:40]
 
         if action == 'add_row':
-            max_sr = db.session.query(db.func.max(CbhiForm2Row.sr_no)).filter_by(month_year=month_year).scalar() or 0
+            max_sr = db.session.query(db.func.max(CbhiForm2Row.sr_no)).filter_by(month_year=scoped_month_year).scalar() or 0
             db.session.add(CbhiForm2Row(
-                month_year=month_year,
+                month_year=scoped_month_year,
                 sr_no=max_sr + 1,
                 disease_name=(request.form.get('new_disease_name') or 'NEW DISEASE').strip()[:320] or 'NEW DISEASE',
                 code=(request.form.get('new_disease_code') or '').strip()[:40],
@@ -1244,7 +1265,7 @@ def cbhi_form2_report():
             flash('New disease row added.', 'success')
             return redirect(url_for('cbhi_form2_report', month_year=month_year))
 
-        rows = CbhiForm2Row.query.filter_by(month_year=month_year).order_by(CbhiForm2Row.sr_no.asc()).all()
+        rows = CbhiForm2Row.query.filter_by(month_year=scoped_month_year).order_by(CbhiForm2Row.sr_no.asc()).all()
         for row in rows:
             row.disease_name = (request.form.get(f'disease_{row.id}') or row.disease_name).strip()[:320] or row.disease_name
             row.code = (request.form.get(f'code_{row.id}') or '').strip()[:40]
@@ -1283,8 +1304,8 @@ def cbhi_form2_report():
         db.session.commit()
         return redirect(url_for('cbhi_form2_report', month_year=month_year))
 
-    meta = CbhiForm2Meta.query.filter_by(month_year=month_year).first()
-    rows = CbhiForm2Row.query.filter_by(month_year=month_year).order_by(CbhiForm2Row.sr_no.asc()).all()
+    meta = CbhiForm2Meta.query.filter_by(month_year=scoped_month_year).first()
+    rows = CbhiForm2Row.query.filter_by(month_year=scoped_month_year).order_by(CbhiForm2Row.sr_no.asc()).all()
     status_row = _get_or_create_report_status(current_user.id, month_year, report_type)
     db.session.commit()
 
@@ -1472,46 +1493,40 @@ def export_users_csv():
 def reports_dashboard():
     if not current_user.is_admin_or_above:
         abort(403)
-    def _parse_month(m):
-        try:
-            return datetime.strptime(m.upper(), '%b-%Y')
-        except ValueError:
-            return datetime.min
+    submissions = UserReportSubmission.query.all()
+    all_months = sorted({row.month_year for row in submissions}, key=_parse_month_year, reverse=True)
 
-    p1_months  = {m.month_year for m in ProformaHPIMeta.query.all()}
-    p2_months  = {m.month_year for m in ProformaIIMeta.query.all()}
-    cbhi_months = {m.month_year for m in CbhiForm1Meta.query.all()}
-    cbhi2_months = {m.month_year for m in CbhiForm2Meta.query.all()}
-    all_months = sorted(p1_months | p2_months | cbhi_months | cbhi2_months, key=_parse_month, reverse=True)
+    monthly_type_summary = {}
+    for row in submissions:
+        key = (row.month_year, row.report_type)
+        bucket = monthly_type_summary.setdefault(key, {'opd': 0, 'ipd': 0, 'value': 0, 'count': 0})
+        bucket['opd'] += int(row.total_opd or 0)
+        bucket['ipd'] += int(row.total_ipd or 0)
+        bucket['value'] += int(row.total_value or 0)
+        bucket['count'] += 1
 
     report_data = []
     for month in all_months:
-        p1_rows = ProformaHPIRow.query.filter_by(month_year=month).all()
-        p2_rows = ProformaIIRow.query.filter_by(month_year=month).all()
-        cbhi_rows = CbhiForm1Row.query.filter_by(month_year=month).all()
-        cbhi2_rows = CbhiForm2Row.query.filter_by(month_year=month).all()
-
-        p1_total = sum(r.total for r in p1_rows)
-        p2_opd  = sum(r.opd_count for r in p2_rows)
-        p2_ipd  = sum(r.ipd_count for r in p2_rows)
-        cbhi_total = sum(r.overall_total for r in cbhi_rows)
-        cbhi2_total = sum(r.overall_total for r in cbhi2_rows)
+        p1_data = monthly_type_summary.get((month, 'proforma_i'), {'value': 0, 'count': 0})
+        p2_data = monthly_type_summary.get((month, 'proforma_ii'), {'opd': 0, 'ipd': 0, 'count': 0})
+        cbhi1_data = monthly_type_summary.get((month, 'cbhi_form1'), {'value': 0, 'count': 0})
+        cbhi2_data = monthly_type_summary.get((month, 'cbhi_form2'), {'value': 0, 'count': 0})
 
         report_data.append({
             'month_year': month,
-            'p1':  {'exists': month in p1_months, 'total': p1_total},
-            'p2':  {'exists': month in p2_months, 'opd': p2_opd, 'ipd': p2_ipd},
-            'cbhi': {'exists': month in cbhi_months, 'total': cbhi_total},
-            'cbhi2': {'exists': month in cbhi2_months, 'total': cbhi2_total},
+            'p1': {'exists': p1_data['count'] > 0, 'total': p1_data['value']},
+            'p2': {'exists': p2_data['count'] > 0, 'opd': p2_data['opd'], 'ipd': p2_data['ipd']},
+            'cbhi': {'exists': cbhi1_data['count'] > 0, 'total': cbhi1_data['value']},
+            'cbhi2': {'exists': cbhi2_data['count'] > 0, 'total': cbhi2_data['value']},
         })
 
     return render_template('reports_dashboard.html',
         report_data=report_data,
         total_months=len(all_months),
-        p1_count=len(p1_months),
-        p2_count=len(p2_months),
-        cbhi_count=len(cbhi_months),
-        cbhi2_count=len(cbhi2_months),
+        p1_count=len({row.month_year for row in submissions if row.report_type == 'proforma_i'}),
+        p2_count=len({row.month_year for row in submissions if row.report_type == 'proforma_ii'}),
+        cbhi_count=len({row.month_year for row in submissions if row.report_type == 'cbhi_form1'}),
+        cbhi2_count=len({row.month_year for row in submissions if row.report_type == 'cbhi_form2'}),
     )
 
 
