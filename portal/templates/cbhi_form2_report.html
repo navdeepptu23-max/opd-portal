@@ -6,16 +6,36 @@
 {% set month_part = month_parts[0] if month_parts|length > 0 else month_year %}
 {% set year_part = month_parts[1] if month_parts|length > 1 else '' %}
 <style>
+  .page-header {
+    background: linear-gradient(135deg, #fdecef 0%, #eefaf0 100%);
+    border: 1px solid #e7cfd5;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+  }
+  .page-header h1 {
+    font-weight: 800;
+    color: #b4234d;
+    letter-spacing: 0.03em;
+  }
+  .page-header p {
+    font-weight: 700;
+    color: #246b3d;
+  }
+  .card:not(.no-print) {
+    background: linear-gradient(180deg, #fff6f8 0%, #f3fbf4 100%);
+    border: 1px solid #e4d7db;
+  }
   .c2-month-card {
     margin-bottom: 1rem;
     padding: 1rem 1.1rem;
-    background: linear-gradient(135deg, #fff7c8 0%, #ffefab 100%);
-    border: 1px solid #c9a227;
+    background: linear-gradient(135deg, #fff3a6 0%, #ffe08a 52%, #fff7d1 100%);
+    border: 1px solid #b78c12;
     border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(120, 90, 0, 0.16);
   }
   .c2-month-form, .c2-add-form {
     display: flex;
-    gap: 0.8rem;
+    gap: 0.9rem;
     align-items: flex-end;
     flex-wrap: wrap;
   }
@@ -23,32 +43,36 @@
   .c2-month-group { min-width: 280px; }
   .c2-month-group label, .c2-add-group label {
     display: block;
-    margin-bottom: 0.35rem;
-    color: #534000;
-    font-weight: 800;
+    margin-bottom: 0.45rem;
+    color: #5a4100;
+    font-weight: 900;
+    font-size: 0.92rem;
     letter-spacing: 0.04em;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.45);
   }
   .c2-month-group input, .c2-add-group input {
     min-height: 44px;
-    border: 1px solid #a78b16;
-    background: #fffdf2;
-    color: #221b00;
-    font-weight: 800;
+    border: 1px solid #9f7a0b;
+    background: #fffbea;
+    color: #2d2200;
+    font-weight: 900;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 2px rgba(84, 63, 0, 0.08);
   }
   .c2-month-button {
     min-height: 44px;
     padding: 0.75rem 1.25rem;
-    border: 1px solid #8f6f00 !important;
-    background: linear-gradient(180deg, #ffe48d 0%, #ffd147 100%) !important;
-    color: #463400 !important;
+    border: 1px solid #926d00 !important;
+    background: linear-gradient(180deg, #ffe88d 0%, #ffd54d 100%) !important;
+    color: #4a3400 !important;
     font-weight: 900 !important;
+    box-shadow: 0 2px 6px rgba(102, 74, 0, 0.14);
   }
   .c2-wrap {
     overflow: auto;
-    background: #fff;
+    background: linear-gradient(180deg, #fff3f6 0%, #eff9f0 100%);
     padding: 10px;
     border-radius: 10px;
-    border: 1px solid #d4d4d4;
+    border: 1px solid #e3d5d8;
   }
   .c2-toolbar {
     display: flex;
@@ -58,7 +82,7 @@
     flex-wrap: wrap;
     margin-bottom: 0.9rem;
   }
-  .c2-status { font-weight: 700; color: #111; }
+  .c2-status { font-weight: 800; color: #314235; }
   .c2-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
   .c2-table {
     width: 100%;
@@ -66,34 +90,47 @@
     min-width: 1850px;
     table-layout: fixed;
     font-size: 10px;
-    color: #000;
-    background: #fff;
+    color: #111;
+    background: #fffafb;
   }
   .c2-table th, .c2-table td {
     border: 1px solid #555;
     padding: 2px 3px;
-    vertical-align: top;
+    vertical-align: middle;
     font-weight: 700;
   }
   .c2-table th {
     text-align: center;
-    background: #fff;
+    background: #e7f4e8;
+    color: #1f5130;
   }
   .c2-table .headline {
     font-weight: 800;
     letter-spacing: 0.01em;
     padding: 1px 3px;
+    background: linear-gradient(90deg, #f8d8e3 0%, #e1f4e4 100%);
+    color: #8f1f45;
   }
   .c2-table .subline {
     font-weight: 800;
     padding: 1px 3px;
+    background: #edf7ee;
+    color: #215c34;
   }
   .c2-table .left {
     text-align: left;
   }
+  .c2-table .meta-head {
+    background: #edf7ee;
+    color: #215c34;
+    text-align: left;
+    font-weight: 800;
+  }
   .c2-table .idx {
     font-size: 9px;
     font-weight: 800;
+    color: #7a1f40;
+    background: #f9e9ee;
   }
   .c2-table .num {
     width: 44px;
@@ -106,21 +143,36 @@
   .c2-table .disease {
     width: 340px;
   }
+  .c2-table tbody tr:nth-child(odd) td { background: #fff7f9; }
+  .c2-table tbody tr:nth-child(even) td { background: #f1faf2; }
+  .c2-table thead tr:nth-child(7) th:nth-child(4n) {
+    background: #fff4b8;
+    color: #735500;
+  }
+  .c2-table tbody td:nth-child(6),
+  .c2-table tbody td:nth-child(10),
+  .c2-table tbody td:nth-child(14),
+  .c2-table tbody td:nth-child(18),
+  .c2-table tbody td:nth-child(22),
+  .c2-table tbody td:nth-child(26) {
+    background: #fff8cc !important;
+  }
   .c2-table input,
   .c2-table textarea,
-  .c2-foot input {
+  .c2-sign input {
     width: 100%;
     box-sizing: border-box;
-    border: 1px solid #bdbdbd;
+    border: 1px solid #b7b0b2;
     padding: 2px 3px;
-    background: #fff;
-    color: #000;
+    background: #fffdfd;
+    color: #111;
     font-size: 10px;
-    font-weight: 700;
+    font-weight: 800;
   }
   .c2-table input[readonly] {
-    background: #f5f5f5;
+    background: #fff4b8;
     font-weight: 800;
+    color: #4a3b00;
   }
   .c2-code {
     margin-top: 2px;
@@ -147,14 +199,35 @@
   }
   .c2-notes .notes-head, .c2-sign .sign-head {
     font-weight: 800;
-    background: #fff;
+    background: #fef4f7;
+    color: #8f1f45;
   }
+  .c2-notes td { background: #fffdfd; }
+  .c2-sign td { background: #eef8ef; }
   .c2-legend {
     margin-top: 6px;
     text-align: center;
     font-size: 9px;
     font-weight: 800;
-    color: #000;
+    color: #2a5c38;
+  }
+  .c2-table textarea {
+    resize: vertical;
+    min-height: 28px;
+  }
+  .c2-table .top-title {
+    text-align: center;
+  }
+  .c2-table .center-cell {
+    text-align: center;
+  }
+  .c2-sign strong {
+    color: #8f1f45;
+  }
+  @media (max-width: 960px) {
+    .c2-foot-wrap {
+      grid-template-columns: 1fr;
+    }
   }
   .c2-export {
     background: #fff;
@@ -249,30 +322,30 @@
       <table class="c2-table" id="c2-table">
         <thead>
           <tr>
-            <th colspan="17" class="headline">CENTRAL BUREAU OF HEALTH INTELLIGENCE (CBHI)</th>
-            <th colspan="8" class="headline">ANNEXURE-C</th>
-            <th colspan="2" class="headline">(FORM-2)</th>
+            <th colspan="17" class="headline top-title">CENTRAL BUREAU OF HEALTH INTELLIGENCE (CBHI)</th>
+            <th colspan="8" class="headline top-title">ANNEXURE-C</th>
+            <th colspan="2" class="headline top-title">(FORM-2)</th>
           </tr>
           <tr>
-            <th colspan="27" class="subline">MONTHLY REPORT ON INSTITUTIONAL CASES AND DEATHS IN THE REPORTING UNIT DUE TO NON-COMMUNICABLE DISEASES</th>
+            <th colspan="27" class="subline top-title">MONTHLY REPORT ON INSTITUTIONAL CASES AND DEATHS IN THE REPORTING UNIT DUE TO NON-COMMUNICABLE DISEASES</th>
           </tr>
           <tr>
-            <th colspan="2" class="left">Month:</th>
-            <th colspan="5" class="left">{{ month_part }}</th>
-            <th colspan="2" class="left">Year:</th>
-            <th colspan="18" class="left">{{ year_part }}</th>
+            <th colspan="2" class="meta-head">Month:</th>
+            <th colspan="5" class="meta-head center-cell">{{ month_part }}</th>
+            <th colspan="2" class="meta-head">Year:</th>
+            <th colspan="18" class="meta-head center-cell">{{ year_part }}</th>
           </tr>
           <tr>
-            <th colspan="2" class="left">Name of Health Establishment:</th>
-            <th colspan="14" class="left"><input type="text" name="health_establishment" value="{{ meta.health_establishment }}"></th>
-            <th colspan="3" class="left">Phone no.</th>
-            <th colspan="8" class="left"><input type="text" name="establishment_phone" value="{{ meta.establishment_phone }}"></th>
+            <th colspan="2" class="meta-head">Name of Health Establishment:</th>
+            <th colspan="14" class="meta-head"><input type="text" name="health_establishment" value="{{ meta.health_establishment }}"></th>
+            <th colspan="3" class="meta-head">Phone no.</th>
+            <th colspan="8" class="meta-head"><input type="text" name="establishment_phone" value="{{ meta.establishment_phone }}"></th>
           </tr>
           <tr>
-            <th colspan="2" class="left">Complete postal Address of Health Establishment:</th>
-            <th colspan="14" class="left"><input type="text" name="complete_address" value="{{ meta.complete_address }}"></th>
-            <th colspan="3" class="left">DISTRICT:</th>
-            <th colspan="8" class="left"><input type="text" name="district" value="{{ meta.district }}"></th>
+            <th colspan="2" class="meta-head">Complete postal Address of Health Establishment:</th>
+            <th colspan="14" class="meta-head"><input type="text" name="complete_address" value="{{ meta.complete_address }}"></th>
+            <th colspan="3" class="meta-head">DISTRICT:</th>
+            <th colspan="8" class="meta-head"><input type="text" name="district" value="{{ meta.district }}"></th>
           </tr>
           <tr>
             <th rowspan="2" class="sr">Sr.</th>
