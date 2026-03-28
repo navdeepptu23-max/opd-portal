@@ -276,6 +276,11 @@ def _normalize_username(value):
     return str(value or '').strip()
 
 
+def _username_match_query(username):
+    normalized = _normalize_username(username)
+    return User.query.filter(db.func.lower(db.func.trim(User.username)) == normalized.lower())
+
+
 def _parse_month_year(value):
     try:
         return datetime.strptime((value or '').upper(), '%b-%Y')
@@ -301,7 +306,7 @@ class SelfRegisterForm(FlaskForm):
         username = _normalize_username(field.data)
         if not username:
             raise ValidationError('Username is required.')
-        if User.query.filter(db.func.lower(User.username) == username.lower()).first():
+        if _username_match_query(username).first():
             raise ValidationError('Username already taken.')
 
 
@@ -316,7 +321,7 @@ class CreateUserForm(FlaskForm):
         username = _normalize_username(field.data)
         if not username:
             raise ValidationError('Username is required.')
-        if User.query.filter(db.func.lower(User.username) == username.lower()).first():
+        if _username_match_query(username).first():
             raise ValidationError('Username already taken.')
 
 
@@ -328,7 +333,7 @@ class ProfileForm(FlaskForm):
         username = _normalize_username(field.data)
         if not username:
             raise ValidationError('Username is required.')
-        user = User.query.filter(db.func.lower(User.username) == username.lower()).first()
+        user = _username_match_query(username).first()
         if user and user.id != current_user.id:
             raise ValidationError('Username already taken.')
 
@@ -355,7 +360,7 @@ class EditUserForm(FlaskForm):
         username = _normalize_username(field.data)
         if not username:
             raise ValidationError('Username is required.')
-        user = User.query.filter(db.func.lower(User.username) == username.lower()).first()
+        user = _username_match_query(username).first()
         if user and user.id != self._user_id:
             raise ValidationError('Username already taken.')
 
@@ -661,7 +666,7 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         username = _normalize_username(form.username.data)
-        users = User.query.filter(db.func.lower(User.username) == username.lower()).order_by(User.created_at.asc()).all()
+        users = _username_match_query(username).order_by(User.created_at.asc()).all()
         if not users:
             flash('No account found for this username. Please register first.', 'danger')
             return render_template('login.html', form=form)
