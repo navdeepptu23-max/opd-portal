@@ -4,7 +4,7 @@ import zipfile
 from io import BytesIO, StringIO
 from textwrap import wrap
 from datetime import datetime, timedelta
-from flask import Flask, render_template, redirect, url_for, flash, request, abort, session, Response
+from flask import Flask, render_template, redirect, url_for, flash, request, abort, session, Response, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm
@@ -24,13 +24,13 @@ if database_url.startswith('postgres://'):
     # Render/Heroku may provide postgres://, but SQLAlchemy expects postgresql://
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
 if not database_url:
-    # Allow explicit strict behavior via env var when required.
-    if os.environ.get('STRICT_DATABASE_URL', '0') == '1':
-        raise RuntimeError('DATABASE_URL is required. Set it in environment variables.')
-
-    # Render deployments may occasionally start without DATABASE_URL attached yet
-    # (e.g., during service wiring changes). Keep the app bootable with sqlite fallback.
-    database_url = 'sqlite:///portal.db'
+    # NEVER fall back to SQLite. Render uses an ephemeral filesystem, so any data
+    # written to a local SQLite file would be silently lost on the next restart.
+    # This was the root cause of users disappearing minutes after CSV import.
+    raise RuntimeError(
+        'DATABASE_URL is not set. The app cannot start without a PostgreSQL database. '
+        'Check your Render dashboard → Environment → DATABASE_URL.'
+    )
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -1917,6 +1917,37 @@ def dashboard():
     )
 
 
+@app.route('/admin/db-health')
+@login_required
+def db_health():
+    """Admin diagnostic endpoint — shows database type and user counts."""
+    if not current_user.is_admin_or_above:
+        abort(403)
+    engine = db.engine.url.drivername
+    total = db.session.execute(db.text("SELECT COUNT(*) FROM users")).scalar()
+    active = db.session.execute(
+        db.text("SELECT COUNT(*) FROM users WHERE is_active = TRUE OR is_active IS NULL")
+    ).scalar()
+    inactive = db.session.execute(
+        db.text("SELECT COUNT(*) FROM users WHERE is_active = FALSE")
+    ).scalar()
+    recent = db.session.execute(
+        db.text("SELECT username, created_at, is_active FROM users ORDER BY created_at DESC LIMIT 10")
+    ).fetchall()
+    info = {
+        'engine': engine,
+        'is_postgresql': 'postgresql' in engine,
+        'total_users': total,
+        'active_users': active,
+        'inactive_users': inactive,
+        'recent_users': [
+            {'username': r[0], 'created_at': str(r[1]) if r[1] else '', 'is_active': r[2]}
+            for r in recent
+        ],
+    }
+    return jsonify(info)
+
+
 @app.route('/admin/login-audit')
 @login_required
 def login_audit():
@@ -2074,6 +2105,22 @@ def import_users_csv():
     if created_users:
         db.session.add_all(created_users)
         db.session.commit()
+
+        # Post-commit verification: confirm users actually persisted.
+        verified = 0
+        for u in created_users:
+            if User.query.get(u.id) is not None:
+                verified += 1
+        db_engine = db.engine.url.drivername
+        app.logger.info(
+            'CSV import: %d created, %d verified in DB (engine=%s)',
+            len(created_users), verified, db_engine,
+        )
+        if verified < len(created_users):
+            app.logger.error(
+                'CSV import VERIFICATION FAILED: only %d/%d users found after commit (engine=%s)',
+                verified, len(created_users), db_engine,
+            )
 
     created_count = len(created_users)
     failed_count = len(failures)
@@ -2763,6 +2810,15 @@ def server_error(e):
 
 def seed_admin():
     db.create_all()
+
+    # ── Startup diagnostic log ───────────────────────────────────────────
+    db_engine = db.engine.url.drivername
+    total_users = db.session.execute(db.text("SELECT COUNT(*) FROM users")).scalar()
+    print(f'[STARTUP] Database engine: {db_engine}')
+    print(f'[STARTUP] Total users in database: {total_users}')
+    if 'sqlite' in db_engine:
+        print('[STARTUP] WARNING: Running on SQLite – data will be lost on restart!')
+
     # Startup migrations:
     # 1. Fix NULL is_active rows → active.
     # 2. Ensure all admin-created accounts remain active.
