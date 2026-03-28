@@ -7,7 +7,13 @@
     <h1>Dashboard</h1>
     <p>Welcome back, <strong>{{ current_user.username }}</strong></p>
   </div>
-  <a href="{{ url_for('register') }}" class="btn btn-primary">+ New User</a>
+  {% if current_user.is_admin_or_above %}
+  <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+    <a href="{{ url_for('import_users_template_csv') }}" class="btn btn-ghost">Template CSV</a>
+    <a href="{{ url_for('dashboard') }}#bulk-user-import" class="btn btn-ghost">Import Users CSV</a>
+    <a href="{{ url_for('register') }}" class="btn btn-primary">+ New User</a>
+  </div>
+  {% endif %}
 </div>
 
 {% include 'dashboard_content.html' %}
