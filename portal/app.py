@@ -18,6 +18,10 @@ if database_url.startswith('postgres://'):
     # Render/Heroku may provide postgres://, but SQLAlchemy expects postgresql://
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
 if not database_url:
+    # In production platforms (e.g., Render), do not silently fall back to sqlite,
+    # otherwise users may appear/disappear across restarts.
+    if os.environ.get('RENDER') == 'true':
+        raise RuntimeError('DATABASE_URL is required on Render.')
     database_url = 'sqlite:///portal.db'
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
@@ -329,9 +333,25 @@ def _normalize_username(value):
     return str(value or '').strip()
 
 
+def _username_compact(value):
+    # Normalize legacy usernames by removing all whitespace and lowering case.
+    return ''.join(str(value or '').split()).lower()
+
+
 def _username_match_query(username):
-    normalized = _normalize_username(username)
-    return User.query.filter(db.func.lower(db.func.trim(User.username)) == normalized.lower())
+    normalized = _username_compact(username)
+    user_expr = db.func.lower(
+        db.func.replace(
+            db.func.replace(
+                db.func.replace(db.func.trim(User.username), ' ', ''),
+                '\t',
+                '',
+            ),
+            '\n',
+            '',
+        )
+    )
+    return User.query.filter(user_expr == normalized)
 
 
 def _parse_month_year(value):
@@ -359,6 +379,8 @@ class SelfRegisterForm(FlaskForm):
         username = _normalize_username(field.data)
         if not username:
             raise ValidationError('Username is required.')
+        if any(ch.isspace() for ch in username):
+            raise ValidationError('Username cannot contain spaces.')
         if _username_match_query(username).first():
             raise ValidationError('Username already taken.')
 
@@ -374,6 +396,8 @@ class CreateUserForm(FlaskForm):
         username = _normalize_username(field.data)
         if not username:
             raise ValidationError('Username is required.')
+        if any(ch.isspace() for ch in username):
+            raise ValidationError('Username cannot contain spaces.')
         if _username_match_query(username).first():
             raise ValidationError('Username already taken.')
 
@@ -386,6 +410,8 @@ class ProfileForm(FlaskForm):
         username = _normalize_username(field.data)
         if not username:
             raise ValidationError('Username is required.')
+        if any(ch.isspace() for ch in username):
+            raise ValidationError('Username cannot contain spaces.')
         user = _username_match_query(username).first()
         if user and user.id != current_user.id:
             raise ValidationError('Username already taken.')
@@ -413,6 +439,8 @@ class EditUserForm(FlaskForm):
         username = _normalize_username(field.data)
         if not username:
             raise ValidationError('Username is required.')
+        if any(ch.isspace() for ch in username):
+            raise ValidationError('Username cannot contain spaces.')
         user = _username_match_query(username).first()
         if user and user.id != self._user_id:
             raise ValidationError('Username already taken.')
