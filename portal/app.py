@@ -94,13 +94,6 @@ def _session_debug_after_request(response):
     return response
 
 
-@app.context_processor
-def _inject_nav_usernames():
-    if not current_user.is_authenticated:
-        return {'nav_all_usernames': []}
-    usernames = [row.username for row in User.query.order_by(db.func.lower(User.username).asc()).all()]
-    return {'nav_all_usernames': usernames}
-
 HOSPITAL_INDICATOR_DEFAULTS = [
     (1, 'Total OPD Attendance'),
     (2, 'Total IPD Admissions'),
