@@ -167,8 +167,8 @@
             {% endif %}
           </td>
           <td>
-            <span class="dot {{ 'dot-active' if user.is_active else 'dot-inactive' }}"></span>
-            {{ 'Active' if user.is_active else 'Inactive' }}
+            <span class="dot {{ 'dot-active' if user.is_active is not false else 'dot-inactive' }}"></span>
+            {{ 'Active' if user.is_active is not false else 'Inactive' }}
           </td>
           <td style="color:var(--text-muted); font-size:0.82rem;">
             {{ user.created_at.strftime('%d %b %Y') }}
@@ -184,7 +184,7 @@
               <form method="POST" action="{{ url_for('toggle_user', user_id=user.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-ghost btn-sm">
-                  {{ 'Deactivate' if user.is_active else 'Activate' }}
+                  {{ 'Deactivate' if user.is_active is not false else 'Activate' }}
                 </button>
               </form>
               {# Delete #}

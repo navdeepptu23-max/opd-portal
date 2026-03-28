@@ -825,7 +825,7 @@ def _apply_user_dashboard_filters(query, search='', role_filter='all', status_fi
         query = query.filter(User.role == role_filter)
 
     if status_filter == 'active':
-        query = query.filter(User.is_active.is_(True))
+        query = query.filter(db.or_(User.is_active.is_(True), User.is_active.is_(None)))
     elif status_filter == 'inactive':
         query = query.filter(User.is_active.is_(False))
 
@@ -1622,7 +1622,7 @@ def dashboard():
 
     stats = {
         'total': scope_query.count(),
-        'active': scope_query.filter(User.is_active.is_(True)).count(),
+        'active': scope_query.filter(db.or_(User.is_active.is_(True), User.is_active.is_(None))).count(),
         'inactive': scope_query.filter(User.is_active.is_(False)).count(),
         'admins': scope_query.filter(User.role.in_(['admin', 'super_admin'])).count(),
         'general_users': scope_query.filter(User.role == 'sub').count(),
