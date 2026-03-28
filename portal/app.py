@@ -578,7 +578,9 @@ def login():
             if next_page.startswith('/') and not next_page.startswith('//'):
                 return redirect(next_page)
             return redirect(url_for('dashboard'))
-        if user and not user.is_active:
+        if not user:
+            flash('No account found for this username. Please register first.', 'danger')
+        elif not user.is_active:
             flash('Your account is inactive. Contact admin.', 'danger')
         else:
             flash('Invalid username or password.', 'danger')
