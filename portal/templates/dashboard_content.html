@@ -47,6 +47,22 @@
   </div>
 </div>
 
+<div class="card" style="margin-bottom:1.2rem; display:flex; align-items:flex-end; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+  <div style="min-width:280px; flex:1;">
+    <div style="font-size:1rem; font-weight:700; color:var(--text);">Bulk User Import (CSV)</div>
+    <div style="font-size:0.82rem; color:var(--text-muted); margin-top:0.25rem;">
+      Admin-only: upload CSV with columns <strong>username,password</strong> and optional <strong>role</strong>.
+      Usernames are saved as lowercase and must be unique.
+    </div>
+  </div>
+  <form method="POST" action="{{ url_for('import_users_csv') }}" enctype="multipart/form-data" style="display:flex; align-items:center; gap:0.65rem; flex-wrap:wrap;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="file" name="users_csv" accept=".csv" required style="max-width:280px;">
+    <button type="submit" class="btn btn-primary btn-sm">Create Users from CSV</button>
+    <a href="{{ url_for('import_users_template_csv') }}" class="btn btn-ghost btn-sm">Template CSV</a>
+  </form>
+</div>
+
 <div class="card" style="padding:0; overflow:hidden; margin-bottom:1.2rem;">
   <div style="padding:0.9rem 1rem; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; gap:0.8rem;">
     <div style="font-weight:700; color:var(--text);">Recent Login Activity</div>

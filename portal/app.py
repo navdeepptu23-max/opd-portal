@@ -1685,6 +1685,115 @@ def export_users_csv():
     )
 
 
+@app.route('/admin/users/import/template')
+@login_required
+def import_users_template_csv():
+    if not current_user.is_admin_or_above:
+        abort(403)
+
+    buffer = StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(['username', 'password', 'role'])
+    writer.writerow(['newuser01', 'StrongPass123', 'sub'])
+    writer.writerow(['newuser02', 'StrongPass456', 'sub'])
+
+    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    filename = f'user_import_template_{timestamp}.csv'
+    return Response(
+        buffer.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename}'},
+    )
+
+
+@app.route('/admin/users/import', methods=['POST'])
+@login_required
+def import_users_csv():
+    if not current_user.is_admin_or_above:
+        abort(403)
+
+    upload = request.files.get('users_csv')
+    if not upload or not (upload.filename or '').strip():
+        flash('Please choose a CSV file to import users.', 'warning')
+        return redirect(url_for('dashboard'))
+
+    if not upload.filename.lower().endswith('.csv'):
+        flash('Only CSV files are allowed.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    try:
+        raw_content = upload.stream.read().decode('utf-8-sig')
+    except Exception:
+        flash('Unable to read CSV file. Please upload a valid UTF-8 CSV.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    reader = csv.DictReader(StringIO(raw_content))
+    header_map = {str(h or '').strip().lower() for h in (reader.fieldnames or [])}
+    if not {'username', 'password'}.issubset(header_map):
+        flash('CSV must include headers: username,password (role is optional).', 'danger')
+        return redirect(url_for('dashboard'))
+
+    created_users = []
+    seen_usernames = set()
+    failures = []
+
+    for line_number, row in enumerate(reader, start=2):
+        row_data = {str(k or '').strip().lower(): (v or '').strip() for k, v in row.items()}
+        username = _normalize_username(row_data.get('username', ''))
+        password = row_data.get('password', '')
+        role = (row_data.get('role', 'sub') or 'sub').strip().lower()
+
+        if not username:
+            failures.append(f'Line {line_number}: username is required.')
+            continue
+        if any(ch.isspace() for ch in username):
+            failures.append(f'Line {line_number}: username cannot contain spaces.')
+            continue
+        if len(password) < 8:
+            failures.append(f'Line {line_number}: password must be at least 8 characters.')
+            continue
+        if role not in {'sub', 'admin', 'super_admin'}:
+            failures.append(f'Line {line_number}: role must be sub or admin.')
+            continue
+        if not current_user.is_super_admin and role != 'sub':
+            failures.append(f'Line {line_number}: only super admin can create admin users.')
+            continue
+
+        if username in seen_usernames:
+            failures.append(f'Line {line_number}: duplicate username "{username}" in CSV.')
+            continue
+        if _username_match_query(username).first():
+            failures.append(f'Line {line_number}: username "{username}" already exists.')
+            continue
+
+        seen_usernames.add(username)
+        user = User(
+            username=username,
+            role=role,
+            created_by=current_user.id,
+            is_active=True,
+        )
+        user.set_password(password)
+        created_users.append(user)
+
+    if created_users:
+        db.session.add_all(created_users)
+        db.session.commit()
+
+    created_count = len(created_users)
+    failed_count = len(failures)
+    if created_count:
+        flash(f'CSV import complete: {created_count} users created.', 'success')
+    if failed_count:
+        preview = ' | '.join(failures[:3])
+        suffix = ' ...' if failed_count > 3 else ''
+        flash(f'CSV import skipped {failed_count} rows. {preview}{suffix}', 'warning')
+    if not created_count and not failed_count:
+        flash('No user rows found in CSV.', 'info')
+
+    return redirect(url_for('dashboard'))
+
+
 @app.route('/reports/dashboard')
 @login_required
 def reports_dashboard():
