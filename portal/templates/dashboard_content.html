@@ -1,10 +1,12 @@
 {% if current_user.is_admin_or_above %}
 
 {# ── Stats ── #}
-{% set total   = users | length %}
-{% set active  = users | selectattr('is_active') | list | length %}
-{% set admins  = users | selectattr('role', 'in', ['admin','super_admin']) | list | length %}
-{% set subs    = users | rejectattr('role', 'in', ['admin','super_admin']) | list | length %}
+{% set total = stats.total if stats is defined else (users | length) %}
+{% set active = stats.active if stats is defined else (users | selectattr('is_active') | list | length) %}
+{% set admins = stats.admins if stats is defined else (users | selectattr('role', 'in', ['admin','super_admin']) | list | length) %}
+{% set subs = stats.general_users if stats is defined else (users | rejectattr('role', 'in', ['admin','super_admin']) | list | length) %}
+{% set inactive = stats.inactive if stats is defined else 0 %}
+{% set filtered = stats.filtered if stats is defined else (users | length) %}
 
 <div class="stat-grid">
   <div class="stat-card">
@@ -23,6 +25,14 @@
     <div class="stat-number" style="color:var(--text-muted);">{{ subs }}</div>
     <div class="stat-label">General Users</div>
   </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:var(--warning);">{{ inactive }}</div>
+    <div class="stat-label">Inactive</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:var(--info);">{{ filtered }}</div>
+    <div class="stat-label">Filtered Result</div>
+  </div>
 </div>
 
 <div class="card" style="margin-bottom:1.25rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
@@ -36,12 +46,36 @@
   </div>
 </div>
 
-{# ── Search ── #}
+{# ── Search + Filters ── #}
 <form method="GET" class="search-row">
-  <input type="text" name="q" value="{{ search }}" placeholder="Search users…" autocomplete="off">
-  <button type="submit" class="btn btn-ghost btn-sm">Search</button>
-  {% if search %}
-  <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm">✕ Clear</a>
+  <input type="text" name="q" value="{{ search }}" placeholder="Search username..." autocomplete="off">
+  <select name="role" style="min-width:150px;">
+    <option value="all" {% if role_filter == 'all' %}selected{% endif %}>All Roles</option>
+    {% if current_user.is_super_admin %}
+    <option value="super_admin" {% if role_filter == 'super_admin' %}selected{% endif %}>Super Admin</option>
+    <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin</option>
+    {% endif %}
+    <option value="sub" {% if role_filter == 'sub' %}selected{% endif %}>General User</option>
+  </select>
+  <select name="status" style="min-width:150px;">
+    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+  </select>
+  <select name="sort_by" style="min-width:150px;">
+    <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Sort: Created</option>
+    <option value="username" {% if sort_by == 'username' %}selected{% endif %}>Sort: Username</option>
+    <option value="role" {% if sort_by == 'role' %}selected{% endif %}>Sort: Role</option>
+    <option value="status" {% if sort_by == 'status' %}selected{% endif %}>Sort: Status</option>
+  </select>
+  <select name="sort_dir" style="min-width:120px;">
+    <option value="desc" {% if sort_dir == 'desc' %}selected{% endif %}>Desc</option>
+    <option value="asc" {% if sort_dir == 'asc' %}selected{% endif %}>Asc</option>
+  </select>
+  <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+  <a href="{{ url_for('export_users_csv', q=search, role=role_filter, status=status_filter, sort_by=sort_by, sort_dir=sort_dir) }}" class="btn btn-ghost btn-sm">Export CSV</a>
+  {% if search or role_filter != 'all' or status_filter != 'all' or sort_by != 'created_at' or sort_dir != 'desc' %}
+  <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm">Clear</a>
   {% endif %}
 </form>
 
@@ -56,6 +90,7 @@
           <th>Role</th>
           <th>Status</th>
           <th>Created</th>
+          <th>Created By</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -80,6 +115,9 @@
           <td style="color:var(--text-muted); font-size:0.82rem;">
             {{ user.created_at.strftime('%d %b %Y') }}
           </td>
+          <td style="color:var(--text-muted); font-size:0.82rem;">
+            {{ user.creator.username if user.creator else 'System' }}
+          </td>
           <td>
             <div class="td-actions">
               {# Edit #}
@@ -102,7 +140,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="6" style="text-align:center; color:var(--text-muted); padding:2rem;">
+          <td colspan="7" style="text-align:center; color:var(--text-muted); padding:2rem;">
             {% if search %}No users match "<strong>{{ search }}</strong>".{% else %}No users found.{% endif %}
           </td>
         </tr>

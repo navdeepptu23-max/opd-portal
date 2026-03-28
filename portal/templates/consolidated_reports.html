@@ -32,7 +32,43 @@
         {% endif %}
       </select>
     </div>
-    <button type="submit" class="btn btn-primary btn-sm">Load</button>
+    <div class="form-group" style="margin-bottom:0; min-width:220px;">
+      <label>User Search</label>
+      <input type="text" name="q" value="{{ search }}" placeholder="Search username...">
+    </div>
+    <div class="form-group" style="margin-bottom:0; min-width:170px;">
+      <label>Status Filter</label>
+      <select name="status">
+        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
+        <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+        <option value="submitted" {% if status_filter == 'submitted' %}selected{% endif %}>Submitted</option>
+        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:0; min-width:170px;">
+      <label>Sort By</label>
+      <select name="sort_by">
+        <option value="updated_at" {% if sort_by == 'updated_at' %}selected{% endif %}>Updated Time</option>
+        <option value="username" {% if sort_by == 'username' %}selected{% endif %}>Username</option>
+        <option value="status" {% if sort_by == 'status' %}selected{% endif %}>Workflow Status</option>
+        <option value="total_opd" {% if sort_by == 'total_opd' %}selected{% endif %}>Total OPD</option>
+        <option value="total_ipd" {% if sort_by == 'total_ipd' %}selected{% endif %}>Total IPD</option>
+        <option value="total_value" {% if sort_by == 'total_value' %}selected{% endif %}>Total Value</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:0; min-width:120px;">
+      <label>Direction</label>
+      <select name="sort_dir">
+        <option value="desc" {% if sort_dir == 'desc' %}selected{% endif %}>Desc</option>
+        <option value="asc" {% if sort_dir == 'asc' %}selected{% endif %}>Asc</option>
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+    <a href="{{ url_for('consolidated_reports_export', report_type=report_type, month_year=month_year, q=search, status=status_filter, sort_by=sort_by, sort_dir=sort_dir) }}" class="btn btn-ghost btn-sm">Export CSV</a>
+    {% if search or status_filter != 'all' or sort_by != 'updated_at' or sort_dir != 'desc' %}
+    <a href="{{ url_for('consolidated_reports', report_type=report_type, month_year=month_year) }}" class="btn btn-ghost btn-sm">Clear</a>
+    {% endif %}
   </form>
 </div>
 
@@ -53,6 +89,41 @@
     <div class="stat-number" style="color:var(--warning);">{{ consolidated.total_value }}</div>
     <div class="stat-label">Total Value (HPI)</div>
   </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:var(--success);">{{ consolidated.approved_count }}</div>
+    <div class="stat-label">Approved</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:var(--danger);">{{ consolidated.rejected_count }}</div>
+    <div class="stat-label">Rejected</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:var(--info);">{{ consolidated.submitted_count }}</div>
+    <div class="stat-label">Submitted</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:var(--text-muted);">{{ consolidated.draft_count }}</div>
+    <div class="stat-label">Draft</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1.2rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+  <div>
+    <div style="font-size:1rem; font-weight:700; color:var(--text);">Bulk Workflow Actions</div>
+    <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.2rem;">Select multiple users from the grid and apply status updates in one click.</div>
+  </div>
+  <form id="bulk-status-form" method="POST" action="{{ url_for('consolidated_reports_bulk_status_update') }}" style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="report_type" value="{{ report_type }}">
+    <input type="hidden" name="month_year" value="{{ month_year }}">
+    <input type="hidden" name="next_q" value="{{ search }}">
+    <input type="hidden" name="next_status" value="{{ status_filter }}">
+    <input type="hidden" name="next_sort_by" value="{{ sort_by }}">
+    <input type="hidden" name="next_sort_dir" value="{{ sort_dir }}">
+    <button class="btn btn-ghost btn-sm" type="submit" name="action" value="approve">Approve Selected</button>
+    <button class="btn btn-ghost btn-sm" type="submit" name="action" value="reject">Reject Selected</button>
+    <button class="btn btn-danger btn-sm" type="submit" name="action" value="reset">Reset Selected</button>
+  </form>
 </div>
 
 <div class="card" style="padding:0; overflow:hidden; margin-bottom:1.2rem;">
@@ -60,6 +131,7 @@
     <table>
       <thead>
         <tr>
+          <th style="width:42px;"><input id="select-all-submissions" type="checkbox" title="Select all"></th>
           <th>#</th>
           <th>User</th>
           <th>Role</th>
@@ -75,6 +147,9 @@
       <tbody>
         {% for item in submissions %}
         <tr>
+          <td>
+            <input type="checkbox" name="user_ids" value="{{ item.user_id }}" class="submission-check" form="bulk-status-form">
+          </td>
           <td style="color:var(--text-muted); width:45px;">{{ loop.index }}</td>
           <td><strong>{{ item.user.username if item.user else 'Deleted User' }}</strong></td>
           <td>
@@ -83,14 +158,24 @@
             {% elif item.user and item.user.role == 'admin' %}
               <span class="badge badge-admin">Admin</span>
             {% else %}
-              <span class="badge badge-sub">Sub</span>
+              <span class="badge badge-sub">General User</span>
             {% endif %}
           </td>
           <td>{{ item.month_year }}</td>
           <td>{{ item.total_opd }}</td>
           <td>{{ item.total_ipd }}</td>
           <td>{{ item.total_value }}</td>
-          <td style="text-transform:capitalize;">{{ item.workflow_status }}</td>
+          <td style="text-transform:capitalize;">
+            {% if item.workflow_status == 'approved' %}
+            <span class="badge badge-admin">Approved</span>
+            {% elif item.workflow_status == 'rejected' %}
+            <span class="badge" style="background:rgba(255,77,109,0.2); color:var(--danger);">Rejected</span>
+            {% elif item.workflow_status == 'submitted' %}
+            <span class="badge" style="background:rgba(56,189,248,0.2); color:var(--info);">Submitted</span>
+            {% else %}
+            <span class="badge badge-sub">Draft</span>
+            {% endif %}
+          </td>
           <td style="color:var(--text-muted); font-size:0.82rem;">{{ item.updated_at.strftime('%d %b %Y %I:%M %p') }}</td>
           <td>
             <div class="td-actions">
@@ -115,6 +200,10 @@
                 <input type="hidden" name="month_year" value="{{ month_year }}">
                 <input type="hidden" name="next_report_type" value="{{ report_type }}">
                 <input type="hidden" name="next_month_year" value="{{ month_year }}">
+                <input type="hidden" name="next_q" value="{{ search }}">
+                <input type="hidden" name="next_status" value="{{ status_filter }}">
+                <input type="hidden" name="next_sort_by" value="{{ sort_by }}">
+                <input type="hidden" name="next_sort_dir" value="{{ sort_dir }}">
                 <button class="btn btn-ghost btn-sm" type="submit" name="action" value="approve">Approve</button>
                 <button class="btn btn-ghost btn-sm" type="submit" name="action" value="reject">Reject</button>
                 <button class="btn btn-danger btn-sm" type="submit" name="action" value="reset">Reset</button>
@@ -127,6 +216,10 @@
                 <input type="hidden" name="month_year" value="{{ month_year }}">
                 <input type="hidden" name="next_report_type" value="{{ report_type }}">
                 <input type="hidden" name="next_month_year" value="{{ month_year }}">
+                <input type="hidden" name="next_q" value="{{ search }}">
+                <input type="hidden" name="next_status" value="{{ status_filter }}">
+                <input type="hidden" name="next_sort_by" value="{{ sort_by }}">
+                <input type="hidden" name="next_sort_dir" value="{{ sort_dir }}">
                 <button class="btn btn-danger btn-sm" type="submit">Delete</button>
               </form>
             </div>
@@ -134,13 +227,42 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="10" style="text-align:center; color:var(--text-muted); padding:2rem;">No user submissions found for selected proforma/month.</td>
+          <td colspan="11" style="text-align:center; color:var(--text-muted); padding:2rem;">No user submissions found for selected filters.</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
+
+<script>
+  (function () {
+    var selectAll = document.getElementById('select-all-submissions');
+    if (!selectAll) {
+      return;
+    }
+    function getChecks() {
+      return document.querySelectorAll('.submission-check');
+    }
+    selectAll.addEventListener('change', function () {
+      getChecks().forEach(function (box) {
+        box.checked = selectAll.checked;
+      });
+    });
+    getChecks().forEach(function (box) {
+      box.addEventListener('change', function () {
+        var checks = getChecks();
+        var allChecked = checks.length > 0;
+        checks.forEach(function (item) {
+          if (!item.checked) {
+            allChecked = false;
+          }
+        });
+        selectAll.checked = allChecked;
+      });
+    });
+  })();
+</script>
 
 <div class="card" style="padding:0; overflow:hidden;">
   <div style="padding:0.9rem 1rem; border-bottom:1px solid var(--border); font-weight:700; color:var(--text);">Monthly Consolidated Trend</div>

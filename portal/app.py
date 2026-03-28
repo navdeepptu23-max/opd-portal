@@ -1,6 +1,8 @@
 import os
+import csv
+from io import StringIO
 from datetime import datetime, timedelta
-from flask import Flask, render_template, redirect, url_for, flash, request, abort, session
+from flask import Flask, render_template, redirect, url_for, flash, request, abort, session, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_wtf import FlaskForm
@@ -727,6 +729,97 @@ def _set_report_status(user_id, month_year, report_type, status, reviewed_by=Non
     return row
 
 
+def _manageable_users_query(manager_user):
+    if manager_user.is_super_admin:
+        return User.query.filter(User.id != manager_user.id)
+    if manager_user.role == 'admin':
+        return User.query.filter_by(role='sub')
+    return User.query.filter(User.id == -1)
+
+
+def _apply_user_dashboard_filters(query, search='', role_filter='all', status_filter='all'):
+    search = (search or '').strip()
+    role_filter = (role_filter or 'all').strip()
+    status_filter = (status_filter or 'all').strip()
+
+    if search:
+        query = query.filter(db.func.lower(User.username).contains(search.lower()))
+
+    if role_filter in ('super_admin', 'admin', 'sub'):
+        query = query.filter(User.role == role_filter)
+
+    if status_filter == 'active':
+        query = query.filter(User.is_active.is_(True))
+    elif status_filter == 'inactive':
+        query = query.filter(User.is_active.is_(False))
+
+    return query
+
+
+def _apply_user_dashboard_sort(query, sort_by='created_at', sort_dir='desc'):
+    sort_by = (sort_by or 'created_at').strip()
+    sort_dir = (sort_dir or 'desc').strip().lower()
+    sort_map = {
+        'username': db.func.lower(User.username),
+        'role': User.role,
+        'status': User.is_active,
+        'created_at': User.created_at,
+    }
+    sort_col = sort_map.get(sort_by, User.created_at)
+    if sort_dir == 'asc':
+        return query.order_by(sort_col.asc())
+    return query.order_by(sort_col.desc())
+
+
+def _load_consolidated_submissions(report_type, month_year, search='', status_filter='all', sort_by='updated_at', sort_dir='desc'):
+    if not month_year:
+        return []
+
+    submissions = UserReportSubmission.query.filter_by(
+        report_type=report_type,
+        month_year=month_year,
+    ).all()
+
+    status_rows = UserReportStatus.query.filter_by(
+        report_type=report_type,
+        month_year=month_year,
+    ).all()
+    status_map = {row.user_id: row.status for row in status_rows}
+
+    for item in submissions:
+        item.workflow_status = status_map.get(item.user_id, 'draft')
+
+    search = (search or '').strip().lower()
+    if search:
+        submissions = [
+            item for item in submissions
+            if search in ((item.user.username if item.user else 'deleted user').lower())
+        ]
+
+    status_filter = (status_filter or 'all').strip().lower()
+    if status_filter in ('draft', 'submitted', 'approved', 'rejected'):
+        submissions = [item for item in submissions if item.workflow_status == status_filter]
+
+    sort_by = (sort_by or 'updated_at').strip()
+    sort_dir = (sort_dir or 'desc').strip().lower()
+    reverse = sort_dir != 'asc'
+
+    if sort_by == 'username':
+        submissions.sort(key=lambda x: (x.user.username.lower() if x.user else 'zzzz'), reverse=reverse)
+    elif sort_by == 'status':
+        submissions.sort(key=lambda x: x.workflow_status, reverse=reverse)
+    elif sort_by == 'total_opd':
+        submissions.sort(key=lambda x: x.total_opd, reverse=reverse)
+    elif sort_by == 'total_ipd':
+        submissions.sort(key=lambda x: x.total_ipd, reverse=reverse)
+    elif sort_by == 'total_value':
+        submissions.sort(key=lambda x: x.total_value, reverse=reverse)
+    else:
+        submissions.sort(key=lambda x: x.updated_at or datetime.min, reverse=reverse)
+
+    return submissions
+
+
 def _ensure_hospital_indicator_rows(month_year):
     existing_count = HospitalIndicator.query.filter_by(month_year=month_year).count()
     if existing_count == 0:
@@ -1295,16 +1388,83 @@ def register():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    if current_user.is_super_admin:
-        users = User.query.filter(User.id != current_user.id).order_by(User.created_at.desc()).all()
-    elif current_user.role == 'admin':
-        users = User.query.filter_by(role='sub').order_by(User.created_at.desc()).all()
-    else:
-        users = []
+    scope_query = _manageable_users_query(current_user)
+
     search = request.args.get('q', '').strip()
-    if search:
-        users = [u for u in users if search.lower() in u.username.lower()]
-    return render_template('dashboard.html', users=users, search=search)
+    role_filter = request.args.get('role', 'all').strip()
+    status_filter = request.args.get('status', 'all').strip()
+    sort_by = request.args.get('sort_by', 'created_at').strip()
+    sort_dir = request.args.get('sort_dir', 'desc').strip().lower()
+
+    filtered_query = _apply_user_dashboard_filters(
+        scope_query,
+        search=search,
+        role_filter=role_filter,
+        status_filter=status_filter,
+    )
+    users = _apply_user_dashboard_sort(filtered_query, sort_by=sort_by, sort_dir=sort_dir).all()
+
+    stats = {
+        'total': scope_query.count(),
+        'active': scope_query.filter(User.is_active.is_(True)).count(),
+        'inactive': scope_query.filter(User.is_active.is_(False)).count(),
+        'admins': scope_query.filter(User.role.in_(['admin', 'super_admin'])).count(),
+        'general_users': scope_query.filter(User.role == 'sub').count(),
+        'filtered': len(users),
+    }
+
+    return render_template(
+        'dashboard.html',
+        users=users,
+        search=search,
+        role_filter=role_filter,
+        status_filter=status_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+        stats=stats,
+    )
+
+
+@app.route('/admin/users/export')
+@login_required
+def export_users_csv():
+    if not current_user.is_admin_or_above:
+        abort(403)
+
+    scope_query = _manageable_users_query(current_user)
+    search = request.args.get('q', '').strip()
+    role_filter = request.args.get('role', 'all').strip()
+    status_filter = request.args.get('status', 'all').strip()
+    sort_by = request.args.get('sort_by', 'created_at').strip()
+    sort_dir = request.args.get('sort_dir', 'desc').strip().lower()
+
+    filtered_query = _apply_user_dashboard_filters(
+        scope_query,
+        search=search,
+        role_filter=role_filter,
+        status_filter=status_filter,
+    )
+    users = _apply_user_dashboard_sort(filtered_query, sort_by=sort_by, sort_dir=sort_dir).all()
+
+    buffer = StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(['Username', 'Role', 'Status', 'Created At', 'Created By'])
+    for user in users:
+        writer.writerow([
+            user.username,
+            user.role,
+            'Active' if user.is_active else 'Inactive',
+            user.created_at.strftime('%Y-%m-%d %H:%M:%S') if user.created_at else '',
+            user.creator.username if user.creator else '',
+        ])
+
+    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    filename = f'admin_users_{timestamp}.csv'
+    return Response(
+        buffer.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename}'},
+    )
 
 
 @app.route('/reports/dashboard')
@@ -1383,27 +1543,29 @@ def consolidated_reports():
     if not month_year and month_options:
         month_year = month_options[0]
 
-    submissions = []
-    if month_year:
-        submissions = UserReportSubmission.query.filter_by(
-            report_type=report_type,
-            month_year=month_year,
-        ).order_by(UserReportSubmission.updated_at.desc()).all()
+    search = request.args.get('q', '').strip()
+    status_filter = (request.args.get('status') or 'all').strip().lower()
+    sort_by = (request.args.get('sort_by') or 'updated_at').strip()
+    sort_dir = (request.args.get('sort_dir') or 'desc').strip().lower()
 
-    status_rows = UserReportStatus.query.filter_by(
+    submissions = _load_consolidated_submissions(
         report_type=report_type,
         month_year=month_year,
-    ).all() if month_year else []
-    status_map = {row.user_id: row for row in status_rows}
-    for item in submissions:
-        row = status_map.get(item.user_id)
-        item.workflow_status = row.status if row else 'draft'
+        search=search,
+        status_filter=status_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
 
     consolidated = {
         'submitters': len(submissions),
         'total_opd': sum(item.total_opd for item in submissions),
         'total_ipd': sum(item.total_ipd for item in submissions),
         'total_value': sum(item.total_value for item in submissions),
+        'draft_count': sum(1 for item in submissions if item.workflow_status == 'draft'),
+        'submitted_count': sum(1 for item in submissions if item.workflow_status == 'submitted'),
+        'approved_count': sum(1 for item in submissions if item.workflow_status == 'approved'),
+        'rejected_count': sum(1 for item in submissions if item.workflow_status == 'rejected'),
     }
 
     monthly_summary = db.session.query(
@@ -1435,6 +1597,60 @@ def consolidated_reports():
         submissions=submissions,
         consolidated=consolidated,
         monthly_rows=monthly_rows,
+        search=search,
+        status_filter=status_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+
+
+@app.route('/admin/consolidated-reports/export')
+@login_required
+def consolidated_reports_export():
+    if not current_user.is_admin_or_above:
+        abort(403)
+
+    report_type = request.args.get('report_type', 'proforma_i').strip()
+    month_year = (request.args.get('month_year') or '').upper().strip()
+    search = request.args.get('q', '').strip()
+    status_filter = (request.args.get('status') or 'all').strip().lower()
+    sort_by = (request.args.get('sort_by') or 'updated_at').strip()
+    sort_dir = (request.args.get('sort_dir') or 'desc').strip().lower()
+
+    if report_type not in ('proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2'):
+        report_type = 'proforma_i'
+
+    submissions = _load_consolidated_submissions(
+        report_type=report_type,
+        month_year=month_year,
+        search=search,
+        status_filter=status_filter,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+
+    buffer = StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(['User', 'Role', 'Report Type', 'Month', 'OPD', 'IPD', 'Total Value', 'Status', 'Updated At'])
+    for item in submissions:
+        writer.writerow([
+            item.user.username if item.user else 'Deleted User',
+            item.user.role if item.user else 'unknown',
+            report_type,
+            item.month_year,
+            item.total_opd,
+            item.total_ipd,
+            item.total_value,
+            item.workflow_status,
+            item.updated_at.strftime('%Y-%m-%d %H:%M:%S') if item.updated_at else '',
+        ])
+
+    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+    filename = f'consolidated_{report_type}_{month_year or "all"}_{timestamp}.csv'
+    return Response(
+        buffer.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename}'},
     )
 
 
@@ -1450,10 +1666,22 @@ def consolidated_reports_status_update():
     action = (request.form.get('action') or '').strip().lower()
     next_report_type = (request.form.get('next_report_type') or report_type).strip()
     next_month_year = (request.form.get('next_month_year') or month_year).strip().upper()
+    next_search = (request.form.get('next_q') or '').strip()
+    next_status = (request.form.get('next_status') or 'all').strip().lower()
+    next_sort_by = (request.form.get('next_sort_by') or 'updated_at').strip()
+    next_sort_dir = (request.form.get('next_sort_dir') or 'desc').strip().lower()
 
     if report_type not in ('hospital_indicator', 'proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2') or action not in ('approve', 'reject', 'reset', 'submit'):
         flash('Invalid status update request.', 'danger')
-        return redirect(url_for('consolidated_reports', report_type=next_report_type, month_year=next_month_year))
+        return redirect(url_for(
+            'consolidated_reports',
+            report_type=next_report_type,
+            month_year=next_month_year,
+            q=next_search,
+            status=next_status,
+            sort_by=next_sort_by,
+            sort_dir=next_sort_dir,
+        ))
 
     if action == 'approve':
         _set_report_status(user_id, month_year, report_type, 'approved', reviewed_by=current_user.id)
@@ -1466,7 +1694,113 @@ def consolidated_reports_status_update():
 
     db.session.commit()
     flash('Submission status updated.', 'success')
-    return redirect(url_for('consolidated_reports', report_type=next_report_type, month_year=next_month_year))
+    return redirect(url_for(
+        'consolidated_reports',
+        report_type=next_report_type,
+        month_year=next_month_year,
+        q=next_search,
+        status=next_status,
+        sort_by=next_sort_by,
+        sort_dir=next_sort_dir,
+    ))
+
+
+@app.route('/admin/consolidated-reports/bulk-status', methods=['POST'])
+@login_required
+def consolidated_reports_bulk_status_update():
+    if not current_user.is_admin_or_above:
+        abort(403)
+
+    report_type = (request.form.get('report_type') or '').strip()
+    month_year = (request.form.get('month_year') or '').strip().upper()
+    action = (request.form.get('action') or '').strip().lower()
+    next_search = (request.form.get('next_q') or '').strip()
+    next_status = (request.form.get('next_status') or 'all').strip().lower()
+    next_sort_by = (request.form.get('next_sort_by') or 'updated_at').strip()
+    next_sort_dir = (request.form.get('next_sort_dir') or 'desc').strip().lower()
+
+    user_ids = []
+    for value in request.form.getlist('user_ids'):
+        parsed = _to_non_negative_int(value)
+        if parsed > 0:
+            user_ids.append(parsed)
+    user_ids = sorted(set(user_ids))
+
+    if report_type not in ('proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2') or not month_year:
+        flash('Invalid bulk update request.', 'danger')
+        return redirect(url_for(
+            'consolidated_reports',
+            report_type=report_type,
+            month_year=month_year,
+            q=next_search,
+            status=next_status,
+            sort_by=next_sort_by,
+            sort_dir=next_sort_dir,
+        ))
+
+    if action not in ('approve', 'reject', 'reset'):
+        flash('Choose a valid bulk action.', 'warning')
+        return redirect(url_for(
+            'consolidated_reports',
+            report_type=report_type,
+            month_year=month_year,
+            q=next_search,
+            status=next_status,
+            sort_by=next_sort_by,
+            sort_dir=next_sort_dir,
+        ))
+
+    if not user_ids:
+        flash('Select at least one submission for bulk action.', 'warning')
+        return redirect(url_for(
+            'consolidated_reports',
+            report_type=report_type,
+            month_year=month_year,
+            q=next_search,
+            status=next_status,
+            sort_by=next_sort_by,
+            sort_dir=next_sort_dir,
+        ))
+
+    submissions = UserReportSubmission.query.filter(
+        UserReportSubmission.report_type == report_type,
+        UserReportSubmission.month_year == month_year,
+        UserReportSubmission.user_id.in_(user_ids),
+    ).all()
+
+    if not submissions:
+        flash('No matching submissions were found for selected users.', 'warning')
+        return redirect(url_for(
+            'consolidated_reports',
+            report_type=report_type,
+            month_year=month_year,
+            q=next_search,
+            status=next_status,
+            sort_by=next_sort_by,
+            sort_dir=next_sort_dir,
+        ))
+
+    updated = 0
+    for submission in submissions:
+        if action == 'approve':
+            _set_report_status(submission.user_id, month_year, report_type, 'approved', reviewed_by=current_user.id)
+        elif action == 'reject':
+            _set_report_status(submission.user_id, month_year, report_type, 'rejected', reviewed_by=current_user.id)
+        else:
+            _set_report_status(submission.user_id, month_year, report_type, 'draft')
+        updated += 1
+
+    db.session.commit()
+    flash(f'Bulk status update applied to {updated} submission(s).', 'success')
+    return redirect(url_for(
+        'consolidated_reports',
+        report_type=report_type,
+        month_year=month_year,
+        q=next_search,
+        status=next_status,
+        sort_by=next_sort_by,
+        sort_dir=next_sort_dir,
+    ))
 
 
 @app.route('/admin/consolidated-reports/delete', methods=['POST'])
@@ -1480,11 +1814,23 @@ def consolidated_reports_delete():
     month_year = (request.form.get('month_year') or '').strip().upper()
     next_report_type = (request.form.get('next_report_type') or report_type).strip()
     next_month_year = (request.form.get('next_month_year') or month_year).strip().upper()
+    next_search = (request.form.get('next_q') or '').strip()
+    next_status = (request.form.get('next_status') or 'all').strip().lower()
+    next_sort_by = (request.form.get('next_sort_by') or 'updated_at').strip()
+    next_sort_dir = (request.form.get('next_sort_dir') or 'desc').strip().lower()
 
     allowed_report_types = ('hospital_indicator', 'proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2')
     if report_type not in allowed_report_types or not user_id or not month_year:
         flash('Invalid delete request.', 'danger')
-        return redirect(url_for('consolidated_reports', report_type=next_report_type, month_year=next_month_year))
+        return redirect(url_for(
+            'consolidated_reports',
+            report_type=next_report_type,
+            month_year=next_month_year,
+            q=next_search,
+            status=next_status,
+            sort_by=next_sort_by,
+            sort_dir=next_sort_dir,
+        ))
 
     submission = UserReportSubmission.query.filter_by(
         user_id=user_id,
@@ -1499,7 +1845,15 @@ def consolidated_reports_delete():
 
     if not submission and not status_row:
         flash('No matching submission found to delete.', 'warning')
-        return redirect(url_for('consolidated_reports', report_type=next_report_type, month_year=next_month_year))
+        return redirect(url_for(
+            'consolidated_reports',
+            report_type=next_report_type,
+            month_year=next_month_year,
+            q=next_search,
+            status=next_status,
+            sort_by=next_sort_by,
+            sort_dir=next_sort_dir,
+        ))
 
     if submission:
         db.session.delete(submission)
@@ -1508,7 +1862,15 @@ def consolidated_reports_delete():
 
     db.session.commit()
     flash('Report submission deleted successfully.', 'success')
-    return redirect(url_for('consolidated_reports', report_type=next_report_type, month_year=next_month_year))
+    return redirect(url_for(
+        'consolidated_reports',
+        report_type=next_report_type,
+        month_year=next_month_year,
+        q=next_search,
+        status=next_status,
+        sort_by=next_sort_by,
+        sort_dir=next_sort_dir,
+    ))
 
 
 @app.route('/profile', methods=['GET', 'POST'])

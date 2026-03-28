@@ -240,7 +240,19 @@
       outline: none;
       transition: border-color 0.2s;
     }
+    .search-row select {
+      min-width: 140px;
+      padding: 0.6rem 0.85rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      font-size: 0.85rem;
+      font-family: inherit;
+      outline: none;
+    }
     .search-row input:focus { border-color: var(--primary); }
+    .search-row select:focus { border-color: var(--primary); }
 
     /* ── Stat cards ── */
     .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
