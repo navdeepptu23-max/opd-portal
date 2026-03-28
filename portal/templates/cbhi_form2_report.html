@@ -1,0 +1,454 @@
+{% extends 'base.html' %}
+{% block title %}CBHI FORM-2 – OPD Portal{% endblock %}
+
+{% block content %}
+{% set month_parts = month_year.split('-') %}
+{% set month_part = month_parts[0] if month_parts|length > 0 else month_year %}
+{% set year_part = month_parts[1] if month_parts|length > 1 else '' %}
+<style>
+  .c2-month-card {
+    margin-bottom: 1rem;
+    padding: 1rem 1.1rem;
+    background: linear-gradient(135deg, #fff7c8 0%, #ffefab 100%);
+    border: 1px solid #c9a227;
+    border-radius: 12px;
+  }
+  .c2-month-form, .c2-add-form {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .c2-month-group, .c2-add-group { margin-bottom: 0; }
+  .c2-month-group { min-width: 280px; }
+  .c2-month-group label, .c2-add-group label {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: #534000;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+  }
+  .c2-month-group input, .c2-add-group input {
+    min-height: 44px;
+    border: 1px solid #a78b16;
+    background: #fffdf2;
+    color: #221b00;
+    font-weight: 800;
+  }
+  .c2-month-button {
+    min-height: 44px;
+    padding: 0.75rem 1.25rem;
+    border: 1px solid #8f6f00 !important;
+    background: linear-gradient(180deg, #ffe48d 0%, #ffd147 100%) !important;
+    color: #463400 !important;
+    font-weight: 900 !important;
+  }
+  .c2-wrap {
+    overflow: auto;
+    background: #fff;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #d4d4d4;
+  }
+  .c2-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+  }
+  .c2-status { font-weight: 700; color: #111; }
+  .c2-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .c2-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1850px;
+    table-layout: fixed;
+    font-size: 10px;
+    color: #000;
+    background: #fff;
+  }
+  .c2-table th, .c2-table td {
+    border: 1px solid #555;
+    padding: 2px 3px;
+    vertical-align: top;
+    font-weight: 700;
+  }
+  .c2-table th {
+    text-align: center;
+    background: #fff;
+  }
+  .c2-table .headline {
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    padding: 1px 3px;
+  }
+  .c2-table .subline {
+    font-weight: 800;
+    padding: 1px 3px;
+  }
+  .c2-table .left {
+    text-align: left;
+  }
+  .c2-table .idx {
+    font-size: 9px;
+    font-weight: 800;
+  }
+  .c2-table .num {
+    width: 44px;
+    text-align: center;
+  }
+  .c2-table .sr {
+    width: 32px;
+    text-align: center;
+  }
+  .c2-table .disease {
+    width: 340px;
+  }
+  .c2-table input,
+  .c2-table textarea,
+  .c2-foot input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #bdbdbd;
+    padding: 2px 3px;
+    background: #fff;
+    color: #000;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .c2-table input[readonly] {
+    background: #f5f5f5;
+    font-weight: 800;
+  }
+  .c2-code {
+    margin-top: 2px;
+    font-size: 9px;
+  }
+  .c2-foot-wrap {
+    display: grid;
+    grid-template-columns: 1.45fr 1fr;
+    gap: 0;
+    margin-top: 8px;
+    border: 1px solid #555;
+    border-top: none;
+  }
+  .c2-notes, .c2-sign {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9px;
+  }
+  .c2-notes td, .c2-sign td {
+    border: 1px solid #555;
+    padding: 4px 5px;
+    vertical-align: top;
+    font-weight: 700;
+  }
+  .c2-notes .notes-head, .c2-sign .sign-head {
+    font-weight: 800;
+    background: #fff;
+  }
+  .c2-legend {
+    margin-top: 6px;
+    text-align: center;
+    font-size: 9px;
+    font-weight: 800;
+    color: #000;
+  }
+  .c2-export {
+    background: #fff;
+    color: #000;
+    padding: 6mm;
+    width: 420mm;
+    box-sizing: border-box;
+  }
+  .c2-export .c2-table,
+  .c2-export .c2-notes,
+  .c2-export .c2-sign {
+    min-width: 0;
+    width: 100%;
+  }
+  .c2-export .c2-table th,
+  .c2-export .c2-table td,
+  .c2-export .c2-notes td,
+  .c2-export .c2-sign td {
+    border: 1px solid #000 !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+  .c2-export .c2-table input,
+  .c2-export .c2-table textarea,
+  .c2-export .c2-sign input {
+    border: none !important;
+    background: transparent !important;
+    color: #000 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  @media print {
+    @page { size: A3 landscape; margin: 8mm; }
+    .no-print, nav, .page-header, .alerts, footer { display: none !important; }
+    .c2-wrap { overflow: visible !important; padding: 0 !important; background: #fff !important; }
+    .c2-table { min-width: 0 !important; width: 100% !important; font-size: 8.3px !important; }
+    .c2-table th, .c2-table td, .c2-notes td, .c2-sign td { border: 1px solid #000 !important; color: #000 !important; background: #fff !important; }
+    .c2-table input, .c2-table textarea, .c2-sign input { border: none !important; background: transparent !important; color: #000 !important; padding: 0 !important; box-shadow: none !important; }
+  }
+</style>
+
+<div class="page-header">
+  <h1>CBHI FORM-2</h1>
+  <p>Monthly report on institutional cases and deaths due to non-communicable diseases</p>
+</div>
+
+<div class="c2-month-card no-print">
+  <form method="GET" class="c2-month-form">
+    <div class="form-group c2-month-group">
+      <label>Month &amp; Year</label>
+      <input type="text" name="month_year" value="{{ month_year }}" placeholder="MAR-2026">
+    </div>
+    <button type="submit" class="btn btn-ghost btn-sm c2-month-button">Load Month</button>
+  </form>
+</div>
+
+<div class="card no-print" style="margin-bottom:1rem;">
+  <form method="POST" class="c2-add-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="month_year" value="{{ month_year }}">
+    <input type="hidden" name="action" value="add_row">
+    <div class="form-group c2-add-group" style="min-width:340px;">
+      <label>Add New Disease Row</label>
+      <input type="text" name="new_disease_name" placeholder="Disease name">
+    </div>
+    <div class="form-group c2-add-group" style="width:160px;">
+      <label>ICD Code</label>
+      <input type="text" name="new_disease_code" placeholder="A00">
+    </div>
+    <button type="submit" class="btn btn-ghost btn-sm">+ Add Row</button>
+  </form>
+</div>
+
+<div class="c2-wrap">
+  <form method="POST" id="c2-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="month_year" value="{{ month_year }}">
+
+    <div class="c2-toolbar no-print">
+      <div class="c2-status">Status: <strong style="text-transform:capitalize;">{{ submission_status }}</strong></div>
+      <div class="c2-actions">
+        <button type="submit" class="btn btn-ghost btn-sm" name="action" value="draft">Save Draft</button>
+        <button type="submit" class="btn btn-primary btn-sm" name="action" value="submit">Submit to Admin</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="window.print()">Print</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="downloadPdf()">Download Full Page PDF</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="downloadExcel()">Download Excel</button>
+      </div>
+    </div>
+
+    <div id="c2-export-area">
+      <table class="c2-table" id="c2-table">
+        <thead>
+          <tr>
+            <th colspan="17" class="headline">CENTRAL BUREAU OF HEALTH INTELLIGENCE (CBHI)</th>
+            <th colspan="8" class="headline">ANNEXURE-C</th>
+            <th colspan="2" class="headline">(FORM-2)</th>
+          </tr>
+          <tr>
+            <th colspan="27" class="subline">MONTHLY REPORT ON INSTITUTIONAL CASES AND DEATHS IN THE REPORTING UNIT DUE TO NON-COMMUNICABLE DISEASES</th>
+          </tr>
+          <tr>
+            <th colspan="2" class="left">Month:</th>
+            <th colspan="5" class="left">{{ month_part }}</th>
+            <th colspan="2" class="left">Year:</th>
+            <th colspan="18" class="left">{{ year_part }}</th>
+          </tr>
+          <tr>
+            <th colspan="2" class="left">Name of Health Establishment:</th>
+            <th colspan="14" class="left"><input type="text" name="health_establishment" value="{{ meta.health_establishment }}"></th>
+            <th colspan="3" class="left">Phone no.</th>
+            <th colspan="8" class="left"><input type="text" name="establishment_phone" value="{{ meta.establishment_phone }}"></th>
+          </tr>
+          <tr>
+            <th colspan="2" class="left">Complete postal Address of Health Establishment:</th>
+            <th colspan="14" class="left"><input type="text" name="complete_address" value="{{ meta.complete_address }}"></th>
+            <th colspan="3" class="left">DISTRICT:</th>
+            <th colspan="8" class="left"><input type="text" name="district" value="{{ meta.district }}"></th>
+          </tr>
+          <tr>
+            <th rowspan="2" class="sr">Sr.</th>
+            <th rowspan="2" class="disease">Name of Disease and ICD Code (A)</th>
+            <th colspan="4">General OPD Cases (B)</th>
+            <th colspan="4">Emergency OPD Cases (C)</th>
+            <th colspan="4">IPD referred from General OPD Cases (D)<br>[out of col. (B)]</th>
+            <th colspan="4">IPD referred from Emergency OPD Cases (E)<br>[out of col. (C)]</th>
+            <th colspan="4">Overall Cases Reported (F)</th>
+            <th colspan="4">General Deaths Reported (G)</th>
+            <th rowspan="2">Remarks (H)</th>
+          </tr>
+          <tr>
+            {% for _ in range(6) %}
+            <th>M</th><th>F</th><th>Tr</th><th>Total</th>
+            {% endfor %}
+          </tr>
+          <tr class="idx">
+            {% for i in range(1, 28) %}
+            <th>{{ i }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td class="sr">{{ r.sr_no }}</td>
+            <td class="left disease">
+              <input type="text" name="disease_{{ r.id }}" value="{{ r.disease_name }}">
+              <input type="text" class="c2-code" name="code_{{ r.id }}" value="{{ r.code }}" placeholder="ICD Code">
+            </td>
+
+            <td><input class="num" type="number" min="0" name="general_m_{{ r.id }}" value="{{ r.general_m }}" data-id="{{ r.id }}" data-group="general" data-role="m"></td>
+            <td><input class="num" type="number" min="0" name="general_f_{{ r.id }}" value="{{ r.general_f }}" data-id="{{ r.id }}" data-group="general" data-role="f"></td>
+            <td><input class="num" type="number" min="0" name="general_tr_{{ r.id }}" value="{{ r.general_tr }}" data-id="{{ r.id }}" data-group="general" data-role="tr"></td>
+            <td><input class="num" type="number" readonly name="general_total_{{ r.id }}" value="{{ r.general_total }}" data-id="{{ r.id }}" data-group="general" data-role="total"></td>
+
+            <td><input class="num" type="number" min="0" name="emergency_m_{{ r.id }}" value="{{ r.emergency_m }}" data-id="{{ r.id }}" data-group="emergency" data-role="m"></td>
+            <td><input class="num" type="number" min="0" name="emergency_f_{{ r.id }}" value="{{ r.emergency_f }}" data-id="{{ r.id }}" data-group="emergency" data-role="f"></td>
+            <td><input class="num" type="number" min="0" name="emergency_tr_{{ r.id }}" value="{{ r.emergency_tr }}" data-id="{{ r.id }}" data-group="emergency" data-role="tr"></td>
+            <td><input class="num" type="number" readonly name="emergency_total_{{ r.id }}" value="{{ r.emergency_total }}" data-id="{{ r.id }}" data-group="emergency" data-role="total"></td>
+
+            <td><input class="num" type="number" min="0" name="ipd_general_m_{{ r.id }}" value="{{ r.ipd_general_m }}" data-id="{{ r.id }}" data-group="ipd_general" data-role="m"></td>
+            <td><input class="num" type="number" min="0" name="ipd_general_f_{{ r.id }}" value="{{ r.ipd_general_f }}" data-id="{{ r.id }}" data-group="ipd_general" data-role="f"></td>
+            <td><input class="num" type="number" min="0" name="ipd_general_tr_{{ r.id }}" value="{{ r.ipd_general_tr }}" data-id="{{ r.id }}" data-group="ipd_general" data-role="tr"></td>
+            <td><input class="num" type="number" readonly name="ipd_general_total_{{ r.id }}" value="{{ r.ipd_general_total }}" data-id="{{ r.id }}" data-group="ipd_general" data-role="total"></td>
+
+            <td><input class="num" type="number" min="0" name="ipd_emergency_m_{{ r.id }}" value="{{ r.ipd_emergency_m }}" data-id="{{ r.id }}" data-group="ipd_emergency" data-role="m"></td>
+            <td><input class="num" type="number" min="0" name="ipd_emergency_f_{{ r.id }}" value="{{ r.ipd_emergency_f }}" data-id="{{ r.id }}" data-group="ipd_emergency" data-role="f"></td>
+            <td><input class="num" type="number" min="0" name="ipd_emergency_tr_{{ r.id }}" value="{{ r.ipd_emergency_tr }}" data-id="{{ r.id }}" data-group="ipd_emergency" data-role="tr"></td>
+            <td><input class="num" type="number" readonly name="ipd_emergency_total_{{ r.id }}" value="{{ r.ipd_emergency_total }}" data-id="{{ r.id }}" data-group="ipd_emergency" data-role="total"></td>
+
+            <td><input class="num" type="number" readonly name="overall_m_{{ r.id }}" value="{{ r.overall_m }}" data-id="{{ r.id }}" data-group="overall" data-role="m"></td>
+            <td><input class="num" type="number" readonly name="overall_f_{{ r.id }}" value="{{ r.overall_f }}" data-id="{{ r.id }}" data-group="overall" data-role="f"></td>
+            <td><input class="num" type="number" readonly name="overall_tr_{{ r.id }}" value="{{ r.overall_tr }}" data-id="{{ r.id }}" data-group="overall" data-role="tr"></td>
+            <td><input class="num" type="number" readonly name="overall_total_{{ r.id }}" value="{{ r.overall_total }}" data-id="{{ r.id }}" data-group="overall" data-role="total"></td>
+
+            <td><input class="num" type="number" min="0" name="deaths_m_{{ r.id }}" value="{{ r.deaths_m }}" data-id="{{ r.id }}" data-group="deaths" data-role="m"></td>
+            <td><input class="num" type="number" min="0" name="deaths_f_{{ r.id }}" value="{{ r.deaths_f }}" data-id="{{ r.id }}" data-group="deaths" data-role="f"></td>
+            <td><input class="num" type="number" min="0" name="deaths_tr_{{ r.id }}" value="{{ r.deaths_tr }}" data-id="{{ r.id }}" data-group="deaths" data-role="tr"></td>
+            <td><input class="num" type="number" readonly name="deaths_total_{{ r.id }}" value="{{ r.deaths_total }}" data-id="{{ r.id }}" data-group="deaths" data-role="total"></td>
+
+            <td><textarea name="remarks_{{ r.id }}" rows="1">{{ r.remarks }}</textarea></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <div class="c2-legend">M = Male &nbsp;&nbsp;&nbsp; F = Female &nbsp;&nbsp;&nbsp; Tr = Transgender</div>
+
+      <div class="c2-foot-wrap">
+        <table class="c2-notes">
+          <tr><td colspan="2" class="notes-head">NOTES:</td></tr>
+          <tr><td style="width:26px;">1</td><td>CBHI Official Website www.cbhidghs.gov.in and CBHI Data Entry Portal www.cbhinp.gov.in may be visited for disease definition and type of health establishment.</td></tr>
+          <tr><td>2</td><td>It is to be ensured that data is entered online in CBHI Data Entry Portal every month regularly latest by 20th of the succeeding month.</td></tr>
+          <tr><td>3</td><td>This form, duly filled and signed in original, should be sent to the respective District Nodal Officer latest by 20th of the succeeding month.</td></tr>
+          <tr><td>4</td><td>One copy of this form, duly filled and signed, should be maintained at the reporting unit as CBHI teams will visit to verify the reported data.</td></tr>
+        </table>
+
+        <table class="c2-sign">
+          <tr><td class="sign-head">Signature of the Approving Authority</td></tr>
+          <tr><td style="height:54px;"></td></tr>
+          <tr><td><strong>Name of the Approving Authority</strong><br><input type="text" name="approving_authority" value="{{ meta.approving_authority }}"></td></tr>
+          <tr><td><strong>Designation of the Approving Authority</strong><br><input type="text" name="authority_designation" value="{{ meta.authority_designation }}"></td></tr>
+          <tr><td><strong>Official Email ID</strong><br><input type="email" name="official_email" value="{{ meta.official_email }}"></td></tr>
+          <tr><td><strong>Official Phone Number</strong><br><input type="text" name="official_phone" value="{{ meta.official_phone }}"></td></tr>
+        </table>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.3/dist/xlsx.full.min.js"></script>
+<script>
+  (function () {
+    const toInt = (v) => {
+      const n = parseInt(String(v || '').trim(), 10);
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    };
+
+    function updateGroup(id, group) {
+      const m = document.querySelector(`input[data-id="${id}"][data-group="${group}"][data-role="m"]`);
+      const f = document.querySelector(`input[data-id="${id}"][data-group="${group}"][data-role="f"]`);
+      const tr = document.querySelector(`input[data-id="${id}"][data-group="${group}"][data-role="tr"]`);
+      const total = document.querySelector(`input[data-id="${id}"][data-group="${group}"][data-role="total"]`);
+      if (m && f && tr && total) {
+        total.value = String(toInt(m.value) + toInt(f.value) + toInt(tr.value));
+      }
+    }
+
+    function updateOverall(id) {
+      const gm = document.querySelector(`input[data-id="${id}"][data-group="general"][data-role="m"]`);
+      const gf = document.querySelector(`input[data-id="${id}"][data-group="general"][data-role="f"]`);
+      const gt = document.querySelector(`input[data-id="${id}"][data-group="general"][data-role="tr"]`);
+      const em = document.querySelector(`input[data-id="${id}"][data-group="emergency"][data-role="m"]`);
+      const ef = document.querySelector(`input[data-id="${id}"][data-group="emergency"][data-role="f"]`);
+      const et = document.querySelector(`input[data-id="${id}"][data-group="emergency"][data-role="tr"]`);
+      const om = document.querySelector(`input[data-id="${id}"][data-group="overall"][data-role="m"]`);
+      const of = document.querySelector(`input[data-id="${id}"][data-group="overall"][data-role="f"]`);
+      const ot = document.querySelector(`input[data-id="${id}"][data-group="overall"][data-role="tr"]`);
+      const oT = document.querySelector(`input[data-id="${id}"][data-group="overall"][data-role="total"]`);
+      if (!gm || !gf || !gt || !em || !ef || !et || !om || !of || !ot || !oT) return;
+      om.value = String(toInt(gm.value) + toInt(em.value));
+      of.value = String(toInt(gf.value) + toInt(ef.value));
+      ot.value = String(toInt(gt.value) + toInt(et.value));
+      oT.value = String(toInt(om.value) + toInt(of.value) + toInt(ot.value));
+    }
+
+    const edits = Array.from(document.querySelectorAll('input[data-role="m"],input[data-role="f"],input[data-role="tr"]'));
+    const rowIds = [...new Set(edits.map((element) => element.dataset.id))];
+    edits.forEach((element) => {
+      element.addEventListener('input', () => {
+        updateGroup(element.dataset.id, element.dataset.group);
+        if (element.dataset.group === 'general' || element.dataset.group === 'emergency') {
+          updateOverall(element.dataset.id);
+        }
+      });
+      element.dispatchEvent(new Event('input'));
+    });
+    rowIds.forEach((id) => ['general', 'emergency', 'ipd_general', 'ipd_emergency', 'deaths'].forEach((group) => updateGroup(id, group)));
+    rowIds.forEach(updateOverall);
+  })();
+
+  function buildMonochromeExport() {
+    const source = document.getElementById('c2-export-area');
+    const clone = source.cloneNode(true);
+    clone.classList.add('c2-export');
+    return clone;
+  }
+
+  function downloadPdf() {
+    const clone = buildMonochromeExport();
+    const host = document.createElement('div');
+    host.style.position = 'fixed';
+    host.style.left = '-100000px';
+    host.style.top = '0';
+    host.style.background = '#fff';
+    host.appendChild(clone);
+    document.body.appendChild(host);
+
+    html2pdf().set({
+      margin: [6, 6, 6, 6],
+      filename: 'CBHI-FORM2-{{ month_year }}-full-page.pdf',
+      pagebreak: { mode: ['css', 'legacy', 'avoid-all'] },
+      html2canvas: { scale: 2, backgroundColor: '#ffffff', useCORS: true, windowWidth: clone.scrollWidth },
+      jsPDF: { unit: 'mm', format: 'a3', orientation: 'landscape' }
+    }).from(clone).save().then(() => host.remove()).catch(() => host.remove());
+  }
+
+  function downloadExcel() {
+    const table = document.getElementById('c2-table');
+    const ws = XLSX.utils.table_to_sheet(table, { raw: true });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'FORM2');
+    XLSX.writeFile(wb, 'CBHI-FORM2-{{ month_year }}.xlsx');
+  }
+</script>
+{% endblock %}

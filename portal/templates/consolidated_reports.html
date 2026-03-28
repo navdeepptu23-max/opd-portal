@@ -147,6 +147,8 @@
             <a class="btn btn-ghost btn-sm" href="{{ url_for('proforma_ii_editable_report', month_year=row.month_year) }}">Open</a>
             {% elif report_type == 'cbhi_form1' %}
             <a class="btn btn-ghost btn-sm" href="{{ url_for('cbhi_form1_report', month_year=row.month_year) }}">Open</a>
+            {% elif report_type == 'cbhi_form2' %}
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('cbhi_form2_report', month_year=row.month_year) }}">Open</a>
             {% else %}
             <a class="btn btn-ghost btn-sm" href="{{ url_for('proforma_i_hpi_report', month_year=row.month_year) }}">Open</a>
             {% endif %}

@@ -281,6 +281,7 @@
     <a href="{{ url_for('hospital_indicator_report') }}" {% if request.endpoint == 'hospital_indicator_report' %}class="active"{% endif %}>Hospital Indicator</a>
     <a href="{{ url_for('proforma_i_hpi_report') }}" {% if request.endpoint == 'proforma_i_hpi_report' %}class="active"{% endif %}>PROFORMA-I</a>
     <a href="{{ url_for('cbhi_form1_report') }}" {% if request.endpoint == 'cbhi_form1_report' %}class="active"{% endif %}>CBHI FORM-1</a>
+    <a href="{{ url_for('cbhi_form2_report') }}" {% if request.endpoint == 'cbhi_form2_report' %}class="active"{% endif %}>CBHI FORM-2</a>
     {% if current_user.is_authenticated %}
     <span class="nav-user">
       {{ current_user.username }}

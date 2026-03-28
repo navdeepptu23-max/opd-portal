@@ -119,6 +119,8 @@
   thead th.th-module.hi  { border-top: 2px solid var(--info); }
   thead th.th-module.p1  { border-top: 2px solid var(--success); }
   thead th.th-module.p2  { border-top: 2px solid var(--warning); }
+  thead th.th-module.cb1 { border-top: 2px solid var(--primary); }
+  thead th.th-module.cb2 { border-top: 2px solid #ef4444; }
 </style>
 
 <div class="page-header">
@@ -144,6 +146,14 @@
     <div class="rd-stat-num color-warning">{{ p2_count }}</div>
     <div class="rd-stat-lbl">PROFORMA-II (Morbidity)</div>
   </div>
+  <div class="rd-stat-card color-primary">
+    <div class="rd-stat-num color-primary">{{ cbhi_count }}</div>
+    <div class="rd-stat-lbl">CBHI FORM-1</div>
+  </div>
+  <div class="rd-stat-card color-warning">
+    <div class="rd-stat-num color-warning">{{ cbhi2_count }}</div>
+    <div class="rd-stat-lbl">CBHI FORM-2</div>
+  </div>
 </div>
 
 {# ── Per-Month Table ── #}
@@ -158,6 +168,8 @@
           <th class="th-module hi">Hospital Indicator</th>
           <th class="th-module p1">PROFORMA-I (HPI)</th>
           <th class="th-module p2">PROFORMA-II (Morbidity)</th>
+          <th class="th-module cb1">CBHI FORM-1</th>
+          <th class="th-module cb2">CBHI FORM-2</th>
         </tr>
       </thead>
       <tbody>
@@ -215,10 +227,40 @@
               {% endif %}
             </div>
           </td>
+
+          <td>
+            <div class="cell-module">
+              {% if row.cbhi.exists %}
+                <span class="mod-badge saved"><span class="mod-dot saved"></span>Saved</span>
+                <div class="cell-counts">
+                  <span><span class="lbl">Total </span><span class="val">{{ row.cbhi.total }}</span></span>
+                </div>
+                <a class="btn-open" href="{{ url_for('cbhi_form1_report') }}?month_year={{ row.month_year }}">Open ↗</a>
+              {% else %}
+                <span class="mod-badge absent"><span class="mod-dot absent"></span>No Data</span>
+                <a class="btn-open" href="{{ url_for('cbhi_form1_report') }}?month_year={{ row.month_year }}">Add ↗</a>
+              {% endif %}
+            </div>
+          </td>
+
+          <td>
+            <div class="cell-module">
+              {% if row.cbhi2.exists %}
+                <span class="mod-badge saved"><span class="mod-dot saved"></span>Saved</span>
+                <div class="cell-counts">
+                  <span><span class="lbl">Total </span><span class="val">{{ row.cbhi2.total }}</span></span>
+                </div>
+                <a class="btn-open" href="{{ url_for('cbhi_form2_report') }}?month_year={{ row.month_year }}">Open ↗</a>
+              {% else %}
+                <span class="mod-badge absent"><span class="mod-dot absent"></span>No Data</span>
+                <a class="btn-open" href="{{ url_for('cbhi_form2_report') }}?month_year={{ row.month_year }}">Add ↗</a>
+              {% endif %}
+            </div>
+          </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="4">
+          <td colspan="6">
             <div class="empty-state">
               <div class="empty-icon">📋</div>
               No reports have been saved yet.<br>
@@ -232,3 +274,4 @@
   </div>
 </div>
 {% endblock %}
+
