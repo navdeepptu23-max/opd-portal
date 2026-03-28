@@ -7,11 +7,19 @@
   .c1-table { width:100%; border-collapse:collapse; min-width:1900px; font-size:11px; color:#111; }
   .c1-table th, .c1-table td { border:1px solid #666; padding:3px 4px; vertical-align:middle; }
   .c1-table thead th { background:#f4f4f4; text-align:center; }
+  .c1-table .form-head { background:#fff; font-weight:700; }
+  .c1-table .form-subhead { background:#fff; font-size:10px; }
+  .c1-table .col-idx { font-size:9px; color:#333; background:#fafafa; }
   .c1-table .left { text-align:left; }
   .c1-table input, .c1-table textarea { width:100%; box-sizing:border-box; border:1px solid #888; padding:2px 3px; font-size:11px; }
   .c1-table input[readonly] { background:#efefef; font-weight:700; }
   .c1-table .num { width:48px; text-align:center; }
   .c1-table .disease { min-width:280px; }
+  .c1-table .tight { padding:2px 3px; }
+  .c1-foot { margin-top:10px; width:100%; border-collapse:collapse; font-size:11px; color:#111; }
+  .c1-foot td { border:1px solid #666; padding:6px; vertical-align:top; min-height:56px; }
+  .c1-foot .label { font-weight:700; display:block; margin-bottom:4px; }
+  .c1-note { margin-top:6px; font-size:10px; color:#333; }
   .c1-toolbar { display:flex; justify-content:space-between; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:10px; }
   .c1-status { font-size:0.82rem; color:var(--text-muted); }
   .c1-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
@@ -72,30 +80,42 @@
       </div>
     </div>
 
+    <div id="c1-export-area">
     <table class="c1-table" id="c1-table">
       <thead>
         <tr>
-          <th colspan="2" class="left">Month: {{ month_year }}</th>
-          <th colspan="26" class="left">Health Establishment: <input type="text" name="health_establishment" value="{{ meta.health_establishment }}"></th>
+          <th colspan="28" class="form-head">Annexure-B</th>
         </tr>
         <tr>
-          <th colspan="2" class="left">Complete Address</th>
-          <th colspan="26" class="left"><input type="text" name="complete_address" value="{{ meta.complete_address }}"></th>
+          <th colspan="28" class="form-head">Form-1: Institutional Cases and Deaths Reported in the Month</th>
         </tr>
         <tr>
-          <th rowspan="2">Sr</th>
-          <th rowspan="2" class="disease">Disease</th>
+          <th colspan="10" class="left form-subhead">Month and Year: <input class="tight" type="text" name="report_month_display" value="{{ month_year }}" readonly></th>
+          <th colspan="18" class="left form-subhead">Health Establishment: <input class="tight" type="text" name="health_establishment" value="{{ meta.health_establishment }}"></th>
+        </tr>
+        <tr>
+          <th colspan="10" class="left form-subhead">Complete Address: <input class="tight" type="text" name="complete_address" value="{{ meta.complete_address }}"></th>
+          <th colspan="18" class="left form-subhead">District/State: <input class="tight" type="text" name="district_state" value="{{ meta.authority_designation }}"></th>
+        </tr>
+        <tr>
+          <th rowspan="2">Sr. No.</th>
+          <th rowspan="2" class="disease">Name of Disease / Event</th>
           <th colspan="4">General OPD</th>
           <th colspan="4">Emergency OPD</th>
           <th colspan="4">IPD from General OPD</th>
           <th colspan="4">IPD from Emergency OPD</th>
           <th colspan="4">Overall Cases Reported</th>
-          <th colspan="4">General Deaths</th>
+          <th colspan="4">Deaths Reported</th>
           <th rowspan="2">Remarks</th>
         </tr>
         <tr>
           {% for _ in range(6) %}
-          <th>M</th><th>F</th><th>Tr</th><th>Total</th>
+          <th>M</th><th>F</th><th>TG</th><th>T</th>
+          {% endfor %}
+        </tr>
+        <tr class="col-idx">
+          {% for i in range(1, 29) %}
+          <th>{{ i }}</th>
           {% endfor %}
         </tr>
       </thead>
@@ -144,11 +164,40 @@
       </tbody>
     </table>
 
-    <div style="margin-top:10px; display:grid; grid-template-columns:repeat(auto-fit, minmax(230px,1fr)); gap:8px;" class="no-print">
-      <input type="text" name="approving_authority" value="{{ meta.approving_authority }}" placeholder="Name of approving authority">
-      <input type="text" name="authority_designation" value="{{ meta.authority_designation }}" placeholder="Designation">
-      <input type="email" name="official_email" value="{{ meta.official_email }}" placeholder="Official Email">
-      <input type="text" name="official_phone" value="{{ meta.official_phone }}" placeholder="Official Phone">
+    <table class="c1-foot">
+      <tr>
+        <td style="width:33%;">
+          <span class="label">Name of Reporting Officer</span>
+          <input type="text" name="approving_authority" value="{{ meta.approving_authority }}">
+        </td>
+        <td style="width:33%;">
+          <span class="label">Designation</span>
+          <input type="text" name="authority_designation" value="{{ meta.authority_designation }}">
+        </td>
+        <td style="width:34%;">
+          <span class="label">Seal and Signature</span>
+          <div style="height:48px;"></div>
+        </td>
+      </tr>
+      <tr>
+        <td>
+          <span class="label">Mobile / Phone</span>
+          <input type="text" name="official_phone" value="{{ meta.official_phone }}">
+        </td>
+        <td>
+          <span class="label">Official Email</span>
+          <input type="email" name="official_email" value="{{ meta.official_email }}">
+        </td>
+        <td>
+          <span class="label">Date of Submission</span>
+          <input type="text" name="submission_date" value="{{ month_year }}">
+        </td>
+      </tr>
+    </table>
+
+    <div class="c1-note">
+      Note: TG = Transgender. T = Total. Please verify totals before final submission.
+    </div>
     </div>
   </form>
 </div>
@@ -199,7 +248,7 @@
   })();
 
   function downloadPdf() {
-    const el = document.getElementById('c1-table');
+    const el = document.getElementById('c1-export-area');
     html2pdf().set({ margin: 5, filename: 'CBHI-FORM1-{{ month_year }}.pdf', html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } }).from(el).save();
   }
 
