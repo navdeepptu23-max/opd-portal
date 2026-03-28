@@ -14,9 +14,13 @@ from wtforms.validators import DataRequired, Length, EqualTo, ValidationError
 from werkzeug.security import generate_password_hash, check_password_hash
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.pdfgen import canvas
-from docx import Document as DocxDocument
-from docx.shared import Inches, Pt
-from docx.enum.table import WD_TABLE_ALIGNMENT
+try:
+    from docx import Document as DocxDocument
+    from docx.shared import Inches, Pt
+    from docx.enum.table import WD_TABLE_ALIGNMENT
+    _HAS_DOCX = True
+except ImportError:
+    _HAS_DOCX = False
 from modules.morbidity import morbidity_bp
 
 app = Flask(__name__)
@@ -1164,6 +1168,8 @@ def _consolidated_report_payload(report_type, month_year):
 
 def _consolidated_payload_docx_bytes(payload):
     """Generate a Word (.docx) document from a consolidated payload."""
+    if not _HAS_DOCX:
+        return None
     doc = DocxDocument()
     style = doc.styles['Normal']
     style.font.size = Pt(9)
@@ -2801,6 +2807,9 @@ def consolidated_proforma_export(fmt):
         )
 
     # fmt == 'docx'
+    if not _HAS_DOCX:
+        flash('Word export is not available (python-docx not installed).', 'warning')
+        return redirect(url_for('consolidated_proforma_view', report_type=report_type, month_year=month_year))
     docx_bytes = _consolidated_payload_docx_bytes(payload)
     return Response(
         docx_bytes,
