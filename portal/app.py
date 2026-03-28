@@ -661,17 +661,30 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         username = _normalize_username(form.username.data)
-        user = User.query.filter(db.func.lower(User.username) == username.lower()).first()
-        if user and user.is_active and user.check_password(form.password.data):
-            login_user(user)
-            next_page = request.args.get('next', '')
-            # Guard against open redirect
-            if next_page.startswith('/') and not next_page.startswith('//'):
-                return redirect(next_page)
-            return redirect(url_for('dashboard'))
-        if not user:
+        users = User.query.filter(db.func.lower(User.username) == username.lower()).order_by(User.created_at.asc()).all()
+        if not users:
             flash('No account found for this username. Please register first.', 'danger')
-        elif not user.is_active:
+            return render_template('login.html', form=form)
+
+        active_users = [u for u in users if u.is_active]
+        inactive_users = [u for u in users if not u.is_active]
+
+        # Prefer active account match when legacy duplicate-case usernames exist.
+        for user in active_users:
+            if user.check_password(form.password.data):
+                login_user(user)
+                next_page = request.args.get('next', '')
+                # Guard against open redirect
+                if next_page.startswith('/') and not next_page.startswith('//'):
+                    return redirect(next_page)
+                return redirect(url_for('dashboard'))
+
+        for user in inactive_users:
+            if user.check_password(form.password.data):
+                flash('Your account is inactive. Contact admin.', 'danger')
+                return render_template('login.html', form=form)
+
+        if not active_users and inactive_users:
             flash('Your account is inactive. Contact admin.', 'danger')
         else:
             flash('Invalid username or password.', 'danger')
