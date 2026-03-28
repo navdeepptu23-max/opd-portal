@@ -250,34 +250,34 @@
           </td>
         </tr>
         {% else %}
-        {% if row.indicator_code == '10' %}
+        {% if row.indicator_code in ['1D', '10'] %}
         <tr class="row-multi row-auto">
           <td class="c-code">{{ row.indicator_code }}</td>
           <td class="c-name">{{ row.indicator_label }}</td>
           <td class="c-num">
             {% if current_user.is_authenticated %}
-            <input type="number" min="0" name="male_{{ row.id }}" value="{{ row.male }}" data-role="male" data-code="10" data-row-id="{{ row.id }}" readonly>
+            <input type="number" min="0" name="male_{{ row.id }}" value="{{ row.male }}" data-role="male" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}" readonly>
             {% else %}{{ row.male }}{% endif %}
           </td>
           <td class="c-num">
             {% if current_user.is_authenticated %}
-            <input type="number" min="0" name="female_{{ row.id }}" value="{{ row.female }}" data-role="female" data-code="10" data-row-id="{{ row.id }}" readonly>
+            <input type="number" min="0" name="female_{{ row.id }}" value="{{ row.female }}" data-role="female" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}" readonly>
             {% else %}{{ row.female }}{% endif %}
           </td>
           <td class="c-num">
             {% if current_user.is_authenticated %}
-            <input type="number" min="0" name="male_child_{{ row.id }}" value="{{ row.male_child_u14 }}" data-role="male-child" data-code="10" data-row-id="{{ row.id }}" readonly>
+            <input type="number" min="0" name="male_child_{{ row.id }}" value="{{ row.male_child_u14 }}" data-role="male-child" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}" readonly>
             {% else %}{{ row.male_child_u14 }}{% endif %}
           </td>
           <td class="c-num">
             {% if current_user.is_authenticated %}
-            <input type="number" min="0" name="female_child_{{ row.id }}" value="{{ row.female_child_u14 }}" data-role="female-child" data-code="10" data-row-id="{{ row.id }}" readonly>
+            <input type="number" min="0" name="female_child_{{ row.id }}" value="{{ row.female_child_u14 }}" data-role="female-child" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}" readonly>
             {% else %}{{ row.female_child_u14 }}{% endif %}
           </td>
           <td class="c-total">
             {% if current_user.is_authenticated %}
             <div style="display:flex; gap:4px; align-items:center;">
-            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-code="10" data-row-id="{{ row.id }}" readonly style="flex:1;">
+            <input type="number" min="0" name="total_{{ row.id }}" value="{{ row.total }}" data-role="total" data-code="{{ row.indicator_code }}" data-row-id="{{ row.id }}" readonly style="flex:1;">
             </div>
             {% else %}{{ row.total }}{% endif %}
           </td>
@@ -378,6 +378,26 @@
     });
 
     uniqueRowIds.forEach(updateRowTotal);
+
+    // Row 1D column formulas: sum each column from rows 1A, 1B, 1C
+    const update1DCols = () => {
+      ['male', 'female', 'male-child', 'female-child', 'total'].forEach(role => {
+        const r1a = document.querySelector(`input[data-code="1A"][data-role="${role}"]`);
+        const r1b = document.querySelector(`input[data-code="1B"][data-role="${role}"]`);
+        const r1c = document.querySelector(`input[data-code="1C"][data-role="${role}"]`);
+        const r1d = document.querySelector(`input[data-code="1D"][data-role="${role}"]`);
+        if (r1a && r1b && r1c && r1d) {
+          r1d.value = String(toInt(r1a.value) + toInt(r1b.value) + toInt(r1c.value));
+        }
+      });
+    };
+    ['1A', '1B', '1C'].forEach(code => {
+      ['male', 'female', 'male-child', 'female-child'].forEach(role => {
+        const el = document.querySelector(`input[data-code="${code}"][data-role="${role}"]`);
+        if (el) { el.addEventListener('input', update1DCols); el.addEventListener('change', update1DCols); }
+      });
+    });
+    update1DCols();
 
     // Row 10 column formulas: sum each column from rows 5, 6, 7, 8
     const update10Cols = () => {

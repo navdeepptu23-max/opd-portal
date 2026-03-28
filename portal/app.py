@@ -560,6 +560,14 @@ def proforma_i_hpi_report():
         
         # Compute auto-sum rows
         _by_code = {r.indicator_code: r for r in rows}
+
+        # Row 1D = Row 1A + Row 1B + Row 1C (column-wise)
+        if all(c in _by_code for c in ['1A', '1B', '1C', '1D']):
+            _by_code['1D'].male = _by_code['1A'].male + _by_code['1B'].male + _by_code['1C'].male
+            _by_code['1D'].female = _by_code['1A'].female + _by_code['1B'].female + _by_code['1C'].female
+            _by_code['1D'].male_child_u14 = _by_code['1A'].male_child_u14 + _by_code['1B'].male_child_u14 + _by_code['1C'].male_child_u14
+            _by_code['1D'].female_child_u14 = _by_code['1A'].female_child_u14 + _by_code['1B'].female_child_u14 + _by_code['1C'].female_child_u14
+            _by_code['1D'].total = _by_code['1D'].male + _by_code['1D'].female + _by_code['1D'].male_child_u14 + _by_code['1D'].female_child_u14
         
         # Row 10 = Row 5 + Row 6 + Row 7 + Row 8 (column-wise)
         if all(c in _by_code for c in ['5', '6', '7', '8', '10']):
