@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block title %}Consolidated Reports – OPD Portal{% endblock %}
+
+{% block content %}
+<div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+  <div>
+    <h1>Consolidated Reports</h1>
+    <p>User-wise report collection in the same proforma for a selected month</p>
+  </div>
+  <a href="{{ url_for('dashboard') }}" class="btn btn-ghost btn-sm">Back to Dashboard</a>
+</div>
+
+<div class="card" style="margin-bottom:1.25rem;">
+  <form method="GET" style="display:flex; gap:0.8rem; align-items:flex-end; flex-wrap:wrap;">
+    <div class="form-group" style="margin-bottom:0; min-width:240px;">
+      <label>Proforma</label>
+      <select name="report_type">
+        {% for key, label in report_labels.items() %}
+        <option value="{{ key }}" {% if report_type == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:0; min-width:200px;">
+      <label>Month &amp; Year</label>
+      <select name="month_year">
+        {% if month_options %}
+          {% for m in month_options %}
+          <option value="{{ m }}" {% if month_year == m %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        {% else %}
+          <option value="">No submissions yet</option>
+        {% endif %}
+      </select>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Load</button>
+  </form>
+</div>
+
+<div class="stat-grid" style="margin-bottom:1.2rem;">
+  <div class="stat-card">
+    <div class="stat-number">{{ consolidated.submitters }}</div>
+    <div class="stat-label">Users Submitted</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:var(--info);">{{ consolidated.total_opd }}</div>
+    <div class="stat-label">Total OPD</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:var(--success);">{{ consolidated.total_ipd }}</div>
+    <div class="stat-label">Total IPD</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number" style="color:var(--warning);">{{ consolidated.total_value }}</div>
+    <div class="stat-label">Total Value (HPI)</div>
+  </div>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden; margin-bottom:1.2rem;">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>User</th>
+          <th>Role</th>
+          <th>Month</th>
+          <th>OPD</th>
+          <th>IPD</th>
+          <th>Total Value</th>
+          <th>Last Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in submissions %}
+        <tr>
+          <td style="color:var(--text-muted); width:45px;">{{ loop.index }}</td>
+          <td><strong>{{ item.user.username if item.user else 'Deleted User' }}</strong></td>
+          <td>
+            {% if item.user and item.user.role == 'super_admin' %}
+              <span class="badge badge-super">Super Admin</span>
+            {% elif item.user and item.user.role == 'admin' %}
+              <span class="badge badge-admin">Admin</span>
+            {% else %}
+              <span class="badge badge-sub">Sub</span>
+            {% endif %}
+          </td>
+          <td>{{ item.month_year }}</td>
+          <td>{{ item.total_opd }}</td>
+          <td>{{ item.total_ipd }}</td>
+          <td>{{ item.total_value }}</td>
+          <td style="color:var(--text-muted); font-size:0.82rem;">{{ item.updated_at.strftime('%d %b %Y %I:%M %p') }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" style="text-align:center; color:var(--text-muted); padding:2rem;">No user submissions found for selected proforma/month.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <div style="padding:0.9rem 1rem; border-bottom:1px solid var(--border); font-weight:700; color:var(--text);">Monthly Consolidated Trend</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Users Submitted</th>
+          <th>Total OPD</th>
+          <th>Total IPD</th>
+          <th>Total Value</th>
+          <th>Open Proforma</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in monthly_rows %}
+        <tr>
+          <td><strong>{{ row.month_year }}</strong></td>
+          <td>{{ row.submitters }}</td>
+          <td>{{ row.total_opd }}</td>
+          <td>{{ row.total_ipd }}</td>
+          <td>{{ row.total_value }}</td>
+          <td>
+            {% if report_type == 'hospital_indicator' %}
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('hospital_indicator_report', month_year=row.month_year) }}">Open</a>
+            {% elif report_type == 'proforma_ii' %}
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('proforma_ii_editable_report', month_year=row.month_year) }}">Open</a>
+            {% else %}
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('proforma_i_hpi_report', month_year=row.month_year) }}">Open</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" style="text-align:center; color:var(--text-muted); padding:1.8rem;">No monthly data available yet for this proforma.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

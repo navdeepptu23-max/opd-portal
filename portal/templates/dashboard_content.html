@@ -25,6 +25,17 @@
   </div>
 </div>
 
+<div class="card" style="margin-bottom:1.25rem; display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+  <div>
+    <div style="font-size:1rem; font-weight:700; color:var(--text);">Report Collection</div>
+    <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.2rem;">View user-wise consolidated totals for each proforma and month.</div>
+  </div>
+  <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+    <a href="{{ url_for('reports_dashboard') }}" class="btn btn-ghost btn-sm">Reports Dashboard</a>
+    <a href="{{ url_for('consolidated_reports') }}" class="btn btn-primary btn-sm">Consolidated Reports</a>
+  </div>
+</div>
+
 {# ── Search ── #}
 <form method="GET" class="search-row">
   <input type="text" name="q" value="{{ search }}" placeholder="Search users…" autocomplete="off">

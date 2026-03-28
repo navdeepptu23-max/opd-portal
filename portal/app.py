@@ -240,6 +240,25 @@ class ProformaIIMeta(db.Model):
     institution_name = db.Column(db.String(200), nullable=False, default='PHC POSSI')
 
 
+class UserReportSubmission(db.Model):
+    __tablename__ = 'user_report_submissions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    report_type = db.Column(db.String(30), nullable=False, index=True)
+    month_year = db.Column(db.String(20), nullable=False, index=True)
+    total_opd = db.Column(db.Integer, nullable=False, default=0)
+    total_ipd = db.Column(db.Integer, nullable=False, default=0)
+    total_value = db.Column(db.Integer, nullable=False, default=0)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = db.relationship('User', backref='report_submissions')
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'report_type', 'month_year', name='uq_user_report_month_type'),
+    )
+
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -247,6 +266,13 @@ def load_user(user_id):
 
 def _normalize_username(value):
     return str(value or '').strip()
+
+
+def _parse_month_year(value):
+    try:
+        return datetime.strptime((value or '').upper(), '%b-%Y')
+    except ValueError:
+        return datetime.min
 
 
 # ── Forms ────────────────────────────────────────────────────────────────────
@@ -359,6 +385,24 @@ def _to_non_negative_int(value):
         return 0
 
 
+def _upsert_report_submission(user_id, month_year, report_type, total_opd=0, total_ipd=0, total_value=0):
+    submission = UserReportSubmission.query.filter_by(
+        user_id=user_id,
+        report_type=report_type,
+        month_year=month_year,
+    ).first()
+    if not submission:
+        submission = UserReportSubmission(
+            user_id=user_id,
+            report_type=report_type,
+            month_year=month_year,
+        )
+        db.session.add(submission)
+    submission.total_opd = _to_non_negative_int(total_opd)
+    submission.total_ipd = _to_non_negative_int(total_ipd)
+    submission.total_value = _to_non_negative_int(total_value)
+
+
 def _ensure_hospital_indicator_rows(month_year):
     existing_count = HospitalIndicator.query.filter_by(month_year=month_year).count()
     if existing_count == 0:
@@ -440,6 +484,17 @@ def hospital_indicator_report():
             item.opd_count = _to_non_negative_int(request.form.get(f'opd_{item.id}', 0))
             item.ipd_count = _to_non_negative_int(request.form.get(f'ipd_{item.id}', 0))
 
+        total_opd = sum(item.opd_count for item in indicators)
+        total_ipd = sum(item.ipd_count for item in indicators)
+        _upsert_report_submission(
+            user_id=current_user.id,
+            month_year=month_year,
+            report_type='hospital_indicator',
+            total_opd=total_opd,
+            total_ipd=total_ipd,
+            total_value=0,
+        )
+
         db.session.commit()
         flash('Hospital Indicator Report updated successfully.', 'success')
         return redirect(url_for('hospital_indicator_report', month_year=month_year))
@@ -510,6 +565,15 @@ def proforma_i_hpi_report():
         if all(c in _by_code for c in ['13', '14', '15']):
             _by_code['15'].total = _by_code['13'].total + _by_code['14'].total
 
+        _upsert_report_submission(
+            user_id=current_user.id,
+            month_year=month_year,
+            report_type='proforma_i',
+            total_opd=0,
+            total_ipd=0,
+            total_value=sum(r.total for r in rows),
+        )
+
         db.session.commit()
         flash('PROFORMA-I HPI report saved successfully.', 'success')
         return redirect(url_for('proforma_i_hpi_report', month_year=month_year))
@@ -543,6 +607,17 @@ def proforma_ii_editable_report():
         for row in rows:
             row.opd_count = _to_non_negative_int(request.form.get(f'opd_{row.id}', 0))
             row.ipd_count = _to_non_negative_int(request.form.get(f'ipd_{row.id}', 0))
+
+        total_opd = sum(row.opd_count for row in rows)
+        total_ipd = sum(row.ipd_count for row in rows)
+        _upsert_report_submission(
+            user_id=current_user.id,
+            month_year=month_year,
+            report_type='proforma_ii',
+            total_opd=total_opd,
+            total_ipd=total_ipd,
+            total_value=0,
+        )
 
         db.session.commit()
         flash('PROFORMA-II report saved successfully.', 'success')
@@ -693,6 +768,79 @@ def reports_dashboard():
         hi_count=len(hi_months),
         p1_count=len(p1_months),
         p2_count=len(p2_months),
+    )
+
+
+@app.route('/admin/consolidated-reports')
+@login_required
+def consolidated_reports():
+    if not current_user.is_admin_or_above:
+        abort(403)
+
+    report_labels = {
+        'hospital_indicator': 'Hospital Indicator',
+        'proforma_i': 'PROFORMA-I (HPI)',
+        'proforma_ii': 'PROFORMA-II (Morbidity)',
+    }
+    report_type = request.args.get('report_type', 'proforma_i')
+    if report_type not in report_labels:
+        report_type = 'proforma_i'
+
+    month_options = [
+        m[0] for m in db.session.query(UserReportSubmission.month_year)
+        .filter_by(report_type=report_type)
+        .distinct()
+        .all()
+    ]
+    month_options.sort(key=_parse_month_year, reverse=True)
+
+    month_year = (request.args.get('month_year') or '').upper().strip()
+    if not month_year and month_options:
+        month_year = month_options[0]
+
+    submissions = []
+    if month_year:
+        submissions = UserReportSubmission.query.filter_by(
+            report_type=report_type,
+            month_year=month_year,
+        ).order_by(UserReportSubmission.updated_at.desc()).all()
+
+    consolidated = {
+        'submitters': len(submissions),
+        'total_opd': sum(item.total_opd for item in submissions),
+        'total_ipd': sum(item.total_ipd for item in submissions),
+        'total_value': sum(item.total_value for item in submissions),
+    }
+
+    monthly_summary = db.session.query(
+        UserReportSubmission.month_year,
+        db.func.count(UserReportSubmission.id),
+        db.func.sum(UserReportSubmission.total_opd),
+        db.func.sum(UserReportSubmission.total_ipd),
+        db.func.sum(UserReportSubmission.total_value),
+    ).filter_by(report_type=report_type).group_by(UserReportSubmission.month_year).all()
+
+    monthly_rows = [
+        {
+            'month_year': row[0],
+            'submitters': int(row[1] or 0),
+            'total_opd': int(row[2] or 0),
+            'total_ipd': int(row[3] or 0),
+            'total_value': int(row[4] or 0),
+        }
+        for row in monthly_summary
+    ]
+    monthly_rows.sort(key=lambda r: _parse_month_year(r['month_year']), reverse=True)
+
+    return render_template(
+        'consolidated_reports.html',
+        report_labels=report_labels,
+        report_type=report_type,
+        month_year=month_year,
+        month_options=month_options,
+        submissions=submissions,
+        consolidated=consolidated,
+        monthly_rows=monthly_rows,
     )
 
 
