@@ -1,0 +1,42 @@
+Step 1: Deleting Singapore database...
+Old database deleted.
+Step 2: Creating new Oregon database...
+Database created: dpg-d741kfkr85hc73fjlcj0-a
+Step 3: Waiting for database...
+  [5s] creating
+  [10s] creating
+  [15s] creating
+  [20s] creating
+  [25s] creating
+  [30s] creating
+  [35s] creating
+  [40s] creating
+  [45s] creating
+  [50s] creating
+  [55s] creating
+  [60s] creating
+  [65s] creating
+  [70s] creating
+  [75s] creating
+  [80s] creating
+  [85s] creating
+  [90s] available
+Step 4: Getting connection string...
+Connection URL: postgresql://opduser:iSmFAGZe25rZ4FY4Fjf0mG8IT0shM...
+Step 5: Updating environment variables...
+Env vars updated.
+Step 6: Triggering deploy...
+Deploy triggered: dep-d741l94hg0os739r5h4g
+Step 7: Waiting for deploy...
+  [15s] build_in_progress
+  [30s] build_in_progress
+  [45s] build_in_progress
+  [60s] build_in_progress
+  [75s] build_in_progress
+  [90s] build_in_progress
+  [105s] update_in_progress
+  [120s] update_in_progress
+  [135s] update_in_progress
+  [150s] live
+DEPLOY IS LIVE!
+DONE.

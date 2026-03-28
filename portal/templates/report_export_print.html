@@ -26,9 +26,31 @@
       text-decoration: none;
     }
     h1 {
-      font-size: 20px;
-      margin: 0 0 6px 0;
-      color: #000;
+      font-size: 22px;
+      margin: 0;
+      color: #1a3c5e;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+    .header-box {
+      background: linear-gradient(135deg, #eaf2fb 0%, #f0faf2 100%);
+      border: 1px solid #c5d8e8;
+      border-radius: 10px;
+      padding: 14px 18px 10px;
+      margin-bottom: 14px;
+    }
+    .header-box .subtitle {
+      font-size: 13px;
+      font-weight: 700;
+      color: #2a6f3b;
+      margin-top: 4px;
+    }
+    .header-divider {
+      height: 3px;
+      background: linear-gradient(90deg, #1a3c5e, #2a9d5c, #1a3c5e);
+      border: none;
+      border-radius: 2px;
+      margin: 6px 0 0;
     }
     .meta {
       margin-bottom: 12px;
@@ -52,11 +74,20 @@
     }
     @media print {
       .toolbar { display: none !important; }
+      .header-box {
+        background: #fff !important;
+        border: 2px solid #000 !important;
+      }
+      .header-divider {
+        background: #000 !important;
+      }
+      h1 { color: #000 !important; }
+      .header-box .subtitle { color: #000 !important; }
       * {
         color: #000 !important;
-        background: #fff !important;
         border-color: #000 !important;
       }
+      td, th { background: #fff !important; }
       @page {
         margin: 8mm;
         size: A4 landscape;
@@ -70,8 +101,11 @@
     <a class="btn" href="javascript:window.close();">Close</a>
   </div>
 
-  <h1>{{ payload.title }}</h1>
-  <div class="meta">Month-Year: {{ payload.month_year }} | User: {{ username }}</div>
+  <div class="header-box">
+    <h1>{{ payload.title }}</h1>
+    <div class="subtitle">Month-Year: {{ payload.month_year }} &nbsp;|&nbsp; User: {{ username }}</div>
+    <hr class="header-divider">
+  </div>
 
   <table>
     <thead>
