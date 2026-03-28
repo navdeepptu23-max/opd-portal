@@ -21,7 +21,7 @@
           {% elif current_user.role == 'admin' %}
             <span class="badge badge-admin">Admin</span>
           {% else %}
-            <span class="badge badge-sub">Sub User</span>
+            <span class="badge badge-sub">General User</span>
           {% endif %}
           &nbsp;· Member since {{ current_user.created_at.strftime('%B %Y') }}
         </div>

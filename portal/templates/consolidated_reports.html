@@ -94,6 +94,20 @@
           <td style="color:var(--text-muted); font-size:0.82rem;">{{ item.updated_at.strftime('%d %b %Y %I:%M %p') }}</td>
           <td>
             <div class="td-actions">
+              {% if report_type == 'proforma_ii' %}
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('proforma_ii_editable_report', month_year=item.month_year) }}">View</a>
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('proforma_ii_editable_report', month_year=item.month_year) }}">Edit</a>
+              {% elif report_type == 'cbhi_form1' %}
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('cbhi_form1_report', month_year=item.month_year) }}">View</a>
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('cbhi_form1_report', month_year=item.month_year) }}">Edit</a>
+              {% elif report_type == 'cbhi_form2' %}
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('cbhi_form2_report', month_year=item.month_year) }}">View</a>
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('cbhi_form2_report', month_year=item.month_year) }}">Edit</a>
+              {% else %}
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('proforma_i_hpi_report', month_year=item.month_year) }}">View</a>
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('proforma_i_hpi_report', month_year=item.month_year) }}">Edit</a>
+              {% endif %}
+
               <form method="POST" action="{{ url_for('consolidated_reports_status_update') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="user_id" value="{{ item.user_id }}">
@@ -104,6 +118,16 @@
                 <button class="btn btn-ghost btn-sm" type="submit" name="action" value="approve">Approve</button>
                 <button class="btn btn-ghost btn-sm" type="submit" name="action" value="reject">Reject</button>
                 <button class="btn btn-danger btn-sm" type="submit" name="action" value="reset">Reset</button>
+              </form>
+
+              <form method="POST" action="{{ url_for('consolidated_reports_delete') }}" onsubmit="return confirm('Delete this user submission?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="user_id" value="{{ item.user_id }}">
+                <input type="hidden" name="report_type" value="{{ report_type }}">
+                <input type="hidden" name="month_year" value="{{ month_year }}">
+                <input type="hidden" name="next_report_type" value="{{ report_type }}">
+                <input type="hidden" name="next_month_year" value="{{ month_year }}">
+                <button class="btn btn-danger btn-sm" type="submit">Delete</button>
               </form>
             </div>
           </td>

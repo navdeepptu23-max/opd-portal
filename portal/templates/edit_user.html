@@ -19,7 +19,7 @@
         <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
           {% if user.role == 'super_admin' %}<span class="badge badge-super">Super Admin</span>
           {% elif user.role == 'admin' %}<span class="badge badge-admin">Admin</span>
-          {% else %}<span class="badge badge-sub">Sub User</span>{% endif %}
+          {% else %}<span class="badge badge-sub">General User</span>{% endif %}
           &nbsp;·&nbsp;Joined {{ user.created_at.strftime('%d %b %Y') }}
           &nbsp;·&nbsp;<span class="dot {{ 'dot-active' if user.is_active else 'dot-inactive' }}" style="display:inline-block;"></span>
           {{ 'Active' if user.is_active else 'Inactive' }}

@@ -27,8 +27,8 @@
         {{ form.role.label }}
         {{ form.role() }}
         <div style="font-size:0.78rem; color:var(--text-muted); margin-top:0.3rem;">
-          <strong>Admin</strong> — can save reports and manage sub users.&nbsp;&nbsp;
-          <strong>Sub User</strong> — can view reports only.
+          <strong>Admin</strong> — can review, manage users, and control submissions.&nbsp;&nbsp;
+          <strong>General User</strong> — can fill and submit all reports to admin.
         </div>
         {% for err in form.role.errors %}<div class="field-error">{{ err }}</div>{% endfor %}
       </div>

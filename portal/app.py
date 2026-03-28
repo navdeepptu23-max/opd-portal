@@ -586,7 +586,7 @@ class CreateUserForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(3, 80)])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8)])
     confirm  = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password', message='Passwords must match.')])
-    role     = SelectField('Role', choices=[('sub', 'Sub User'), ('admin', 'Admin')])
+    role     = SelectField('Role', choices=[('sub', 'General User'), ('admin', 'Admin')])
     submit   = SubmitField('Create User')
 
     def validate_username(self, field):
@@ -623,7 +623,7 @@ class ChangePasswordForm(FlaskForm):
 
 class EditUserForm(FlaskForm):
     username     = StringField('Username', validators=[DataRequired(), Length(3, 80)])
-    role         = SelectField('Role', choices=[('sub', 'Sub User'), ('admin', 'Admin')])
+    role         = SelectField('Role', choices=[('sub', 'General User'), ('admin', 'Admin')])
     new_password = PasswordField('New Password (leave blank to keep current)', validators=[Length(min=0)])
     confirm      = PasswordField('Confirm New Password', validators=[EqualTo('new_password', message='Passwords must match.')])
     submit       = SubmitField('Save Changes')
@@ -1277,7 +1277,7 @@ def register():
     form = CreateUserForm()
     # Only super_admin may create other admins
     if not current_user.is_super_admin:
-        form.role.choices = [('sub', 'Sub User')]
+        form.role.choices = [('sub', 'General User')]
     if form.validate_on_submit():
         new_user = User(
             username=_normalize_username(form.username.data),
@@ -1469,6 +1469,48 @@ def consolidated_reports_status_update():
     return redirect(url_for('consolidated_reports', report_type=next_report_type, month_year=next_month_year))
 
 
+@app.route('/admin/consolidated-reports/delete', methods=['POST'])
+@login_required
+def consolidated_reports_delete():
+    if not current_user.is_admin_or_above:
+        abort(403)
+
+    user_id = _to_non_negative_int(request.form.get('user_id'))
+    report_type = (request.form.get('report_type') or '').strip()
+    month_year = (request.form.get('month_year') or '').strip().upper()
+    next_report_type = (request.form.get('next_report_type') or report_type).strip()
+    next_month_year = (request.form.get('next_month_year') or month_year).strip().upper()
+
+    allowed_report_types = ('hospital_indicator', 'proforma_i', 'proforma_ii', 'cbhi_form1', 'cbhi_form2')
+    if report_type not in allowed_report_types or not user_id or not month_year:
+        flash('Invalid delete request.', 'danger')
+        return redirect(url_for('consolidated_reports', report_type=next_report_type, month_year=next_month_year))
+
+    submission = UserReportSubmission.query.filter_by(
+        user_id=user_id,
+        report_type=report_type,
+        month_year=month_year,
+    ).first()
+    status_row = UserReportStatus.query.filter_by(
+        user_id=user_id,
+        report_type=report_type,
+        month_year=month_year,
+    ).first()
+
+    if not submission and not status_row:
+        flash('No matching submission found to delete.', 'warning')
+        return redirect(url_for('consolidated_reports', report_type=next_report_type, month_year=next_month_year))
+
+    if submission:
+        db.session.delete(submission)
+    if status_row:
+        db.session.delete(status_row)
+
+    db.session.commit()
+    flash('Report submission deleted successfully.', 'success')
+    return redirect(url_for('consolidated_reports', report_type=next_report_type, month_year=next_month_year))
+
+
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
@@ -1536,7 +1578,7 @@ def edit_user(user_id):
         abort(403)
     form = EditUserForm(user_id=user.id, obj=user)
     if not current_user.is_super_admin:
-        form.role.choices = [('sub', 'Sub User')]
+        form.role.choices = [('sub', 'General User')]
     if form.validate_on_submit():
         user.username = _normalize_username(form.username.data)
         user.role = form.role.data

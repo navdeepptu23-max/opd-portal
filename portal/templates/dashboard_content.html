@@ -21,7 +21,7 @@
   </div>
   <div class="stat-card">
     <div class="stat-number" style="color:var(--text-muted);">{{ subs }}</div>
-    <div class="stat-label">Sub Users</div>
+    <div class="stat-label">General Users</div>
   </div>
 </div>
 
@@ -70,7 +70,7 @@
             {% elif user.role == 'admin' %}
               <span class="badge badge-admin">Admin</span>
             {% else %}
-              <span class="badge badge-sub">Sub</span>
+              <span class="badge badge-sub">General User</span>
             {% endif %}
           </td>
           <td>
@@ -117,7 +117,7 @@
 <div class="card" style="text-align:center; padding:3rem 2rem;">
   <div style="font-size:3rem; margin-bottom:1rem;">👤</div>
   <h2 style="margin-bottom:0.5rem;">Welcome, {{ current_user.username }}!</h2>
-  <p style="color:var(--text-muted);">You are logged in as a Sub User. Contact your admin for access details.</p>
+  <p style="color:var(--text-muted);">You are logged in as a General User. You can fill and submit all reports to admin.</p>
   <div style="margin-top:1.5rem; display:flex; gap:0.75rem; justify-content:center;">
     <a href="{{ url_for('profile') }}" class="btn btn-ghost">My Profile</a>
     <a href="{{ url_for('change_password') }}" class="btn btn-ghost">Change Password</a>

@@ -288,7 +288,7 @@
       {% elif current_user.role == 'admin' %}
         <span class="badge badge-admin">Admin</span>
       {% else %}
-        <span class="badge badge-sub">Sub User</span>
+        <span class="badge badge-sub">General User</span>
       {% endif %}
     </span>
     <a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}class="active"{% endif %}>Dashboard</a>
