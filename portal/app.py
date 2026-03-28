@@ -66,6 +66,10 @@ def _session_debug_before_request():
 @app.before_request
 def _enforce_active_account_session():
     # Prevent stale remember-cookie sessions for deactivated accounts.
+    # Restrict this to navigational requests so form POST submissions are not
+    # interrupted by session churn in edge proxy/browser cases.
+    if request.method != 'GET':
+        return
     if not current_user.is_authenticated:
         return
     if current_user.is_active:
@@ -1504,7 +1508,7 @@ def login():
         for user in active_users:
             if user.check_password(form.password.data):
                 session.clear()
-                login_user(user, remember=False)
+                login_user(user, remember=True)
                 session.permanent = True
                 _record_login_attempt(username=user.username, success=True, reason='login_success', user=user)
                 next_page = request.args.get('next', '')
