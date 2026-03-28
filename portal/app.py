@@ -76,6 +76,8 @@ def _session_debug_before_request():
 
 
 _USING_SQLITE = 'sqlite' in database_url.lower()
+_ON_RENDER = bool(os.environ.get('RENDER', ''))
+_SQLITE_ON_RENDER = _USING_SQLITE and _ON_RENDER  # DB expired in production
 
 
 @app.before_request
@@ -2037,6 +2039,7 @@ def signup():
         new_user.set_password(form.password.data)
         db.session.add(new_user)
         db.session.commit()
+        print(f'[AUDIT] Self-signup: user \"{new_user.username}\" (id={new_user.id}) registered')
         flash('Account created successfully. You can now sign in.', 'success')
         return redirect(url_for('login'))
     return render_template('signup.html', form=form)
@@ -2068,6 +2071,11 @@ def register():
     # Only super_admin may create other admins
     if not current_user.is_super_admin:
         form.role.choices = [('sub', 'General User')]
+    if _SQLITE_ON_RENDER:
+        flash('Cannot create users: PostgreSQL database is not connected. '
+              'Users created now will be LOST on next restart. '
+              'Please fix DATABASE_URL on Render first.', 'danger')
+        return redirect(url_for('dashboard'))
     if form.validate_on_submit():
         new_user = User(
             username=_normalize_username(form.username.data),
@@ -2078,6 +2086,7 @@ def register():
         new_user.set_password(form.password.data)
         db.session.add(new_user)
         db.session.commit()
+        print(f'[AUDIT] User "{new_user.username}" (id={new_user.id}) created by "{current_user.username}" (id={current_user.id})')
         flash(f'User "{new_user.username}" created successfully.', 'success')
         return redirect(url_for('dashboard'))
     return render_template('register.html', form=form)
@@ -2142,6 +2151,8 @@ def dashboard():
         sort_dir=sort_dir,
         stats=stats,
         login_audits=login_audits,
+        using_sqlite=_USING_SQLITE,
+        sqlite_on_render=_SQLITE_ON_RENDER,
     )
 
 
@@ -2277,6 +2288,12 @@ def import_users_csv():
     if not current_user.is_admin_or_above:
         abort(403)
 
+    if _SQLITE_ON_RENDER:
+        flash('Cannot import users: PostgreSQL database is not connected. '
+              'Users imported now will be LOST on next restart. '
+              'Please fix DATABASE_URL on Render first.', 'danger')
+        return redirect(url_for('dashboard'))
+
     upload = request.files.get('users_csv')
     if not upload or not (upload.filename or '').strip():
         flash('Please choose a CSV file to import users.', 'warning')
@@ -2355,6 +2372,8 @@ def import_users_csv():
             'CSV import: %d created, %d verified in DB (engine=%s)',
             len(created_users), verified, db_engine,
         )
+        print(f'[AUDIT] CSV import by \"{current_user.username}\" (id={current_user.id}): '
+              f'{len(created_users)} created, {verified} verified (engine={db_engine})')
         if verified < len(created_users):
             app.logger.error(
                 'CSV import VERIFICATION FAILED: only %d/%d users found after commit (engine=%s)',
@@ -3100,9 +3119,11 @@ def toggle_user(user_id):
     user = User.query.get_or_404(user_id)
     if not current_user.can_manage(user):
         abort(403)
+    old_status = user.is_active
     user.is_active = not user.is_active
     db.session.commit()
     status = 'activated' if user.is_active else 'deactivated'
+    print(f'[AUDIT] User "{user.username}" (id={user.id}) {status} by "{current_user.username}" (id={current_user.id}) [was_active={old_status}]')
     flash(f'User "{user.username}" {status}.', 'success')
     return redirect(url_for('dashboard'))
 
@@ -3115,9 +3136,15 @@ def delete_user(user_id):
     user = User.query.get_or_404(user_id)
     if not current_user.can_manage(user):
         abort(403)
+    if _SQLITE_ON_RENDER:
+        flash('Cannot delete users: PostgreSQL database is not connected. '
+              'Please fix DATABASE_URL on Render first.', 'danger')
+        return redirect(url_for('dashboard'))
     username = user.username
+    user_id = user.id
     db.session.delete(user)
     db.session.commit()
+    print(f'[AUDIT] User "{username}" (id={user_id}) DELETED by "{current_user.username}" (id={current_user.id})')
     flash(f'User "{username}" deleted.', 'success')
     return redirect(url_for('dashboard'))
 
@@ -3181,6 +3208,12 @@ def seed_admin():
     print(f'[STARTUP] Total users in database: {total_users}')
     if 'sqlite' in db_engine:
         print('[STARTUP] WARNING: Running on SQLite – data will be lost on restart!')
+    if total_users and total_users <= 50:
+        rows = db.session.execute(db.text(
+            "SELECT id, username, role, is_active, created_by FROM users ORDER BY id"
+        )).fetchall()
+        for r in rows:
+            print(f'[STARTUP]   user id={r[0]} username=\"{r[1]}\" role={r[2]} active={r[3]} created_by={r[4]}')
 
     # Startup migrations:
     # 1. Fix NULL is_active rows → active.

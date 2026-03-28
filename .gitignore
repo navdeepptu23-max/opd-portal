@@ -6,3 +6,5 @@ data/users.json
 .DS_Store
 dist/
 build/
+__pycache__/
+*.pyc

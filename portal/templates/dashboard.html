@@ -2,6 +2,17 @@
 {% block title %}Dashboard – OPD Portal{% endblock %}
 
 {% block content %}
+{% if sqlite_on_render %}
+<div style="background:#ff4d6d; color:#fff; padding:1rem 1.5rem; border-radius:8px; margin-bottom:1.5rem; font-weight:600; text-align:center;">
+  ⚠️ DATABASE DISCONNECTED — PostgreSQL expired on Render. All users from the real database are NOT visible.
+  New users created now will be LOST on next restart. Please create a new database on Render and update DATABASE_URL.
+  <br><small style="font-weight:400;">Current engine: SQLite (fallback mode)</small>
+</div>
+{% elif using_sqlite %}
+<div style="background:#ffc93c; color:#222; padding:0.75rem 1.5rem; border-radius:8px; margin-bottom:1.5rem; font-weight:600; text-align:center;">
+  ⚠️ Running on SQLite (development mode). Data will not persist in production.
+</div>
+{% endif %}
 <div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
   <div>
     <h1>Dashboard</h1>
