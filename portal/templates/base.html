@@ -82,6 +82,17 @@
       border: 1px solid var(--border);
       margin-right: 0.25rem;
     }
+    .nav-userlist {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      padding: 0.25rem 0.6rem;
+      border-radius: 20px;
+      border: 1px dashed var(--border);
+      max-width: 280px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     .badge {
       font-size: 0.65rem;
       padding: 0.15rem 0.5rem;
@@ -309,6 +320,9 @@
     {% endif %}
     <a href="{{ url_for('profile') }}" {% if request.endpoint == 'profile' %}class="active"{% endif %}>Profile</a>
     <a href="{{ url_for('register') }}" {% if request.endpoint == 'register' %}class="active"{% endif %}>+ New User</a>
+    {% if nav_all_usernames %}
+    <span class="nav-userlist" title="{{ nav_all_usernames | join(', ') }}">Users: {{ nav_all_usernames | join(', ') }}</span>
+    {% endif %}
     <form method="POST" action="{{ url_for('logout') }}" style="display:inline;">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit">Sign Out</button>
