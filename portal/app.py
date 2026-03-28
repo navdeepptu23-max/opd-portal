@@ -1563,7 +1563,7 @@ def logout():
 @app.route('/register', methods=['GET', 'POST'])
 @login_required
 def register():
-    if not current_user.is_active:
+    if not current_user.is_active or not current_user.is_admin_or_above:
         abort(403)
     form = CreateUserForm()
     # Only super_admin may create other admins
@@ -1573,7 +1573,8 @@ def register():
         new_user = User(
             username=_normalize_username(form.username.data),
             role=form.role.data,
-            created_by=current_user.id
+            created_by=current_user.id,
+            is_active=True,
         )
         new_user.set_password(form.password.data)
         db.session.add(new_user)
@@ -1593,6 +1594,23 @@ def dashboard():
     status_filter = request.args.get('status', 'all').strip()
     sort_by = request.args.get('sort_by', 'created_at').strip()
     sort_dir = request.args.get('sort_dir', 'desc').strip().lower()
+
+    # Normalize filters so stale query params never hide users unexpectedly.
+    if current_user.is_super_admin:
+        allowed_roles = {'all', 'super_admin', 'admin', 'sub'}
+    elif current_user.role == 'admin':
+        allowed_roles = {'all', 'sub'}
+    else:
+        allowed_roles = {'all'}
+    if role_filter not in allowed_roles:
+        role_filter = 'all'
+
+    if status_filter not in {'all', 'active', 'inactive'}:
+        status_filter = 'all'
+    if sort_by not in {'created_at', 'username', 'role', 'status'}:
+        sort_by = 'created_at'
+    if sort_dir not in {'asc', 'desc'}:
+        sort_dir = 'desc'
 
     filtered_query = _apply_user_dashboard_filters(
         scope_query,
