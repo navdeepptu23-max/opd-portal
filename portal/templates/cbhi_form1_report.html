@@ -64,6 +64,62 @@
   .c1-toolbar { display:flex; justify-content:space-between; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:10px; }
   .c1-status { font-size:0.82rem; color:#314235; font-weight:800; }
   .c1-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
+  .c1-month-card {
+    margin-bottom:1rem;
+    padding:1rem 1.1rem;
+    background:linear-gradient(135deg, #fff3a6 0%, #ffe08a 52%, #fff7d1 100%);
+    border:1px solid #b78c12;
+    border-radius:12px;
+    box-shadow:0 8px 20px rgba(120, 90, 0, 0.16);
+  }
+  .c1-month-form {
+    display:flex;
+    gap:0.9rem;
+    align-items:flex-end;
+    flex-wrap:wrap;
+  }
+  .c1-month-group {
+    margin-bottom:0;
+    min-width:280px;
+  }
+  .c1-month-group label {
+    display:block;
+    margin-bottom:0.45rem;
+    color:#5a4100;
+    font-weight:900;
+    font-size:0.92rem;
+    letter-spacing:0.04em;
+    text-shadow:0 1px 0 rgba(255,255,255,0.45);
+  }
+  .c1-month-group input {
+    min-height:46px;
+    border:1px solid #9f7a0b !important;
+    background:#fffbea !important;
+    color:#2d2200 !important;
+    font-size:1rem;
+    font-weight:900 !important;
+    text-transform:uppercase;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.9), 0 1px 2px rgba(84, 63, 0, 0.08);
+    opacity:1 !important;
+  }
+  .c1-month-group input::placeholder {
+    color:#7b6422;
+    opacity:1;
+  }
+  .c1-month-button {
+    min-height:46px;
+    padding:0.75rem 1.25rem;
+    border:1px solid #926d00 !important;
+    background:linear-gradient(180deg, #ffe88d 0%, #ffd54d 100%) !important;
+    color:#4a3400 !important;
+    font-weight:900 !important;
+    box-shadow:0 2px 6px rgba(102, 74, 0, 0.14);
+  }
+  .c1-month-button:hover,
+  .c1-month-button:focus {
+    background:linear-gradient(180deg, #ffe17a 0%, #ffc933 100%) !important;
+    color:#382800 !important;
+  }
   .c1-pdf-export {
     background:#fff;
     color:#000;
@@ -115,13 +171,13 @@
   <p>Monthly report on institutional cases and deaths due to communicable diseases</p>
 </div>
 
-<div class="card" style="margin-bottom:1rem;">
-  <form method="GET" style="display:flex; gap:0.7rem; align-items:flex-end; flex-wrap:wrap;">
-    <div class="form-group" style="margin-bottom:0; min-width:180px;">
+<div class="c1-month-card no-print">
+  <form method="GET" class="c1-month-form">
+    <div class="form-group c1-month-group">
       <label>Month &amp; Year</label>
       <input type="text" name="month_year" value="{{ month_year }}" placeholder="MAR-2026">
     </div>
-    <button type="submit" class="btn btn-ghost btn-sm">Load Month</button>
+    <button type="submit" class="btn btn-ghost btn-sm c1-month-button">Load Month</button>
   </form>
 </div>
 
