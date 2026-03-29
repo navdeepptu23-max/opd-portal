@@ -3,131 +3,145 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ payload.title }} - {{ payload.month_year }}</title>
+  <title>PROFORMA-II (Consolidated) – {{ month_year }}</title>
   <style>
     body {
       font-family: Arial, Helvetica, sans-serif;
       background: #fff;
-      color: #000;
+      color: #101820;
       margin: 18px;
     }
-    .toolbar {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-    .btn {
-      border: 1px solid #000;
-      color: #000;
-      background: #fff;
-      padding: 6px 10px;
-      font-size: 13px;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    h1 {
-      font-size: 22px;
-      margin: 0;
-      color: #1a3c5e;
+    .p2-wrap {
+      background: #f8fbff;
+      color: #101820;
+      border-radius: 8px;
+      padding: 14px;
+      overflow-x: auto;
+      border: 1px solid #d9e7f5;
       font-weight: 800;
-      letter-spacing: 0.03em;
+      margin-bottom: 1.5rem;
     }
-    .header-box {
-      background: linear-gradient(135deg, #eaf2fb 0%, #f0faf2 100%);
-      border: 1px solid #c5d8e8;
-      border-radius: 10px;
-      padding: 14px 18px 10px;
-      margin-bottom: 14px;
-    }
-    .header-box .subtitle {
-      font-size: 13px;
-      font-weight: 700;
-      color: #2a6f3b;
-      margin-top: 4px;
-    }
-    .header-divider {
-      height: 3px;
-      background: linear-gradient(90deg, #1a3c5e, #2a9d5c, #1a3c5e);
-      border: none;
-      border-radius: 2px;
-      margin: 6px 0 0;
-    }
-    .meta {
-      margin-bottom: 12px;
-      font-size: 13px;
-      font-weight: 700;
-    }
-    table {
+    .p2-table {
       width: 100%;
+      min-width: 760px;
       border-collapse: collapse;
-      font-size: 12px;
+      table-layout: auto;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      background: #f3f8ff;
+      color: #111;
+      line-height: 1.15;
     }
-    th, td {
-      border: 1px solid #000;
+    .p2-table th, .p2-table td {
+      border: 1px solid #6b88a7;
       padding: 4px 6px;
-      color: #000;
-      background: #fff;
-      vertical-align: top;
+      vertical-align: middle;
+      word-break: break-word;
     }
-    th {
-      font-weight: 800;
-    }
+    .p2-table .center { text-align: center; }
+    .p2-table .sr { width: 1px; text-align: center; white-space: nowrap; }
+    .p2-table .disease { width: auto; text-align: left; }
+    .p2-table .opd { width: 1%; text-align: center; white-space: nowrap; }
+    .p2-table .ipd { width: 1%; text-align: center; white-space: nowrap; }
+    .p2-table .title { text-align: center; font-size: 28px; letter-spacing: 0.2px; }
+    .p2-table .subtitle { text-align: center; font-size: 26px; letter-spacing: 0.2px; }
+    .p2-table tbody td:nth-child(3), .p2-table tbody td:nth-child(4) { text-align: center; }
+    .p2-table thead tr:nth-child(1) th { background: #c8ddf3; color: #0f2133; }
+    .p2-table thead tr:nth-child(2) th { background: #bfd7ef; color: #0f2133; }
+    .p2-table thead tr:nth-child(3) th { background: #d9e8f8; color: #13263a; }
+    .p2-table thead tr:nth-child(4) th { background: #c8dff6; color: #13263a; }
+    .p2-table tbody tr:nth-child(odd) { background: #f7fbff; }
+    .p2-table tbody tr:nth-child(even) { background: #eef6ff; }
     @media print {
-      .toolbar { display: none !important; }
-      .header-box {
-        background: #fff !important;
-        border: 2px solid #000 !important;
-      }
-      .header-divider {
-        background: #000 !important;
-      }
-      h1 { color: #000 !important; }
-      .header-box .subtitle { color: #000 !important; }
-      * {
-        color: #000 !important;
-        border-color: #000 !important;
-      }
-      td, th { background: #fff !important; }
-      @page {
-        margin: 8mm;
-        size: A4 landscape;
-      }
+      .no-print, nav, footer, .p2-toolbar, .page-header, .flash-messages, .tabs-card { display: none !important; }
+      html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
+      .p2-wrap { padding: 0 !important; overflow: visible !important; zoom: 0.86; transform-origin: top left; }
+      .p2-table { width: 100% !important; font-size: 8.5pt !important; table-layout: auto !important; line-height: 1.08 !important; }
+      .p2-table th, .p2-table td { border: 1px solid #6b88a7 !important; padding: 2px 3px !important; }
+      .p2-table .title { font-size: 16pt !important; }
+      .p2-table .subtitle { font-size: 12pt !important; }
+      .p2-table thead tr:nth-child(1) th { background: #c8ddf3 !important; }
+      .p2-table thead tr:nth-child(2) th { background: #bfd7ef !important; }
+      .p2-table thead tr:nth-child(3) th { background: #d9e8f8 !important; }
+      .p2-table thead tr:nth-child(4) th { background: #c8dff6 !important; }
+      .p2-table tbody tr:nth-child(odd) { background: #f7fbff !important; }
+      .p2-table tbody tr:nth-child(even) { background: #eef6ff !important; }
+    }
+    @media (max-width: 768px) {
+      .p2-table { font-size: 12px; min-width: 680px; }
+      .p2-table .title { font-size: 22px; }
+      .p2-table .subtitle { font-size: 18px; }
+    }
+    .notes-title {
+      font-size:1.05rem; font-weight:700; color:#d90429; margin-bottom:0.5rem;
+    }
+    .notes-list {
+      font-size:1.05rem; color:#d90429; margin-left:1.2em; font-weight:600; letter-spacing:0.01em;
     }
   </style>
 </head>
 <body>
-  <div class="toolbar">
-    <button class="btn" onclick="window.print()">Print</button>
-    <a class="btn" href="javascript:window.close();">Close</a>
+  <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:1.2rem;width:100%;">
+    <button onclick="window.history.back()" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;box-shadow:0 2px 8px rgba(239,68,68,0.08);font-weight:700;padding:0.35rem 1.1rem;font-size:1rem;border-radius:8px;display:inline-flex;align-items:center;gap:0.5rem;cursor:pointer;">
+      <span style="font-size:1.2em;vertical-align:middle;">&#8592;</span> Back
+    </button>
   </div>
+  <div class="p2-wrap">
+    <table class="p2-table" id="p2-table">
+      <thead>
+        <tr><th class="title center" colspan="4">PROFORMA II (CONSOLIDATED)</th></tr>
+        <tr><th class="subtitle center" colspan="4">MORBIDITY AND MORTALITY REPORT</th></tr>
+        <tr>
+          <th colspan="2" style="text-align:left;">
+            Name of the Health Institution:
+            <span>{{ institution_name or 'PHC POSSI' }}</span>
+          </th>
+          <th colspan="2" class="center">
+            Month &amp; Year:
+            <span>{{ month_year }}</span>
+          </th>
+        </tr>
+        <tr>
+          <th class="sr">Sr. No.</th>
+          <th class="disease">Name of the disease</th>
+          <th class="opd">OPD</th>
+          <th class="ipd">IPD</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set ns = namespace(opd_total=0, ipd_total=0) %}
+        {% for row in rows %}
+        <tr>
+          <td class="sr">{{ row.sr_no }}</td>
+          <td>{{ row.disease_name }}</td>
+          <td>{{ row.opd_count }}</td>
+          <td>{{ row.ipd_count }}</td>
+        </tr>
+        {% set ns.opd_total = ns.opd_total + row.opd_count %}
+        {% set ns.ipd_total = ns.ipd_total + row.ipd_count %}
+        {% endfor %}
+        <tr>
+          <td class="center" colspan="2">Total</td>
+          <td class="center" id="total-opd">{{ ns.opd_total }}</td>
+          <td class="center" id="total-ipd">{{ ns.ipd_total }}</td>
+        </tr>
+      </tbody>
+    </table>
 
-  <div class="header-box">
-    <h1>{{ payload.title }}</h1>
-    <div class="subtitle">Month-Year: {{ payload.month_year }} &nbsp;|&nbsp; User: {{ username }}</div>
-    <hr class="header-divider">
+    <div style="margin-top:1.5rem;">
+      <div class="notes-title">NOTES:</div>
+      <ol class="notes-list">
+        <li>CBHI Official Website <a href="https://www.cbhidghs.gov.in" target="_blank" style="color:#b8001f; text-decoration:underline;">www.cbhidghs.gov.in</a> and CBHI Data Entry Portal <a href="https://www.cbhinp.gov.in" target="_blank" style="color:#b8001f; text-decoration:underline;">www.cbhinp.gov.in</a> may be visited for disease definition and type of health establishment.</li>
+        <li>It is to be ensured that data is entered online in CBHI Data Entry Portal every month regularly latest by 20th of the succeeding month.</li>
+        <li>This form, duly filled and signed in original, should be sent to the respective District Nodal Officer latest by 20th of the succeeding month.</li>
+        <li>One copy of this form, duly filled and signed, should be maintained at the reporting unit as CBHI teams will visit to verify the reported data.</li>
+      </ol>
+    </div>
   </div>
-
-  <table>
-    <thead>
-      <tr>
-        {% for head in payload.headers %}
-        <th>{{ head }}</th>
-        {% endfor %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in payload.rows %}
-      <tr>
-        {% for col in row %}
-        <td>{{ col }}</td>
-        {% endfor %}
-      </tr>
-      {% else %}
-      <tr>
-        <td colspan="{{ payload.headers|length }}" style="text-align:center;">No data available for selected month.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <div style="text-align:center; margin-top:1.5rem;">
+    <button onclick="window.print()" style="padding:0.5rem 1.2rem; font-size:1rem; border-radius:6px; border:1px solid #9fb8d4; background:#eef5ff; color:#162534; cursor:pointer; font-weight:600;">🖨 Print</button>
+    <a href="javascript:window.close();" style="padding:0.5rem 1.2rem; font-size:1rem; border-radius:6px; border:1px solid #9fb8d4; background:#eef5ff; color:#162534; cursor:pointer; font-weight:600; text-decoration:none; margin-left:0.7rem;">Close</a>
+  </div>
 </body>
 </html>

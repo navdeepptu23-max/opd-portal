@@ -7,32 +7,51 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+
     :root {
-      --bg: #0d0f1a;
-      --surface: rgba(255,255,255,0.05);
-      --surface-hover: rgba(255,255,255,0.09);
-      --border: rgba(255,255,255,0.10);
-      --primary: #6c63ff;
-      --primary-dark: #574fd6;
-      --danger: #ff4d6d;
-      --success: #39d98a;
-      --warning: #ffc93c;
-      --info: #38bdf8;
-      --text: #e2e8f0;
-      --text-muted: #94a3b8;
-      --radius: 12px;
-      --radius-sm: 8px;
-      --shadow: 0 8px 32px rgba(0,0,0,0.4);
+      --bg: #f7fafc;
+      --surface: #fff;
+      --surface-hover: #f1f5f9;
+      --border: #d1e7dd;
+      --primary: #22c55e;
+      --primary-dark: #15803d;
+      --secondary: #06b6d4;
+      --secondary-dark: #0e7490;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e42;
+      --info: #0ea5e9;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --shadow: 0 8px 32px rgba(34,197,94,0.10);
     }
 
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg);
+      background: linear-gradient(120deg, #e6f4ea 0%, #f7fafc 100%) fixed;
       color: var(--text);
       min-height: 100vh;
-      background-image:
-        radial-gradient(ellipse 80% 60% at 20% -10%, rgba(108,99,255,0.18) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 50% at 80% 110%, rgba(56,189,248,0.12) 0%, transparent 55%);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: -120px; left: -120px; right: -120px; bottom: -120px;
+      z-index: 0;
+      background: radial-gradient(ellipse 60% 40% at 20% 0%, #bbf7d0 0%, transparent 70%),
+                  radial-gradient(ellipse 40% 30% at 80% 100%, #a7f3d0 0%, transparent 70%),
+                  linear-gradient(120deg, #e6f4ea 0%, #f7fafc 100%);
+      opacity: 0.45;
+      pointer-events: none;
+      animation: bgmove 18s linear infinite alternate;
+    }
+    @keyframes bgmove {
+      0% { background-position: 0% 0%, 100% 100%, 0% 0%; }
+      100% { background-position: 20% 10%, 80% 90%, 0% 0%; }
     }
 
     /* ── Nav ── */
@@ -60,17 +79,33 @@
       height: 56px;
     }
     .nav-brand {
-      font-size: 1.15rem;
-      font-weight: 800;
-      color: var(--primary);
+      font-size: 1.18rem;
+      font-weight: 900;
+      color: var(--primary-dark);
       letter-spacing: 0.5px;
       text-decoration: none;
       display: flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.5rem;
     }
     .nav-brand-icon {
-      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.2rem;
+      height: 2.2rem;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #22c55e 60%, #bbf7d0 100%);
+      box-shadow: 0 2px 8px rgba(34,197,94,0.10);
+      color: #fff;
+      font-size: 1.35rem;
+      border: 2.5px solid #fff;
+      position: relative;
+    }
+    .nav-brand-icon svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      display: block;
     }
     .nav-toggle {
       display: none;
@@ -387,7 +422,14 @@
 <nav>
   <div class="nav-top-row">
     <a class="nav-brand" href="{{ url_for('dashboard') if current_user.is_authenticated else url_for('index') }}">
-      <span class="nav-brand-icon">⚕</span> OPD Portal
+      <span class="nav-brand-icon">
+        <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="15" fill="#22c55e" stroke="#fff" stroke-width="2"/>
+          <rect x="13.2" y="7.5" width="5.6" height="17" rx="2.2" fill="#fff"/>
+          <rect x="7.5" y="13.2" width="17" height="5.6" rx="2.2" fill="#fff"/>
+        </svg>
+      </span>
+      OPD Portal
     </a>
     <button class="nav-toggle" onclick="document.querySelector('.nav-menu').classList.toggle('open')" aria-label="Toggle menu">☰</button>
   </div>
@@ -440,6 +482,11 @@
 </nav>
 
 <div class="container {% block container_class %}{% endblock %}">
+  <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:1.2rem;width:100%;">
+    <button onclick="window.history.back()" class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;box-shadow:0 2px 8px rgba(239,68,68,0.08);font-weight:700;">
+      <span style="font-size:1.2em;vertical-align:middle;">&#8592;</span> Back
+    </button>
+  </div>
   {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
   <div class="alerts">
@@ -453,5 +500,8 @@
   {% block content %}{% endblock %}
 </div>
 
+<footer style="width:100%;text-align:center;padding:1.2rem 0 0.7rem 0;color:var(--text-muted);font-size:0.92rem;letter-spacing:0.02em;">
+  &copy; {{ 2026 }} OPD Portal. All rights reserved. Copyright Navdeep Bagga.
+</footer>
 </body>
 </html>

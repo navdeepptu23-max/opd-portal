@@ -127,58 +127,78 @@
   </div>
 </div>
 
-<div class="p2-wrap" id="export-area">
-  <div class="p2-toolbar no-print">
-    <div class="p2-toolbar-left">
-      <span style="font-size:0.8rem; color:var(--text-muted);">Users Consolidated: <strong>{{ user_count }}</strong></span>
-    </div>
-    <div class="p2-toolbar-right">
-      <button type="button" class="btn-export" onclick="printReport()">🖨 Print</button>
-      <button type="button" class="btn-export" onclick="exportPDF()">📄 PDF</button>
-      <button type="button" class="btn-export" onclick="exportExcel()">📊 Excel</button>
-      <button type="button" class="btn-export" onclick="exportWord()">📝 Word</button>
-    </div>
-  </div>
 
-  <table class="p2-table" id="p2-table">
-    <thead>
-      <tr><th class="title center" colspan="4">PROFORMA II (CONSOLIDATED)</th></tr>
-      <tr><th class="subtitle center" colspan="4">MORBIDITY AND MORTALITY REPORT</th></tr>
-      <tr>
-        <th colspan="2" style="text-align:left;">
-          Name of the Health Institution:
-          <input type="text" id="meta-institution" value="PHC POSSI">
-        </th>
-        <th colspan="2" class="center">
-          Month &amp; Year: {{ month_year }}
-        </th>
-      </tr>
-      <tr>
-        <th class="sr">Sr. No.</th>
-        <th class="disease">Name of the disease</th>
-        <th class="opd">OPD</th>
-        <th class="ipd">IPD</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% set ns = namespace(opd_total=0, ipd_total=0) %}
-      {% for row in rows %}
-      <tr>
-        <td class="sr">{{ row.sr_no }}</td>
-        <td>{{ row.disease_name }}</td>
-        <td><input type="number" min="0" value="{{ row.opd_count }}" data-col="opd"></td>
-        <td><input type="number" min="0" value="{{ row.ipd_count }}" data-col="ipd"></td>
-      </tr>
-      {% set ns.opd_total = ns.opd_total + row.opd_count %}
-      {% set ns.ipd_total = ns.ipd_total + row.ipd_count %}
-      {% endfor %}
-      <tr>
-        <td class="center" colspan="2">Total</td>
-        <td class="center" id="total-opd">{{ ns.opd_total }}</td>
-        <td class="center" id="total-ipd">{{ ns.ipd_total }}</td>
-      </tr>
-    </tbody>
-  </table>
+<div class="p2-wrap" id="export-area">
+  <form method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="month_year" value="{{ month_year }}">
+
+    <div class="p2-toolbar no-print">
+      <div class="p2-toolbar-left">
+        <label>Month &amp; Year</label>
+        <input type="text" name="month_year_display" value="{{ month_year }}" readonly>
+        <span style="font-size:0.8rem; color:var(--text-muted);">Users Consolidated: <strong>{{ user_count }}</strong></span>
+      </div>
+      <div class="p2-toolbar-right">
+        <button type="button" class="btn-export" onclick="printReport()">🖨 Print</button>
+        <button type="button" class="btn-export" onclick="exportPDF()">📄 PDF</button>
+        <button type="button" class="btn-export" onclick="exportExcel()">📊 Excel</button>
+        <button type="button" class="btn-export" onclick="exportWord()">📝 Word</button>
+        <button type="submit" class="btn btn-primary btn-sm">Save Consolidated</button>
+      </div>
+    </div>
+
+    <table class="p2-table" id="p2-table">
+      <thead>
+        <tr><th class="title center" colspan="4">PROFORMA II (CONSOLIDATED)</th></tr>
+        <tr><th class="subtitle center" colspan="4">MORBIDITY AND MORTALITY REPORT</th></tr>
+        <tr>
+          <th colspan="2" style="text-align:left;">
+            Name of the Health Institution:
+            <input type="text" name="institution_name" value="{{ institution_name }}">
+          </th>
+          <th colspan="2" class="center">
+            Month &amp; Year:
+            <input type="text" name="header_month_year" value="{{ month_year }}" style="width:120px; text-align:center; font-weight:700;">
+          </th>
+        </tr>
+        <tr>
+          <th class="sr">Sr. No.</th>
+          <th class="disease">Name of the disease</th>
+          <th class="opd">OPD</th>
+          <th class="ipd">IPD</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set ns = namespace(opd_total=0, ipd_total=0) %}
+        {% for row in rows %}
+        <tr>
+          <td class="sr">{{ row.sr_no }}</td>
+          <td>{{ row.disease_name }}</td>
+          <td><input type="number" min="0" name="opd_{{ row.sr_no }}" value="{{ row.opd_count }}" data-col="opd"></td>
+          <td><input type="number" min="0" name="ipd_{{ row.sr_no }}" value="{{ row.ipd_count }}" data-col="ipd"></td>
+        </tr>
+        {% set ns.opd_total = ns.opd_total + row.opd_count %}
+        {% set ns.ipd_total = ns.ipd_total + row.ipd_count %}
+        {% endfor %}
+        <tr>
+          <td class="center" colspan="2">Total</td>
+          <td class="center" id="total-opd">{{ ns.opd_total }}</td>
+          <td class="center" id="total-ipd">{{ ns.ipd_total }}</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:1.5rem;">
+      <div style="font-size:1.05rem; font-weight:700; color:#d90429; margin-bottom:0.5rem;">NOTES:</div>
+      <ol style="font-size:1.05rem; color:#d90429; margin-left:1.2em; font-weight:600; letter-spacing:0.01em;">
+        <li>CBHI Official Website <a href="https://www.cbhidghs.gov.in" target="_blank" style="color:#b8001f; text-decoration:underline;">www.cbhidghs.gov.in</a> and CBHI Data Entry Portal <a href="https://www.cbhinp.gov.in" target="_blank" style="color:#b8001f; text-decoration:underline;">www.cbhinp.gov.in</a> may be visited for disease definition and type of health establishment.</li>
+        <li>It is to be ensured that data is entered online in CBHI Data Entry Portal every month regularly latest by 20th of the succeeding month.</li>
+        <li>This form, duly filled and signed in original, should be sent to the respective District Nodal Officer latest by 20th of the succeeding month.</li>
+        <li>One copy of this form, duly filled and signed, should be maintained at the reporting unit as CBHI teams will visit to verify the reported data.</li>
+      </ol>
+    </div>
+  </form>
 </div>
 
 <script>

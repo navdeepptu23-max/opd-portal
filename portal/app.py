@@ -1099,6 +1099,8 @@ def _consolidated_report_payload(report_type, month_year):
 
     elif report_type == 'proforma_ii':
         all_rows = ProformaIIRow.query.filter(_month_filter(ProformaIIRow)).all()
+        meta = ProformaIIMeta.query.filter(_month_filter(ProformaIIMeta)).first()
+        institution_name = meta.institution_name if meta and meta.institution_name else 'PHC POSSI'
         agg = {}
         for r in all_rows:
             key = r.sr_no
@@ -1107,12 +1109,28 @@ def _consolidated_report_payload(report_type, month_year):
                             'opd_count': 0, 'ipd_count': 0}
             agg[key]['opd_count'] += (r.opd_count or 0)
             agg[key]['ipd_count'] += (r.ipd_count or 0)
-        _structured_rows = sorted(agg.values(), key=lambda x: x['sr_no'])
+        # Always show all diseases from PROFORMA_II_DEFAULTS in the exact order
+        full_agg = {}
+        for sr_no, disease_name in PROFORMA_II_DEFAULTS:
+            if sr_no in agg:
+                full_agg[sr_no] = agg[sr_no]
+            else:
+                full_agg[sr_no] = {'sr_no': sr_no, 'disease_name': disease_name, 'opd_count': 0, 'ipd_count': 0}
+        _structured_rows = [full_agg[sr_no] for sr_no, _ in PROFORMA_II_DEFAULTS]
         headers = ['Sr No', 'Disease', 'OPD', 'IPD']
         data_rows = [
             [v['sr_no'], v['disease_name'], v['opd_count'], v['ipd_count']]
             for v in _structured_rows
         ]
+        return {
+            'title': report_titles[report_type],
+            'month_year': normalized,
+            'user_count': user_count,
+            'structured_rows': _structured_rows,
+            'headers': headers,
+            'rows': data_rows,
+            'institution_name': institution_name,
+        }
 
     elif report_type in ('cbhi_form1', 'cbhi_form2'):
         ModelClass = CbhiForm1Row if report_type == 'cbhi_form1' else CbhiForm2Row
@@ -2777,11 +2795,11 @@ def consolidated_proforma_view():
     }
 
     structured_rows = payload.get('structured_rows')
-    if structured_rows is not None and report_type in _template_map:
+    if report_type in _template_map:
         return render_template(
             _template_map[report_type],
             month_year=month_year,
-            rows=structured_rows,
+            rows=structured_rows or [],
             user_count=payload.get('user_count', 0),
             report_type=report_type,
             report_labels=report_labels,
