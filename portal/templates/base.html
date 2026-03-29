@@ -5,6 +5,63 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}OPD Portal{% endblock %}</title>
   <style>
+        :root {
+          --night-bg: #181a1b;
+          --night-surface: #23272b;
+          --night-surface-hover: #2c3136;
+          --night-border: #333b44;
+          --night-primary: #22c55e;
+          --night-text: #e5e7eb;
+          --night-text-muted: #94a3b8;
+        }
+
+        body.night-mode {
+          background: linear-gradient(120deg, #23272b 0%, #181a1b 100%) fixed !important;
+          color: var(--night-text) !important;
+        }
+        body.night-mode nav,
+        body.night-mode .card,
+        body.night-mode .container,
+        body.night-mode .container-fluid {
+          background: var(--night-surface) !important;
+          color: var(--night-text) !important;
+          border-color: var(--night-border) !important;
+        }
+        body.night-mode .btn,
+        body.night-mode .btn-ghost,
+        body.night-mode .btn-primary {
+          background: var(--night-surface-hover) !important;
+          color: var(--night-text) !important;
+          border-color: var(--night-border) !important;
+        }
+        body.night-mode .btn-danger {
+          background: #7f1d1d !important;
+          color: #fff !important;
+        }
+        body.night-mode .nav-brand,
+        body.night-mode .nav-links a,
+        body.night-mode .nav-group a,
+        body.night-mode .nav-group button {
+          color: var(--night-text-muted) !important;
+        }
+        body.night-mode .nav-brand-icon {
+          background: #222 !important;
+          color: #fff !important;
+        }
+        body.night-mode .alerts,
+        body.night-mode .alert {
+          background: #23272b !important;
+          color: #f87171 !important;
+          border-color: #7f1d1d !important;
+        }
+        body.night-mode .table-wrap,
+        body.night-mode table,
+        body.night-mode th,
+        body.night-mode td {
+          background: #23272b !important;
+          color: var(--night-text) !important;
+          border-color: var(--night-border) !important;
+        }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 
@@ -420,6 +477,11 @@
 <body>
 
 <nav>
+  <div style="position:absolute;top:18px;right:24px;z-index:200;">
+    <button id="nightModeToggle" class="btn btn-ghost btn-sm" style="background:#222;color:#fff;border:1px solid #444;" onclick="toggleNightMode()">
+      🌙 Night Mode
+    </button>
+  </div>
   <div class="nav-top-row">
     <a class="nav-brand" href="{{ url_for('dashboard') if current_user.is_authenticated else url_for('index') }}">
       <span class="nav-brand-icon">
@@ -503,5 +565,20 @@
 <footer style="width:100%;text-align:center;padding:1.2rem 0 0.7rem 0;color:var(--text-muted);font-size:0.92rem;letter-spacing:0.02em;">
   &copy; {{ 2026 }} OPD Portal. All rights reserved. Copyright Navdeep Bagga.
 </footer>
+</footer>
+<script>
+function toggleNightMode() {
+  const body = document.body;
+  const isNight = body.classList.toggle('night-mode');
+  localStorage.setItem('nightMode', isNight ? '1' : '0');
+  document.getElementById('nightModeToggle').innerHTML = isNight ? '☀️ Day Mode' : '🌙 Night Mode';
+}
+window.addEventListener('DOMContentLoaded', function() {
+  if (localStorage.getItem('nightMode') === '1') {
+    document.body.classList.add('night-mode');
+    document.getElementById('nightModeToggle').innerHTML = '☀️ Day Mode';
+  }
+});
+</script>
 </body>
 </html>
