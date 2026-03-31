@@ -782,6 +782,7 @@ def report_export(report_type, fmt):
             'report_export_print.html',
             payload=payload,
             username=current_user.username,
+            proforma_ii_total_opd=_calculate_proforma_ii_total_opd(month_year, current_user.id),
         )
 
     if fmt == 'csv':
@@ -1090,7 +1091,7 @@ def _consolidated_report_payload(report_type, month_year):
             agg[key]['female_child_u14'] += (r.female_child_u14 or 0)
             agg[key]['total'] += (r.total or 0)
         _structured_rows = sorted(agg.values(), key=lambda x: PROFORMA_HPI_ORDER.get(x['indicator_code'], 9999))
-        headers = ['Code', 'Indicator', 'Male', 'Female', 'Male Child <14', 'Female Child <14', 'Total']
+        headers = ['Code', 'Indicator', 'Male', 'Female', 'Male Child <14', 'Female Child <14', 'Total', 'Remarks']
         data_rows = [
             [v['indicator_code'], v['indicator_label'], v['male'], v['female'],
              v['male_child_u14'], v['female_child_u14'], v['total']]
@@ -1165,7 +1166,7 @@ def _consolidated_report_payload(report_type, month_year):
             'Deaths M', 'Deaths F', 'Deaths TR', 'Deaths Total',
         ]
         data_rows = [
-            [v['sr_no'], v['disease_name'], v['code']] +
+            [v['sr_no'], v['disease_name'], v['code')] +
             [v[f] for f in numeric_fields]
             for v in _structured_rows
         ]
@@ -1722,6 +1723,16 @@ def proforma_ii_editable_report():
         meta.institution_name = (request.form.get('institution_name') or 'PHC POSSI').strip()[:200] or 'PHC POSSI'
 
         rows = ProformaIIRow.query.filter_by(month_year=scoped_month_year).order_by(ProformaIIRow.sr_no.asc()).all()
+
+        # --- Cross-check with Proforma I 1A ---
+        proforma_i_row_1a = ProformaHPIRow.query.filter_by(month_year=scoped_month_year, indicator_code='1A').first()
+        proforma_i_1a_total = proforma_i_row_1a.total if proforma_i_row_1a else 0
+        proforma_ii_opd_total = sum(row.opd_count for row in rows)
+
+        if submit_to_admin and proforma_i_1a_total != proforma_ii_opd_total:
+            flash(f"PERFORMA I 'NO. OF OUTPATIENTS: NEW' (1A) total ({proforma_i_1a_total}) does not match PERFORMA II OPD total ({proforma_ii_opd_total})! Please correct before submitting.", 'danger')
+            return redirect(url_for('proforma_ii_editable_report', month_year=month_year))
+
         if action == 'reset':
             for row in rows:
                 row.opd_count = 0
@@ -2592,10 +2603,10 @@ def consolidated_reports():
                 'username': item.user.username if item.user else f'user_{item.user_id}',
                 'role': item.user.role if item.user else 'unknown',
                 'can_export_package': bool(item.user and current_user.can_manage(item.user)),
-                'p1': {'exists': False, 'total': 0, 'status': '-'},
-                'p2': {'exists': False, 'opd': 0, 'ipd': 0, 'status': '-'},
-                'cbhi1': {'exists': False, 'total': 0, 'status': '-'},
-                'cbhi2': {'exists': False, 'total': 0, 'status': '-'},
+                'p1': {'exists': False, 'status': '-', 'total': 0},
+                'p2': {'exists': False, 'status': '-', 'opd': 0, 'ipd': 0},
+                'cbhi1': {'exists': False, 'status': '-', 'total': 0},
+                'cbhi2': {'exists': False, 'status': '-', 'total': 0},
             })
 
             if item.report_type == 'proforma_i':
@@ -2840,7 +2851,8 @@ def consolidated_proforma_export(fmt):
         return render_template(
             'report_export_print.html',
             payload=payload,
-            username=f'Consolidated ({payload.get("user_count", 0)} users)',
+            username=current_user.username,
+            proforma_ii_total_opd=_calculate_proforma_ii_total_opd(month_year, current_user.id),
         )
 
     if fmt == 'csv':
