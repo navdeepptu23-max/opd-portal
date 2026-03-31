@@ -1,0 +1,49 @@
+<!-- Simple Chatbot Widget HTML -->
+<div id="chatbot-widget" style="position:fixed;bottom:24px;right:24px;z-index:9999;">
+  <div id="chatbot-header" style="background:#15803d;color:#fff;padding:10px 16px;border-radius:12px 12px 0 0;font-weight:700;cursor:pointer;">💬 Chat with us</div>
+  <div id="chatbot-body" style="display:none;background:#fff;border:1px solid #d1e7dd;border-radius:0 0 12px 12px;width:320px;max-width:90vw;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
+    <div id="chatbot-messages" style="height:220px;overflow-y:auto;padding:12px;font-size:0.98rem;color:#222;"></div>
+    <form id="chatbot-form" style="display:flex;border-top:1px solid #e5e7eb;">
+      <input id="chatbot-input" type="text" placeholder="Type your message..." style="flex:1;padding:10px;border:none;border-radius:0 0 0 12px;outline:none;">
+      <button type="submit" style="background:#22c55e;color:#fff;border:none;padding:0 18px;font-weight:700;cursor:pointer;border-radius:0 0 12px 0;">Send</button>
+    </form>
+  </div>
+</div>
+<script>
+const chatbotHeader = document.getElementById('chatbot-header');
+const chatbotBody = document.getElementById('chatbot-body');
+const chatbotForm = document.getElementById('chatbot-form');
+const chatbotInput = document.getElementById('chatbot-input');
+const chatbotMessages = document.getElementById('chatbot-messages');
+
+chatbotHeader.onclick = () => {
+  chatbotBody.style.display = chatbotBody.style.display === 'none' ? 'block' : 'none';
+};
+
+chatbotForm.onsubmit = function(e) {
+  e.preventDefault();
+  const userMsg = chatbotInput.value.trim();
+  if (!userMsg) return;
+  appendMessage('You', userMsg);
+  chatbotInput.value = '';
+  setTimeout(() => appendMessage('Bot', getBotReply(userMsg)), 600);
+};
+
+function appendMessage(sender, text) {
+  const msgDiv = document.createElement('div');
+  msgDiv.innerHTML = `<b>${sender}:</b> ${text}`;
+  msgDiv.style.marginBottom = '8px';
+  chatbotMessages.appendChild(msgDiv);
+  chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+}
+
+function getBotReply(msg) {
+  msg = msg.toLowerCase();
+  if (msg.includes('hello') || msg.includes('hi')) return 'Hello! How can I help you today?';
+  if (msg.includes('report')) return 'You can access reports from the Reports menu.';
+  if (msg.includes('night')) return 'Toggle night mode using the button at the top right.';
+  if (msg.includes('back')) return 'Use the back button at the top right to return.';
+  if (msg.includes('help')) return 'Please describe your issue, and I will try to assist!';
+  return "I'm a simple bot. For more help, contact support.";
+}
+</script>

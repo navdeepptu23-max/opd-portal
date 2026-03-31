@@ -545,8 +545,8 @@
 
 <div class="container {% block container_class %}{% endblock %}">
   <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:1.2rem;width:100%;">
-    <button onclick="window.history.back()" class="btn btn-sm" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;box-shadow:0 2px 8px rgba(239,68,68,0.08);font-weight:700;">
-      <span style="font-size:1.2em;vertical-align:middle;">&#8592;</span> Back
+    <button onclick="window.history.back()" class="btn btn-ghost btn-sm" style="color:#b91c1c;border:1px solid #e5e7eb;background:transparent;font-weight:500;">
+      <span style="font-size:1.1em;vertical-align:middle;">&#8592;</span> Back
     </button>
   </div>
   {% with messages = get_flashed_messages(with_categories=true) %}
@@ -565,6 +565,8 @@
 <footer style="width:100%;text-align:center;padding:1.2rem 0 0.7rem 0;color:var(--text-muted);font-size:0.92rem;letter-spacing:0.02em;">
   &copy; {{ 2026 }} OPD Portal. All rights reserved. Copyright Navdeep Bagga.
 </footer>
+</footer>
+{% include 'chatbot_widget.html' %}
 </footer>
 <script>
 function toggleNightMode() {
