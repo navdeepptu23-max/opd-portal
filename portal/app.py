@@ -1166,7 +1166,7 @@ def _consolidated_report_payload(report_type, month_year):
             'Deaths M', 'Deaths F', 'Deaths TR', 'Deaths Total',
         ]
         data_rows = [
-            [v['sr_no'], v['disease_name'], v['code')] +
+            [v['sr_no'], v['disease_name'], v['code']] +
             [v[f] for f in numeric_fields]
             for v in _structured_rows
         ]
