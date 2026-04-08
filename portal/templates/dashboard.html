@@ -13,6 +13,23 @@
   ⚠️ Running on SQLite (development mode). Data will not persist in production.
 </div>
 {% endif %}
+
+{# Health status widget #}
+{% if health_status %}
+  {% if health_status == 'healthy' %}
+    <div style="background:#22c55e; color:#fff; padding:0.75rem 1.5rem; border-radius:8px; margin-bottom:1.5rem; font-weight:600; text-align:center;">
+      ✅ System Health: <span style="font-weight:700;">Healthy</span>
+    </div>
+  {% elif health_status == 'unhealthy' %}
+    <div style="background:#ff4d6d; color:#fff; padding:0.75rem 1.5rem; border-radius:8px; margin-bottom:1.5rem; font-weight:600; text-align:center;">
+      ❌ System Health: <span style="font-weight:700;">Unhealthy</span>
+    </div>
+  {% else %}
+    <div style="background:#ffc93c; color:#222; padding:0.75rem 1.5rem; border-radius:8px; margin-bottom:1.5rem; font-weight:600; text-align:center;">
+      ⚠️ System Health: <span style="font-weight:700;">Unreachable</span>
+    </div>
+  {% endif %}
+{% endif %}
 <div class="page-header" style="display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
   <div>
     <h1>Dashboard</h1>

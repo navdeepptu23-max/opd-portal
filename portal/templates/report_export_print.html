@@ -126,13 +126,7 @@
           <td class="center" id="total-opd">{{ ns.opd_total }}</td>
           <td class="center" id="total-ipd">{{ ns.ipd_total }}</td>
         </tr>
-        {% if proforma_ii_total_opd is defined and ns.opd_total != proforma_ii_total_opd %}
-        <tr>
-          <td colspan="4" style="background:#fff3cd;color:#856404;text-align:center;font-weight:700;">
-            ⚠️ Warning: OPD Total ({{ ns.opd_total }}) does not match Proforma II OPD Total ({{ proforma_ii_total_opd }})
-          </td>
-        </tr>
-        {% endif %}
+        {# Removed OPD total mismatch warning row #}
       </tbody>
     </table>
 
