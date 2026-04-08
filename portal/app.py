@@ -58,6 +58,16 @@ login_manager.session_protection = None
 app.register_blueprint(morbidity_bp)
 
 
+@app.route('/health')
+def health():
+    try:
+        # Simple DB check for load balancers and uptime probes.
+        db.session.execute(db.text('SELECT 1'))
+        return {'status': 'healthy'}, 200
+    except Exception as e:
+        return {'status': 'unhealthy', 'error': str(e)}, 503
+
+
 @app.before_request
 def _session_debug_before_request():
     if not app.config.get('SESSION_DEBUG'):
@@ -782,7 +792,7 @@ def report_export(report_type, fmt):
             'report_export_print.html',
             payload=payload,
             username=current_user.username,
-            proforma_ii_total_opd=_calculate_proforma_ii_total_opd(month_year, current_user.id),
+
         )
 
     if fmt == 'csv':
@@ -1166,7 +1176,7 @@ def _consolidated_report_payload(report_type, month_year):
             'Deaths M', 'Deaths F', 'Deaths TR', 'Deaths Total',
         ]
         data_rows = [
-            [v['sr_no'], v['disease_name'], v['code')] +
+            [v['sr_no'], v['disease_name'], v['code']] +
             [v[f] for f in numeric_fields]
             for v in _structured_rows
         ]
@@ -2170,6 +2180,18 @@ def dashboard():
     if current_user.is_admin_or_above:
         login_audits = LoginAudit.query.order_by(LoginAudit.created_at.desc()).limit(12).all()
 
+    # Health check fetch
+    import requests
+    health_status = None
+    try:
+        resp = requests.get(request.url_root.rstrip('/') + '/health', timeout=2)
+        if resp.status_code == 200 and resp.json().get('status') == 'healthy':
+            health_status = 'healthy'
+        else:
+            health_status = 'unhealthy'
+    except Exception:
+        health_status = 'unreachable'
+
     return render_template(
         'dashboard.html',
         users=users,
@@ -2182,6 +2204,7 @@ def dashboard():
         login_audits=login_audits,
         using_sqlite=_USING_SQLITE,
         sqlite_on_render=_SQLITE_ON_RENDER,
+        health_status=health_status,
     )
 
 
@@ -2852,7 +2875,7 @@ def consolidated_proforma_export(fmt):
             'report_export_print.html',
             payload=payload,
             username=current_user.username,
-            proforma_ii_total_opd=_calculate_proforma_ii_total_opd(month_year, current_user.id),
+
         )
 
     if fmt == 'csv':
